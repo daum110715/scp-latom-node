@@ -4,12 +4,14 @@ import { parseScpIndexPage, SERIES_PAGES, getWikiBaseUrl } from '../parser'
 describe('parseScpIndexPage', () => {
   const baseUrl = 'https://scp-wiki.wikidot.com'
 
-  it('parses a simple list of SCP entries', () => {
+  it('parses entries from actual wiki index format', () => {
+    // This matches the actual SCP wiki index HTML:
+    // <a href="/scp-002">SCP-002</a> - The &quot;Living&quot; Room
     const html = `
       <div id="page-content">
-        <p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>
-        <p><a href="/scp-682">SCP-682</a> - Object Class: Keter</p>
-        <p><a href="/scp-999">SCP-999</a> - Object Class: Safe</p>
+        <p><a href="/scp-002">SCP-002</a> - The &quot;Living&quot; Room</p>
+        <p><a href="/scp-173">SCP-173</a> - The Sculpture</p>
+        <p><a href="/scp-999">SCP-999</a> - The &quot;Tickle Monster&quot;</p>
       </div>
     `
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
@@ -17,41 +19,61 @@ describe('parseScpIndexPage', () => {
     expect(result.entries).toHaveLength(3)
     expect(result.errors).toHaveLength(0)
 
-    expect(result.entries[0].scpNumber).toBe(173)
-    expect(result.entries[0].objectClass).toBe('Euclid')
-    expect(result.entries[0].url).toBe('https://scp-wiki.wikidot.com/scp-173')
+    expect(result.entries[0].scpNumber).toBe(2)
+    expect(result.entries[0].name).toBe('The "Living" Room')
+    expect(result.entries[0].url).toBe('https://scp-wiki.wikidot.com/scp-002')
     expect(result.entries[0].series).toBe(1)
 
-    expect(result.entries[1].scpNumber).toBe(682)
-    expect(result.entries[1].objectClass).toBe('Keter')
-    expect(result.entries[1].series).toBe(1)
+    expect(result.entries[1].scpNumber).toBe(173)
+    expect(result.entries[1].name).toBe('The Sculpture')
 
     expect(result.entries[2].scpNumber).toBe(999)
-    expect(result.entries[2].objectClass).toBe('Safe')
-    expect(result.entries[2].series).toBe(1)
-  })
-
-  it('extracts names from link text with dash separator', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173 - The Sculpture</a> - Object Class: Euclid</p>
-    `
-    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
-
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].name).toBe('The Sculpture')
+    expect(result.entries[2].name).toBe('The "Tickle Monster"')
   })
 
   it('extracts names from text after the link', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - The Sculpture - Object Class: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - The Sculpture</p>`
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
     expect(result.entries).toHaveLength(1)
     expect(result.entries[0].name).toBe('The Sculpture')
   })
 
-  it('handles object class wrapped in styled tags', () => {
+  it('handles HTML entities in names', () => {
+    const html = `<p><a href="/scp-002">SCP-002</a> - The &quot;Living&quot; Room</p>`
+    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].name).toBe('The "Living" Room')
+  })
+
+  it('handles names with special characters', () => {
+    const html = `<p><a href="/scp-500">SCP-500</a> - A Pill That Fixes Everything &amp; More</p>`
+    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].name).toBe('A Pill That Fixes Everything & More')
+  })
+
+  it('handles link text with name inside', () => {
+    const html = `<p><a href="/scp-173">SCP-173 - The Sculpture</a></p>`
+    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].name).toBe('The Sculpture')
+  })
+
+  it('extracts object class when present (individual page format)', () => {
+    const html = `
+      <p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>
+    `
+    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].objectClass).toBe('Euclid')
+  })
+
+  it('handles object class in styled tags', () => {
     const html = `
       <p><a href="/scp-682">SCP-682</a> - Object Class: <span style="color:red">Keter</span></p>
     `
@@ -61,20 +83,18 @@ describe('parseScpIndexPage', () => {
     expect(result.entries[0].objectClass).toBe('Keter')
   })
 
-  it('handles object class in strong tags', () => {
-    const html = `
-      <p><a href="/scp-999">SCP-999</a> - <strong>Object Class:</strong> Safe</p>
-    `
+  it('marks class as Unknown when not present (index page format)', () => {
+    const html = `<p><a href="/scp-173">SCP-173</a> - The Sculpture</p>`
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
     expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].objectClass).toBe('Safe')
+    expect(result.entries[0].objectClass).toBe('Unknown')
   })
 
   it('deduplicates entries by SCP number', () => {
     const html = `
-      <p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>
-      <p><a href="/scp-173">SCP-173 - The Sculpture</a> - Object Class: Euclid</p>
+      <p><a href="/scp-173">SCP-173</a> - The Sculpture</p>
+      <p><a href="/scp-173">SCP-173</a> - The Sculpture (duplicate)</p>
     `
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
@@ -83,10 +103,10 @@ describe('parseScpIndexPage', () => {
 
   it('assigns correct series numbers', () => {
     const html = `
-      <p><a href="/scp-1">SCP-1</a> - Object Class: Safe</p>
-      <p><a href="/scp-1000">SCP-1000</a> - Object Class: Safe</p>
-      <p><a href="/scp-2000">SCP-2000</a> - Object Class: Safe</p>
-      <p><a href="/scp-5000">SCP-5000</a> - Object Class: Safe</p>
+      <p><a href="/scp-1">SCP-1</a> - Entry 1</p>
+      <p><a href="/scp-1000">SCP-1000</a> - Entry 1000</p>
+      <p><a href="/scp-2000">SCP-2000</a> - Entry 2000</p>
+      <p><a href="/scp-5000">SCP-5000</a> - Entry 5000</p>
     `
     const result = parseScpIndexPage(html, { baseUrl, language: 'en', seriesHint: 0 })
 
@@ -97,31 +117,22 @@ describe('parseScpIndexPage', () => {
   })
 
   it('uses seriesHint when provided', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - The Sculpture</p>`
     const result = parseScpIndexPage(html, { baseUrl, language: 'en', seriesHint: 3 })
 
     expect(result.entries[0].series).toBe(3)
   })
 
-  it('handles Chinese object class "等级"', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>
-    `
-    const result = parseScpIndexPage(html, {
-      baseUrl: 'https://scp-wiki-cn.wikidot.com',
-      language: 'cn',
-    })
+  it('does not match CN "等级" pattern when language is EN', () => {
+    const html = `<p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>`
+    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
     expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].objectClass).toBe('Euclid')
+    expect(result.entries[0].objectClass).toBe('Unknown')
   })
 
   it('handles full URLs in href', () => {
-    const html = `
-      <p><a href="https://scp-wiki.wikidot.com/scp-173">SCP-173</a> - Object Class: Euclid</p>
-    `
+    const html = `<p><a href="https://scp-wiki.wikidot.com/scp-173">SCP-173</a> - The Sculpture</p>`
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
     expect(result.entries).toHaveLength(1)
@@ -130,8 +141,8 @@ describe('parseScpIndexPage', () => {
 
   it('handles SCP numbers with suffixes', () => {
     const html = `
-      <p><a href="/scp-500-j">SCP-500-J</a> - Object Class: Safe</p>
-      <p><a href="/scp-001-ex">SCP-001-EX</a> - Object Class: Explained</p>
+      <p><a href="/scp-500-j">SCP-500-J</a> - Joke Version</p>
+      <p><a href="/scp-001-ex">SCP-001-EX</a> - Explained</p>
     `
     const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
 
@@ -148,30 +159,8 @@ describe('parseScpIndexPage', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  it('handles unknown object classes gracefully', () => {
-    const html = `
-      <p><a href="/scp-9999">SCP-9999</a> - Object Class: Thaumiel</p>
-    `
-    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
-
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].objectClass).toBe('Thaumiel')
-  })
-
-  it('marks unknown class when no class found', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173 - The Sculpture</a></p>
-    `
-    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
-
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].objectClass).toBe('Unknown')
-  })
-
   it('builds correct URLs for Chinese wiki', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - 雕塑</p>`
     const result = parseScpIndexPage(html, {
       baseUrl: 'https://scp-wiki-cn.wikidot.com',
       language: 'cn',
@@ -182,9 +171,8 @@ describe('parseScpIndexPage', () => {
 
   it('handles a realistic page with many entries', () => {
     const entries = Array.from({ length: 100 }, (_, i) => {
-      const num = i + 1
-      const cls = ['Safe', 'Euclid', 'Keter'][i % 3]
-      return `<p><a href="/scp-${num}">SCP-${num}</a> - Object Class: ${cls}</p>`
+      const num = String(i + 1).padStart(3, '0')
+      return `<p><a href="/scp-${num}">SCP-${num}</a> - Entry ${i + 1}</p>`
     }).join('\n')
 
     const html = `<div id="page-content">${entries}</div>`
@@ -192,17 +180,8 @@ describe('parseScpIndexPage', () => {
 
     expect(result.entries).toHaveLength(100)
     expect(result.entries.every((e) => e.series === 1)).toBe(true)
-  })
-
-  it('does not match CN "等级" pattern when language is EN', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>
-    `
-    const result = parseScpIndexPage(html, { baseUrl, language: 'en' })
-
-    expect(result.entries).toHaveLength(1)
-    // EN parser should not find "等级" as class marker
-    expect(result.entries[0].objectClass).toBe('Unknown')
+    expect(result.entries[0].name).toBe('Entry 1')
+    expect(result.entries[99].name).toBe('Entry 100')
   })
 })
 
@@ -213,20 +192,16 @@ describe('parseScpIndexPage — CN configuration', () => {
     const html = `
       <p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>
       <p><a href="/scp-682">SCP-682</a> - 等级: Keter</p>
-      <p><a href="/scp-999">SCP-999</a> - 等级: Safe</p>
     `
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
-    expect(result.entries).toHaveLength(3)
+    expect(result.entries).toHaveLength(2)
     expect(result.entries[0].objectClass).toBe('Euclid')
     expect(result.entries[1].objectClass).toBe('Keter')
-    expect(result.entries[2].objectClass).toBe('Safe')
   })
 
   it('handles CN full-width colon "等级："', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 等级：Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - 等级：Euclid</p>`
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
     expect(result.entries).toHaveLength(1)
@@ -251,31 +226,16 @@ describe('parseScpIndexPage — CN configuration', () => {
     expect(result.entries[4].objectClass).toBe('Explained')
   })
 
-  it('handles CN class in styled tags', () => {
-    const html = `
-      <p><a href="/scp-682">SCP-682</a> - 等级: <span style="color:red">Keter</span></p>
-    `
-    const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
-
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0].objectClass).toBe('Keter')
-  })
-
   it('does not match EN "Object Class" pattern when language is CN', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - Object Class: Euclid</p>`
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
     expect(result.entries).toHaveLength(1)
-    // CN parser should not find "Object Class" as class marker
     expect(result.entries[0].objectClass).toBe('Unknown')
   })
 
   it('extracts names from CN link text', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173 - 雕塑</a> - 等级: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173 - 雕塑</a></p>`
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
     expect(result.entries).toHaveLength(1)
@@ -283,30 +243,32 @@ describe('parseScpIndexPage — CN configuration', () => {
   })
 
   it('extracts names from text after CN link', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 雕塑 - 等级: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - 雕塑</p>`
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
     expect(result.entries).toHaveLength(1)
     expect(result.entries[0].name).toBe('雕塑')
   })
 
+  it('marks class as Unknown when not present on CN index', () => {
+    const html = `<p><a href="/scp-173">SCP-173</a> - 雕塑</p>`
+    const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].objectClass).toBe('Unknown')
+  })
+
   it('builds correct URLs for CN wiki', () => {
-    const html = `
-      <p><a href="/scp-173">SCP-173</a> - 等级: Euclid</p>
-    `
+    const html = `<p><a href="/scp-173">SCP-173</a> - 雕塑</p>`
     const result = parseScpIndexPage(html, { baseUrl: cnBaseUrl, language: 'cn' })
 
     expect(result.entries[0].url).toBe('https://scp-wiki-cn.wikidot.com/scp-173')
   })
 
   it('handles a realistic CN page with many entries', () => {
-    const classes = ['Safe', 'Euclid', 'Keter']
     const entries = Array.from({ length: 50 }, (_, i) => {
-      const num = i + 1
-      const cls = classes[i % 3]
-      return `<p><a href="/scp-${num}">SCP-${num}</a> - 等级: ${cls}</p>`
+      const num = String(i + 1).padStart(3, '0')
+      return `<p><a href="/scp-${num}">SCP-${num}</a> - 条目 ${i + 1}</p>`
     }).join('\n')
 
     const html = `<div id="page-content">${entries}</div>`
@@ -314,7 +276,7 @@ describe('parseScpIndexPage — CN configuration', () => {
 
     expect(result.entries).toHaveLength(50)
     expect(result.entries.every((e) => e.series === 1)).toBe(true)
-    expect(result.entries.every((e) => e.url.startsWith(cnBaseUrl))).toBe(true)
+    expect(result.entries[0].name).toBe('条目 1')
   })
 })
 

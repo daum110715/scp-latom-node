@@ -30,19 +30,21 @@ const EN_KNOWN_CLASSES = [
 ] as const
 
 const EN_CONFIG: ParserConfig = {
-  // Matches: <a href="/scp-173">SCP-173</a> or <a href="http://.../scp-173">SCP-173 - The Sculpture</a>
+  // Matches: <a href="/scp-173">SCP-173</a>
+  // The SCP index page has: <a href="/scp-002">SCP-002</a> - The &quot;Living&quot; Room
+  // Link text is just the number; name follows after </a>
   linkPattern: /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z\-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
 
-  // Matches: Object Class: Safe  /  Object Class: <span style="...">Keter</span>
+  // Index pages don't have Object Class info — only individual pages do
   classPattern: /Object\s+Class\s*:\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
 
-  // Matches: "SCP-173 - The Sculpture" inside link text
+  // Matches name inside link: "SCP-173 - The Sculpture"
   nameFromLinkPattern: /^SCP-\d+[A-Za-z\-]*\s*[-–—:]\s*(.+)$/i,
 
-  // Matches name in text after link, stops at "Object Class" or end
-  nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*[-–—]\s*Object\s+Class|$)/i,
+  // Matches name AFTER link: " - The &quot;Living&quot; Room" (stops at < or end)
+  nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*<|$)/i,
 
-  classMap: {}, // EN classes are already canonical
+  classMap: {},
   knownClasses: EN_KNOWN_CLASSES,
 }
 
@@ -77,14 +79,14 @@ const CN_CONFIG: ParserConfig = {
   // Same link pattern — wikidot uses same HTML structure for CN
   linkPattern: /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z\-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
 
-  // Matches: 等级: Safe  /  等级：Keter  /  等级: <span>Euclid</span>
+  // Index pages don't have Object Class info
   classPattern: /等级[：:]\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|已解除|无效化|未收容|待分级|已解释|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
 
-  // Same name extraction — SCP numbers are universal
+  // Matches name inside link
   nameFromLinkPattern: /^SCP-\d+[A-Za-z\-]*\s*[-–—:]\s*(.+)$/i,
 
-  // Stops at "等级" (Chinese for Object Class)
-  nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*[-–—]\s*等级|$)/i,
+  // Matches name AFTER link, stops at < or end
+  nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*<|$)/i,
 
   classMap: CN_CLASS_MAP,
   knownClasses: CN_KNOWN_CLASSES,
@@ -125,7 +127,7 @@ function buildUrl(path: string, baseUrl: string): string {
 }
 
 /**
- * Strip HTML tags from a string, collapse whitespace.
+ * Strip HTML tags and decode entities, collapse whitespace.
  */
 function stripTags(html: string): string {
   return html
@@ -135,6 +137,9 @@ function stripTags(html: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/\s+/g, ' ')
     .trim()
 }
