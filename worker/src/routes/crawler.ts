@@ -151,6 +151,9 @@ crawler.get('/:lang/series/:n', async (c) => {
 /**
  * POST /api/crawler/:lang/crawl
  * Trigger a new crawl for a specific language.
+ *
+ * Query parameters:
+ *   - limit: Max entries to collect (0 or omit = unlimited)
  */
 crawler.post('/:lang/crawl', async (c) => {
   const lang = c.req.param('lang')
@@ -158,8 +161,13 @@ crawler.post('/:lang/crawl', async (c) => {
     return c.json({ success: false, error: "Invalid language. Use 'en' or 'cn'" }, 400)
   }
 
+  // Forward query params (e.g., ?limit=30) to the DO
+  const url = new URL(c.req.url)
+  const searchParams = url.searchParams.toString()
+  const path = `/crawl${searchParams ? `?${searchParams}` : ''}`
+
   try {
-    const response = await forwardToDo(c.env, lang, '/crawl', { method: 'POST' })
+    const response = await forwardToDo(c.env, lang, path, { method: 'POST' })
     const data = await response.json()
     return c.json(data, response.status as 200)
   } catch (err) {

@@ -73,7 +73,7 @@ export class ScpCrawlerDo {
         return await this.handleSeries(language, seriesNum)
       }
       if (method === 'POST' && path.endsWith('/crawl')) {
-        return await this.handleTriggerCrawl(language)
+        return await this.handleTriggerCrawl(language, url)
       }
 
       return errorResponse('Not found', 404)
@@ -199,7 +199,7 @@ export class ScpCrawlerDo {
     })
   }
 
-  private async handleTriggerCrawl(language: 'en' | 'cn'): Promise<Response> {
+  private async handleTriggerCrawl(language: 'en' | 'cn', url: URL): Promise<Response> {
     const state = await this.getState()
 
     if (state.status === 'crawling') {
@@ -209,12 +209,16 @@ export class ScpCrawlerDo {
       )
     }
 
-    // Manual trigger = full crawl
+    // Parse optional limit parameter
+    const limitParam = url.searchParams.get('limit')
+    const limit = limitParam ? Math.max(1, parseInt(limitParam, 10) || 0) : 0
+
+    // Manual trigger = full crawl (with optional limit)
     const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
     if (typeof ctx.waitUntil === 'function') {
-      ctx.waitUntil(this.crawlAll(language))
+      ctx.waitUntil(this.crawlAll(language, limit))
     } else {
-      this.crawlAll(language).catch(() => {})
+      this.crawlAll(language, limit).catch(() => {})
     }
 
     const crawlingState: CrawlState = {
@@ -226,7 +230,7 @@ export class ScpCrawlerDo {
     return jsonResponse({
       success: true,
       language,
-      message: 'Full crawl triggered',
+      message: limit > 0 ? `Crawl triggered (limit: ${limit} entries)` : 'Full crawl triggered',
       state: crawlingState,
     })
   }
@@ -329,8 +333,9 @@ export class ScpCrawlerDo {
   /**
    * Full crawl — fetches all series pages. Used for manual triggers
    * and first-time initialization.
+   * @param limit - Max entries to collect. 0 = unlimited (all entries).
    */
-  private async crawlAll(language: 'en' | 'cn'): Promise<void> {
+  private async crawlAll(language: 'en' | 'cn', limit = 0): Promise<void> {
     const baseUrl = getWikiBaseUrl(language)
     const allEntries: CrawlEntry[] = []
     const lastCrawlMap: Record<number, number> = {}
@@ -344,6 +349,9 @@ export class ScpCrawlerDo {
     })
 
     for (let i = 0; i < SERIES_PAGES.length; i++) {
+      // Stop early if we've reached the limit
+      if (limit > 0 && allEntries.length >= limit) break
+
       const pageSlug = SERIES_PAGES[i]
       const pageUrl = `${baseUrl}/${pageSlug}`
       const seriesNum = i + 1
@@ -365,9 +373,17 @@ export class ScpCrawlerDo {
         console.warn(`[ScpCrawlerDo] Parse errors on ${pageSlug}:`, parseErrors)
       }
 
-      allEntries.push(...pageEntries)
+      // If limit is set, only take what we need from this page
+      if (limit > 0) {
+        const remaining = limit - allEntries.length
+        allEntries.push(...pageEntries.slice(0, remaining))
+      } else {
+        allEntries.push(...pageEntries)
+      }
+
       lastCrawlMap[seriesNum] = Date.now()
 
+      // Store per-series data (store full page, not truncated)
       await this.state.storage.put(`${STORAGE_KEY_PREFIX_SERIES}${seriesNum}`, pageEntries)
 
       if (i < SERIES_PAGES.length - 1) {
