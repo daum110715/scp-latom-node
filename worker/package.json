@@ -1,0 +1,28 @@
+{
+  "name": "scp-latom-node-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "ci": "npm run typecheck && npm run test",
+    "db:create": "wrangler d1 create scp-latom-node",
+    "db:schema": "wrangler d1 execute scp-latom-node --file=schema.sql",
+    "db:schema:local": "wrangler d1 execute scp-latom-node --local --file=schema.sql"
+  },
+  "dependencies": {
+    "hono": "^4.9.4",
+    "jose": "^6.0.11"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.86.0"
+  }
+}

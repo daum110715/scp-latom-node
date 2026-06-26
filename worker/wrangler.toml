@@ -1,0 +1,12 @@
+name = "scp-latom-node-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+JWT_SECRET = "scp-latom-node-change-me-in-production"
+CORS_ORIGINS = "https://node.scp.lat,https://api.scp.lat,https://scp-docs.pages.dev,https://*.scp-docs.pages.dev,http://localhost:5173,http://localhost:8085"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scp-latom-node"
+database_id = "85985e6c-c19e-43e3-9fc5-45754f2a215c"
