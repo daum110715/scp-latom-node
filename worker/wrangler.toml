@@ -13,7 +13,7 @@ database_id = "85985e6c-c19e-43e3-9fc5-45754f2a215c"
 
 # ─── Durable Objects ─────────────────────────────────────────
 
-[[durable_objects]]
+[durable_objects]
 bindings = [
   { name = "SCP_EN_CRAWLER", class_name = "ScpCrawlerDo" },
   { name = "SCP_CN_CRAWLER", class_name = "ScpCrawlerDo" }
