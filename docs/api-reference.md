@@ -183,6 +183,228 @@ Authorization: Bearer <jwt-token>
 
 ---
 
+## Crawler
+
+The crawler system uses [Durable Objects](https://developers.cloudflare.com/durable-objects/) to crawl the SCP Foundation wiki index pages. Two separate DO instances handle the English and Chinese wikis independently.
+
+### GET `/api/crawler/status`
+
+Get crawl status for both languages. No authentication required.
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "en": {
+    "status": "idle",
+    "lastCrawl": 1719400000000,
+    "totalEntries": 7999
+  },
+  "cn": {
+    "status": "idle",
+    "lastCrawl": 1719400000000,
+    "totalEntries": 5200
+  }
+}
+```
+
+---
+
+### GET `/api/crawler/:lang/status`
+
+Get crawl status for a specific language. No authentication required. Includes incremental crawl progress.
+
+**Parameters:**
+
+- `lang` — Language code: `en` or `cn`
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "language": "en",
+  "state": {
+    "status": "idle",
+    "lastCrawl": 1719400000000,
+    "totalEntries": 7999
+  },
+  "incremental": {
+    "nextSeries": 3,
+    "seriesLastCrawl": {
+      "1": 1719400000000,
+      "2": 1719400000000
+    }
+  }
+}
+```
+
+The `incremental` field shows which series will be crawled next (0-based index) and when each series was last updated. The alarm cycles through all 8 series over 8 days.
+
+**Errors:**
+
+| Status | Condition |
+| ------ | --------- |
+| 400 | Invalid language (must be `en` or `cn`) |
+
+---
+
+### GET `/api/crawler/:lang/entries`
+
+Get crawled entries with optional filtering and pagination. No authentication required.
+
+**Parameters:**
+
+- `lang` — Language code: `en` or `cn`
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+| ----- | ---- | ------- | ----------- |
+| `class` | string | — | Filter by object class (Safe, Euclid, Keter, etc.) |
+| `q` | string | — | Search by SCP number or name |
+| `page` | number | 1 | Page number |
+| `limit` | number | 50 | Items per page (max: 200) |
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "language": "en",
+  "entries": [
+    {
+      "scpNumber": 999,
+      "name": "\"Tickle Monster\"",
+      "objectClass": "Safe",
+      "url": "https://scp-wiki.wikidot.com/scp-999",
+      "series": 1
+    }
+  ],
+  "total": 1234,
+  "page": 1,
+  "limit": 50,
+  "totalPages": 25,
+  "state": {
+    "status": "idle",
+    "lastCrawl": 1719400000000,
+    "totalEntries": 7999
+  }
+}
+```
+
+**Errors:**
+
+| Status | Condition |
+| ------ | --------- |
+| 400 | Invalid language |
+| 503 | Durable Object unavailable |
+
+---
+
+### GET `/api/crawler/:lang/series/:n`
+
+Get entries for a specific series (1-8). No authentication required.
+
+**Parameters:**
+
+- `lang` — Language code: `en` or `cn`
+- `n` — Series number (1-8). Series 1 = SCP-001 to SCP-999, Series 2 = SCP-1000 to SCP-1999, etc.
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "language": "en",
+  "series": 1,
+  "entries": [ ... ],
+  "total": 999
+}
+```
+
+**Errors:**
+
+| Status | Condition |
+| ------ | --------- |
+| 400 | Invalid language or series number |
+
+---
+
+### POST `/api/crawler/:lang/crawl`
+
+Trigger a new crawl for a specific language. No authentication required. Returns immediately while the crawl runs in the background.
+
+**Parameters:**
+
+- `lang` — Language code: `en` or `cn`
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "language": "en",
+  "message": "Crawl triggered",
+  "state": {
+    "status": "crawling",
+    "lastCrawl": 0,
+    "totalEntries": 0
+  }
+}
+```
+
+**Errors:**
+
+| Status | Condition |
+| ------ | --------- |
+| 400 | Invalid language |
+| 409 | Crawl already in progress |
+| 503 | Durable Object unavailable |
+
+---
+
+### Crawler Data Types
+
+#### `CrawlEntry`
+
+```ts
+interface CrawlEntry {
+  scpNumber: number      // SCP designation number (e.g., 173)
+  name: string           // Entry name (e.g., "The Sculpture")
+  objectClass: string    // Object class (Safe, Euclid, Keter, etc.)
+  url: string            // Full URL to wiki page
+  series: number         // Series number (1-8)
+}
+```
+
+#### `CrawlState`
+
+```ts
+interface CrawlState {
+  status: 'idle' | 'crawling' | 'error'
+  lastCrawl: number      // Unix timestamp (ms) of last successful crawl
+  totalEntries: number   // Total entries in cache
+  error?: string         // Error message (only when status is 'error')
+}
+```
+
+#### Incremental Crawl Info
+
+Returned by `GET /api/crawler/:lang/status`:
+
+```ts
+interface IncrementalInfo {
+  nextSeries: number                    // Next series index to crawl (0-based)
+  seriesLastCrawl: Record<number, number> // Series number → last crawl timestamp (ms)
+}
+```
+
+The incremental system crawls 1 series page per alarm cycle (every 24 hours). All 8 series are refreshed over 8 days. Manual triggers (`POST /api/crawler/:lang/crawl`) always perform a full crawl of all series.
+
+---
+
 ## Health Check
 
 ### GET `/api/health`

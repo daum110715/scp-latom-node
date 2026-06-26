@@ -101,8 +101,10 @@ function createEnv(overrides?: Partial<Env>): Env {
     DB: createMockDB() as any,
     JWT_SECRET: TEST_JWT_SECRET,
     CORS_ORIGINS: 'https://scp.lat,https://*.scp.lat',
+    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
+    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
     ...overrides,
-  }
+  } as Env
 }
 
 describe('Auth Routes', () => {

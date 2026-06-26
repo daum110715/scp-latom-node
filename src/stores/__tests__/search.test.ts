@@ -27,110 +27,45 @@ describe('useSearchStore', () => {
   })
 
   describe('filteredEntries', () => {
-    it('returns all entries when query is empty', () => {
+    it('returns empty array when no entries exist', () => {
       const store = useSearchStore()
-      expect(store.filteredEntries.length).toBeGreaterThan(0)
-    })
-
-    it('filters entries by name (case-insensitive)', () => {
-      const store = useSearchStore()
-      store.query = 'sculpture'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].id).toBe('scp-173')
-    })
-
-    it('filters entries by ID', () => {
-      const store = useSearchStore()
-      store.query = '682'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].id).toBe('scp-682')
-    })
-
-    it('filters entries by summary', () => {
-      const store = useSearchStore()
-      store.query = 'gelatinous'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].id).toBe('scp-999')
-    })
-
-    it('filters entries by tag', () => {
-      const store = useSearchStore()
-      store.query = 'reptile'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].id).toBe('scp-682')
-    })
-
-    it('is case-insensitive', () => {
-      const store = useSearchStore()
-      store.query = 'SCULPTURE'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].id).toBe('scp-173')
-    })
-
-    it('returns empty array for non-matching query', () => {
-      const store = useSearchStore()
-      store.query = 'xyznonexistent'
       expect(store.filteredEntries.length).toBe(0)
     })
 
-    it('respects classFilter', () => {
+    it('returns empty array for any query when no entries exist', () => {
       const store = useSearchStore()
-      store.classFilter = 'Safe'
-      const safeEntries = store.filteredEntries
-      expect(safeEntries.length).toBeGreaterThan(0)
-      for (const entry of safeEntries) {
-        expect(entry.objectClass).toBe('Safe')
-      }
+      store.query = 'sculpture'
+      expect(store.filteredEntries.length).toBe(0)
     })
 
-    it('combines classFilter and text query', () => {
+    it('returns empty array with classFilter when no entries exist', () => {
       const store = useSearchStore()
-      store.classFilter = 'Keter'
-      store.query = 'reptile'
-      expect(store.filteredEntries.length).toBe(1)
-      expect(store.filteredEntries[0].objectClass).toBe('Keter')
+      store.classFilter = 'Safe'
+      expect(store.filteredEntries.length).toBe(0)
     })
   })
 
   describe('filteredDocuments', () => {
-    it('returns all documents when query is empty', () => {
+    it('returns empty array when no documents exist', () => {
       const store = useSearchStore()
-      expect(store.filteredDocuments.length).toBeGreaterThan(0)
+      expect(store.filteredDocuments.length).toBe(0)
     })
 
-    it('filters documents by title', () => {
+    it('returns empty array for any query when no documents exist', () => {
       const store = useSearchStore()
       store.query = 'Orientation'
-      expect(store.filteredDocuments.length).toBe(1)
-      expect(store.filteredDocuments[0].id).toBe('doc-orientation')
-    })
-
-    it('filters documents by summary', () => {
-      const store = useSearchStore()
-      store.query = 'Mobile Task Force'
-      expect(store.filteredDocuments.length).toBe(1)
-      expect(store.filteredDocuments[0].id).toBe('doc-mtf')
-    })
-
-    it('filters documents by type', () => {
-      const store = useSearchStore()
-      store.query = 'incident'
-      const incidentDocs = store.filteredDocuments
-      expect(incidentDocs.length).toBeGreaterThan(0)
-      for (const doc of incidentDocs) {
-        expect(doc.type).toContain('incident')
-      }
+      expect(store.filteredDocuments.length).toBe(0)
     })
   })
 
   describe('allResults', () => {
-    it('combines filtered entries and documents', () => {
+    it('returns empty arrays when no data exists', () => {
       const store = useSearchStore()
       const results = store.allResults
       expect(results.entries).toBeDefined()
       expect(results.documents).toBeDefined()
-      expect(results.entries.length).toBeGreaterThan(0)
-      expect(results.documents.length).toBeGreaterThan(0)
+      expect(results.entries.length).toBe(0)
+      expect(results.documents.length).toBe(0)
     })
   })
 

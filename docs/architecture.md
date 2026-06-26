@@ -5,9 +5,9 @@
 SCP Docs is a two-part application:
 
 - **Frontend** — Vue 3 SPA served via Cloudflare Pages at `scp-docs.scp.lat`
-- **Backend** — Hono API on Cloudflare Workers at `api.scp.lat` with D1 database
+- **Backend** — Hono API on Cloudflare Workers at `api.scp.lat` with D1 database and Durable Objects
 
-The frontend handles all UI rendering and routing. The backend handles user authentication and profile management. SCP entries and documents are currently served from static TypeScript data files in the frontend.
+The frontend handles all UI rendering and routing. The backend handles user authentication, profile management, and wiki crawling via Durable Objects.
 
 ## Frontend Architecture
 
@@ -155,6 +155,7 @@ Two Pinia stores:
 | Hono 4.9 | Lightweight web framework for edge |
 | Cloudflare Workers | Serverless runtime |
 | Cloudflare D1 | SQLite-based database |
+| Cloudflare Durable Objects | Stateful crawler instances |
 | jose 6.0 | JWT handling (HS256) |
 | PBKDF2 | Password hashing (Web Crypto API) |
 | Wrangler 4.86 | Development and deployment CLI |
@@ -165,14 +166,18 @@ Two Pinia stores:
 ```
 worker/src/
   index.ts             # Hono app entry: CORS, health check, route mounting, 404, error handler
-  types.ts             # TypeScript interfaces: Env, User, UserPublic, JwtPayload
+  types.ts             # TypeScript interfaces: Env, User, UserPublic, JwtPayload, CrawlEntry, CrawlState
   routes/
     auth.ts            # Auth endpoints: register, login, me, profile
+    crawler.ts         # Crawler endpoints: status, entries, series, trigger crawl
   middleware/
     auth.ts            # JWT Bearer token verification
   utils/
     jwt.ts             # JWT sign/verify using jose (HS256, 24h expiry)
     password.ts        # PBKDF2 password hashing (100k iterations, SHA-256)
+  do/
+    scp-crawler.ts     # Durable Object class for wiki crawling
+    parser.ts          # HTML parser for SCP wiki index pages
 ```
 
 ### Database Schema
@@ -194,6 +199,30 @@ CREATE INDEX IF NOT EXISTS idx_users_codename ON users(codename);
 ```
 
 **Password storage format:** `hex(salt).hex(hash)` where salt is 16 bytes and hash is 32 bytes (PBKDF2, SHA-256, 100,000 iterations).
+
+### Durable Objects — Wiki Crawler
+
+The system uses two Durable Object instances to crawl the SCP Foundation wiki index pages:
+
+- **`SCP_EN_CRAWLER`** — Crawls `scp-wiki.wikidot.com` (English)
+- **`SCP_CN_CRAWLER`** — Crawls `scp-wiki-cn.wikidot.com` (Chinese)
+
+**How it works:**
+
+1. Each DO is identified by a fixed ID (`scp-en-crawler` / `scp-cn-crawler`) — exactly one instance per language
+2. On trigger (`POST /api/crawler/:lang/crawl`), the DO fetches all 8 series pages sequentially (full crawl)
+3. An HTML parser (`do/parser.ts`) extracts SCP number, name, object class, and URL from each page
+4. Parsed entries are stored in DO storage (persistent across requests)
+5. A 24-hour auto-refresh alarm performs **incremental crawling** — 1 series per cycle, rotating through all 8 series over 8 days
+6. Cached data is served instantly via `GET /api/crawler/:lang/entries`
+
+**Incremental crawling:** The DO maintains a cursor (`crawl_cursor`) that advances after each alarm cycle. Each alarm crawls only 1 series page, merges the new data into existing entries (by SCP number), and advances the cursor. This spreads the load evenly — a full refresh completes over 8 days. Manual triggers always do a full crawl of all 8 series at once.
+
+**Rate limiting:** 500ms delay between page fetches, max 2 retries per page, exponential backoff on 429 responses.
+
+**Parser:** Uses regex-based HTML parsing (no DOM parser in Workers). Matches `<a href="/scp-XXX">` links and `Object Class: <class>` patterns. Handles variations in HTML structure across different series pages.
+
+See the [API Reference](api-reference.md) for endpoint details.
 
 ### CORS Configuration
 

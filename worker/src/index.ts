@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import authRoutes from './routes/auth'
+import crawlerRoutes from './routes/crawler'
 import type { Env } from './types'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -43,6 +44,9 @@ app.get('/api/health', (c) => {
 // Auth routes
 app.route('/api/auth', authRoutes)
 
+// Crawler routes
+app.route('/api/crawler', crawlerRoutes)
+
 // 404 fallback
 app.notFound((c) => {
   return c.json({ success: false, error: 'Not found' }, 404)
@@ -55,3 +59,6 @@ app.onError((err, c) => {
 })
 
 export default app
+
+// Re-export Durable Object class for wrangler
+export { ScpCrawlerDo } from './do/scp-crawler'

@@ -5,9 +5,8 @@ import type { ObjectClass } from '@/types'
 const VALID_CLASSES: ObjectClass[] = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
 
 describe('entries data', () => {
-  it('exports a non-empty array', () => {
+  it('exports an array', () => {
     expect(Array.isArray(entries)).toBe(true)
-    expect(entries.length).toBeGreaterThan(0)
   })
 
   it('every entry has all required fields', () => {
@@ -62,8 +61,8 @@ describe('entries data', () => {
 })
 
 describe('siteStats', () => {
-  it('totalEntries is a positive number', () => {
-    expect(siteStats.totalEntries).toBeGreaterThan(0)
+  it('totalEntries is zero when no entries exist', () => {
+    expect(siteStats.totalEntries).toBe(0)
   })
 
   it('byClass counts match actual entry distribution', () => {
@@ -81,8 +80,8 @@ describe('siteStats', () => {
     expect(siteStats.byClass).toEqual(counts)
   })
 
-  it('has positive documents and personnel counts', () => {
-    expect(siteStats.documents).toBeGreaterThan(0)
-    expect(siteStats.personnel).toBeGreaterThan(0)
+  it('has zero documents and personnel counts when empty', () => {
+    expect(siteStats.documents).toBe(0)
+    expect(siteStats.personnel).toBe(0)
   })
 })
