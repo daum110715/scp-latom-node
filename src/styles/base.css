@@ -17,6 +17,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -26,6 +27,7 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-primary);
   overflow-x: hidden;
+  overscroll-behavior-y: none;
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='3' x2='12' y2='9' stroke='%23c9a44a' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='12' y1='15' x2='12' y2='21' stroke='%23c9a44a' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='12' x2='9' y2='12' stroke='%23c9a44a' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='15' y1='12' x2='21' y2='12' stroke='%23c9a44a' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='2' fill='none' stroke='%23c9a44a' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E") 12 12, crosshair;
 }
 

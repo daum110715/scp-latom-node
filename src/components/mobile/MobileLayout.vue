@@ -22,7 +22,5 @@ import MobileNav from './MobileNav.vue'
 .mobile-content {
   padding-top: 52px;
   padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  min-height: 100vh;
-  min-height: 100dvh;
 }
 </style>
