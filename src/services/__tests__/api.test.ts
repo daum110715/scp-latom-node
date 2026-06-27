@@ -24,7 +24,7 @@ describe('api client', () => {
 
       expect(mockFetch).toHaveBeenCalledOnce()
       const [url, options] = mockFetch.mock.calls[0]
-      expect(url).toBe('https://api.scp.lat/api/v1/crawler/status')
+      expect(url).toBe('https://api.scp.lat/api/crawler/status')
       expect(options.method).toBe('GET')
       expect(options.headers['Content-Type']).toBe('application/json')
       expect(options.body).toBeUndefined()
@@ -131,7 +131,7 @@ describe('api client', () => {
       await apiPost('/auth/register', { codename: 'test', password: 'pass1234' })
 
       const [url, options] = mockFetch.mock.calls[0]
-      expect(url).toBe('https://api.scp.lat/api/v1/auth/register')
+      expect(url).toBe('https://api.scp.lat/api/auth/register')
       expect(options.method).toBe('POST')
       expect(JSON.parse(options.body)).toEqual({ codename: 'test', password: 'pass1234' })
     })
@@ -163,7 +163,7 @@ describe('api client', () => {
       await apiPut('/auth/profile', { codename: 'new_name' })
 
       const [url, options] = mockFetch.mock.calls[0]
-      expect(url).toBe('https://api.scp.lat/api/v1/auth/profile')
+      expect(url).toBe('https://api.scp.lat/api/auth/profile')
       expect(options.method).toBe('PUT')
       expect(JSON.parse(options.body)).toEqual({ codename: 'new_name' })
       expect(options.headers['Authorization']).toBe('Bearer my-token')

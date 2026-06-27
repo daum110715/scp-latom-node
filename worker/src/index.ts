@@ -20,8 +20,8 @@ function isOriginAllowed(origin: string, allowed: string): boolean {
   return false
 }
 
-// CORS — applied to all versioned API routes
-app.use('/api/v1/*', cors({
+// CORS
+app.use('/api/*', cors({
   origin: (origin, c) => {
     if (!origin) return ''
     const allowedList = (c.env.CORS_ORIGINS || '').split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -34,7 +34,7 @@ app.use('/api/v1/*', cors({
   maxAge: 86400,
 }))
 
-// Health check (unversioned — operational endpoint)
+// Health check
 app.get('/api/health', (c) => {
   return c.json({
     success: true,
@@ -44,13 +44,20 @@ app.get('/api/health', (c) => {
   })
 })
 
-// ─── v1 Routes ─────────────────────────────────────────────
+// Auth routes
+app.route('/api/auth', authRoutes)
 
-app.route('/api/v1/auth', authRoutes)
-app.route('/api/v1/crawler', crawlerRoutes)
-app.route('/api/v1/history', historyRoutes)
-app.route('/api/v1/proposals', proposalRoutes)
-app.route('/api/v1/bookmarks', bookmarkRoutes)
+// Crawler routes
+app.route('/api/crawler', crawlerRoutes)
+
+// History routes
+app.route('/api/history', historyRoutes)
+
+// Proposal routes
+app.route('/api/proposals', proposalRoutes)
+
+// Bookmark routes
+app.route('/api/bookmarks', bookmarkRoutes)
 
 // 404 fallback
 app.notFound((c) => {
