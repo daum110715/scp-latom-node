@@ -113,11 +113,13 @@ export class ScpCrawlerDo {
     const state = await this.getStateFromD1(language)
     const cursor = await this.state.storage.get<number>(STORAGE_KEY_CURSOR) ?? 0
     const lastCrawlMap = await this.state.storage.get<Record<number, number>>(STORAGE_KEY_LAST_CRAWL_MAP) ?? {}
+    const classDistribution = await this.getClassDistribution(language)
 
     return jsonResponse({
       success: true,
       language,
       state,
+      classDistribution,
       incremental: { nextSeries: cursor, seriesLastCrawl: lastCrawlMap },
     })
   }
@@ -240,12 +242,13 @@ export class ScpCrawlerDo {
   private async handleEntryContent(language: 'en' | 'cn', scpNumber: number): Promise<Response> {
     // 1. Check D1 for cached content
     const row = await this.env.DB.prepare(
-      'SELECT name, object_class, content, content_fetched_at FROM scp_entries WHERE scp_number = ? AND language = ?'
+      'SELECT name, object_class, content, content_fetched_at, content_error FROM scp_entries WHERE scp_number = ? AND language = ?'
     ).bind(scpNumber, language).first<{
       name: string
       object_class: string
       content: string | null
       content_fetched_at: string | null
+      content_error: string | null
     }>()
 
     if (!row) {
@@ -255,8 +258,8 @@ export class ScpCrawlerDo {
       }, 404)
     }
 
-    // 2. If content is cached, return it
-    if (row.content) {
+    // 2. If content is cached (explicit null check — empty string is valid), return it
+    if (row.content !== null && row.content !== undefined) {
       const resp: EntryContentResponse = {
         success: true,
         scpNumber,
@@ -270,7 +273,21 @@ export class ScpCrawlerDo {
       return jsonResponse(resp)
     }
 
-    // 3. Content not cached — return pending and kick off background fetch
+    // 3. If a previous fetch failed, return error (don't retry automatically)
+    if (row.content_error) {
+      const resp: EntryContentResponse = {
+        success: true,
+        scpNumber,
+        language,
+        status: 'error',
+        name: row.name,
+        objectClass: row.object_class,
+        error: row.content_error,
+      }
+      return jsonResponse(resp)
+    }
+
+    // 4. Content not cached — return pending and kick off background fetch
     const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
     if (typeof ctx.waitUntil === 'function') {
       ctx.waitUntil(this.fetchAndStoreEntryContent(language, scpNumber))
@@ -329,7 +346,7 @@ export class ScpCrawlerDo {
    * Uses parallel batched fetching: processes `batchSize` entries concurrently
    * per batch, with a short delay between batches for rate limiting.
    */
-  private async backfillUnknownClasses(language: 'en' | 'cn', maxEntries = 1000, batchSize = 3): Promise<number> {
+  private async backfillUnknownClasses(language: 'en' | 'cn', maxEntries = 2000, batchSize = 5): Promise<number> {
     const baseUrl = getWikiBaseUrl(language)
 
     // Find entries still marked Unknown
@@ -395,7 +412,7 @@ export class ScpCrawlerDo {
 
       // Delay between batches for rate limiting
       if (i + batchSize < entries.length) {
-        await delay(humanDelay(300))
+        await delay(humanDelay(150))
       }
     }
 
@@ -404,6 +421,22 @@ export class ScpCrawlerDo {
   }
 
   // ─── D1 Helpers ─────────────────────────────────────────
+
+  /**
+   * Query class distribution from D1 for a language.
+   * Returns a map of object_class → count.
+   */
+  private async getClassDistribution(language: 'en' | 'cn'): Promise<Record<string, number>> {
+    const rows = await this.env.DB.prepare(
+      'SELECT object_class, COUNT(*) as count FROM scp_entries WHERE language = ? GROUP BY object_class'
+    ).bind(language).all<{ object_class: string; count: number }>()
+
+    const dist: Record<string, number> = {}
+    for (const r of rows.results) {
+      dist[r.object_class] = r.count
+    }
+    return dist
+  }
 
   private async getStateFromD1(language: 'en' | 'cn'): Promise<CrawlState> {
     const row = await this.env.DB.prepare(
@@ -610,8 +643,11 @@ export class ScpCrawlerDo {
       'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?'
     ).bind(language).first<{ total: number }>()
 
+    const classDist = await this.getClassDistribution(language)
+    const unknownCount = classDist['Unknown'] ?? 0
+
     const syncResult: SyncResult = { added, changed, unchanged }
-    console.log(`[ScpCrawlerDo] Daily crawl ${language}: +${added} ~${changed} =${unchanged} (${toUpsert.length} upserted)`)
+    console.log(`[ScpCrawlerDo] Daily crawl ${language}: +${added} ~${changed} =${unchanged} (${toUpsert.length} upserted) | total=${totalRow?.total ?? 0} unknown=${unknownCount}`)
 
     await this.state.storage.put(STORAGE_KEY_LAST_CRAWL_MAP, lastCrawlMap)
 
@@ -699,6 +735,14 @@ export class ScpCrawlerDo {
     const totalRow = await this.env.DB.prepare(
       'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?'
     ).bind(language).first<{ total: number }>()
+
+    const classDist = await this.getClassDistribution(language)
+    const unknownCount = classDist['Unknown'] ?? 0
+
+    console.log(`[ScpCrawlerDo] Full crawl ${language}: collected=${collected.length} errors=${errors.length} | total=${totalRow?.total ?? 0} unknown=${unknownCount}`)
+    if (errors.length > 0) {
+      console.log(`[ScpCrawlerDo] Full crawl ${language} errors: ${errors.join('; ')}`)
+    }
 
     await this.state.storage.put(STORAGE_KEY_CURSOR, 0)
     await this.state.storage.put(STORAGE_KEY_LAST_CRAWL_MAP, lastCrawlMap)

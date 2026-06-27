@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProposalsStore } from '@/stores/proposals'
 import { useAuthStore } from '@/stores/auth'
 import Badge from '@/components/common/Badge.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const store = useProposalsStore()
 const auth = useAuthStore()
 
@@ -33,9 +35,10 @@ const dailyUsed = computed(() => {
 
 function toggleForm() {
   showForm.value = !showForm.value
-  if (showForm.value && !formContent.value) {
-    formContent.value = t('proposals.template')
-  }
+}
+
+function viewDetail(id: number) {
+  router.push(`/proposals/${id}`)
 }
 
 async function submitProposal() {
@@ -166,6 +169,8 @@ onMounted(() => {
         <p class="proposal-author">{{ t('proposals.by', { author: p.authorCodename }) }}</p>
 
         <div class="proposal-content-preview">{{ p.content.slice(0, 200) }}{{ p.content.length > 200 ? '...' : '' }}</div>
+
+        <button class="view-btn" @click="viewDetail(p.id)">{{ t('proposals.view') }}</button>
 
         <div class="proposal-footer">
           <div class="vote-counts">
@@ -408,8 +413,27 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   white-space: pre-wrap;
+}
+
+.view-btn {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .proposal-footer {

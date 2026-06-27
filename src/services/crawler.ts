@@ -23,6 +23,7 @@ export interface CrawlerStatusResponse {
   success: boolean
   language: string
   state: CrawlState
+  classDistribution?: Record<string, number>
   incremental?: {
     nextSeries: number
     seriesLastCrawl: Record<number, number>
@@ -33,6 +34,8 @@ export interface CrawlerOverallStatusResponse {
   success: boolean
   en: CrawlState
   cn: CrawlState
+  enClassDistribution?: Record<string, number>
+  cnClassDistribution?: Record<string, number>
 }
 
 export interface CrawlerEntriesResponse {

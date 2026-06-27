@@ -58,13 +58,15 @@ crawler.get('/status', async (c) => {
       forwardToDo(c.env, 'cn', '/status'),
     ])
 
-    const enData = await enRes.json<{ success: boolean; state: unknown }>()
-    const cnData = await cnRes.json<{ success: boolean; state: unknown }>()
+    const enData = await enRes.json<{ success: boolean; state: unknown; classDistribution?: Record<string, number> }>()
+    const cnData = await cnRes.json<{ success: boolean; state: unknown; classDistribution?: Record<string, number> }>()
 
     return c.json({
       success: true,
       en: enData.state,
       cn: cnData.state,
+      enClassDistribution: enData.classDistribution,
+      cnClassDistribution: cnData.classDistribution,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

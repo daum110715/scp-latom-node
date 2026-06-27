@@ -33,6 +33,9 @@ export const useCrawlerStore = defineStore('crawler', () => {
     cn: null,
   })
 
+  // Class distribution for current language
+  const classDistribution = ref<Record<string, number> | null>(null)
+
   // Filtering & pagination
   const classFilter = ref<string | null>(null)
   const searchQuery = ref('')
@@ -47,6 +50,7 @@ export const useCrawlerStore = defineStore('crawler', () => {
   const isCrawling = computed(() => state.value?.status === 'crawling')
   const isError = computed(() => state.value?.status === 'error')
   const hasData = computed(() => entries.value.length > 0 || total.value > 0)
+  const unknownCount = computed(() => classDistribution.value?.['Unknown'] ?? 0)
   const lastCrawlTime = computed(() => {
     if (!state.value?.lastCrawl) return null
     return new Date(state.value.lastCrawl)
@@ -108,6 +112,9 @@ export const useCrawlerStore = defineStore('crawler', () => {
     const res = await fetchCrawlerStatus(language.value)
     if (res.ok) {
       state.value = res.data.state
+      if (res.data.classDistribution) {
+        classDistribution.value = res.data.classDistribution
+      }
       if (res.data.incremental) {
         incremental.value = res.data.incremental
       }
@@ -152,6 +159,7 @@ export const useCrawlerStore = defineStore('crawler', () => {
     error,
     overallState,
     incremental,
+    classDistribution,
     classFilter,
     searchQuery,
     page,
@@ -164,6 +172,7 @@ export const useCrawlerStore = defineStore('crawler', () => {
     isCrawling,
     isError,
     hasData,
+    unknownCount,
     lastCrawlTime,
 
     // Actions
