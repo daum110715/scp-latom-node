@@ -14,7 +14,6 @@ const activeClass = ref<ObjectClass | null>(null)
 
 const objectClasses: ObjectClass[] = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
 
-// Debounced search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, (val) => {
   if (searchTimeout) clearTimeout(searchTimeout)
@@ -76,7 +75,7 @@ onMounted(() => {
 
     <!-- Loading State -->
     <div v-if="crawler.loading && !crawler.hasData" class="loading-state">
-      <div class="skeleton" v-for="i in 10" :key="i" />
+      <div class="skeleton shimmer" v-for="i in 10" :key="i" :style="{ animationDelay: `${i * 100}ms` }" />
     </div>
 
     <!-- Error State -->
@@ -130,7 +129,7 @@ onMounted(() => {
         </span>
       </div>
 
-      <div class="entries-list">
+      <div class="entries-list stagger-children">
         <router-link
           v-for="entry in crawler.entries"
           :key="entry.scpNumber"
@@ -190,6 +189,7 @@ onMounted(() => {
 
 .page-header {
   margin-bottom: var(--space-xl);
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
 }
 
 .page-header h1 {
@@ -208,6 +208,7 @@ onMounted(() => {
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
   flex-wrap: wrap;
+  animation: fade-up 600ms var(--ease-out-expo) 100ms backwards;
 }
 
 .lang-btn {
@@ -224,12 +225,14 @@ onMounted(() => {
 .lang-btn:hover {
   border-color: var(--border-default);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .lang-btn.active {
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
   color: var(--color-primary);
+  box-shadow: 0 0 12px var(--color-primary-muted);
 }
 
 .crawl-info {
@@ -259,6 +262,7 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  animation: fade-up 600ms var(--ease-out-expo) 200ms backwards;
 }
 
 .search-wrap {
@@ -270,6 +274,7 @@ onMounted(() => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-tertiary);
+  transition: all var(--transition-fast);
 }
 
 .search-wrap:focus-within {
@@ -306,11 +311,13 @@ onMounted(() => {
 
 .class-filter-btn:hover {
   border-color: var(--border-default);
+  transform: translateY(-1px);
 }
 
 .class-filter-btn.active {
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
+  box-shadow: 0 0 12px var(--color-primary-muted);
 }
 
 /* Results Info */
@@ -352,12 +359,30 @@ onMounted(() => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   text-decoration: none;
-  transition: all var(--transition-normal);
+  transition: all 400ms var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+
+.entry-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--color-primary);
+  transition: width 300ms var(--ease-out-expo);
 }
 
 .entry-row:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 0 16px var(--color-primary-muted);
+  box-shadow: 0 0 20px var(--color-primary-muted);
+  transform: translateX(4px);
+}
+
+.entry-row:hover::before {
+  width: 3px;
 }
 
 .entry-left {
@@ -384,6 +409,11 @@ onMounted(() => {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
+  transition: color var(--transition-fast);
+}
+
+.entry-row:hover .entry-name {
+  color: var(--color-primary);
 }
 
 .entry-class {
@@ -421,6 +451,7 @@ onMounted(() => {
 .page-btn:hover:not(:disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .page-btn:disabled {
@@ -445,17 +476,28 @@ onMounted(() => {
   height: 80px;
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .error-state {
   text-align: center;
   padding: var(--space-3xl);
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
 }
 
 .error-icon {
@@ -473,11 +515,18 @@ onMounted(() => {
   border: none;
   color: white;
   cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.retry-btn:hover {
+  background: color-mix(in srgb, var(--color-danger) 90%, white);
+  transform: translateY(-1px);
 }
 
 .empty-state {
   text-align: center;
   padding: var(--space-3xl);
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
 }
 
 .empty-icon {

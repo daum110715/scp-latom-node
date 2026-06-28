@@ -15,6 +15,7 @@ const { t } = useI18n()
         <span class="footer-copy">{{ t('site.tagline') }}</span>
       </div>
     </div>
+    <div class="footer-glow"></div>
   </footer>
 </template>
 
@@ -23,6 +24,19 @@ const { t } = useI18n()
   margin-top: var(--space-3xl);
   padding: var(--space-lg) 0;
   border-top: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.footer-glow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.5;
 }
 
 .footer-content {
@@ -46,6 +60,11 @@ const { t } = useI18n()
 .footer-brand {
   color: var(--text-secondary);
   font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.footer-brand:hover {
+  color: var(--color-primary);
 }
 
 .footer-divider {
@@ -54,6 +73,8 @@ const { t } = useI18n()
 
 .footer-node {
   color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
 
 .footer-right {
@@ -63,6 +84,11 @@ const { t } = useI18n()
 .footer-copy {
   color: var(--text-tertiary);
   font-style: italic;
+  transition: color var(--transition-fast);
+}
+
+.footer-copy:hover {
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {

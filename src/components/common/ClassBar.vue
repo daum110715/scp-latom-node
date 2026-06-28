@@ -38,6 +38,24 @@ const classColors: Record<ObjectClass, string> = {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+  animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+@keyframes indicator-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.class-bar:hover .class-indicator {
+  transform: scale(1.4);
+  animation: none;
 }
 
 .class-label {
@@ -46,5 +64,10 @@ const classColors: Record<ObjectClass, string> = {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.class-bar:hover .class-label {
+  color: var(--text-primary);
 }
 </style>

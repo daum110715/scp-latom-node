@@ -60,16 +60,18 @@ const breadcrumbs = computed(() => {
       </button>
 
       <button class="icon-btn" @click="toggleTheme" :title="theme === 'dark' ? t('header.lightMode') : t('header.darkMode')">
-        <svg v-if="theme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
+        <Transition name="fade" mode="out-in">
+          <svg v-if="theme === 'dark'" key="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg v-else key="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </Transition>
       </button>
 
       <!-- Auth: logged in -->
@@ -93,15 +95,23 @@ const breadcrumbs = computed(() => {
   left: 0;
   right: 0;
   height: var(--header-height);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-lg);
   z-index: var(--z-header);
-  backdrop-filter: blur(12px);
-  background: color-mix(in srgb, var(--bg-surface) 85%, transparent);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--glass-bg);
+  animation: header-in 600ms var(--ease-out-expo) backwards;
+}
+
+@keyframes header-in {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
 }
 
 .header-left {
@@ -114,16 +124,22 @@ const breadcrumbs = computed(() => {
   gap: var(--space-sm);
   color: var(--text-primary);
   text-decoration: none;
+  transition: all var(--transition-fast);
 }
 
 .logo-link:hover {
   color: var(--text-primary);
 }
 
+.logo-link:hover .logo-icon {
+  transform: rotate(90deg);
+}
+
 .logo-icon {
   width: 32px;
   height: 32px;
   color: var(--color-primary);
+  transition: transform 500ms var(--ease-out-back);
 }
 
 .logo-text {
@@ -157,6 +173,7 @@ const breadcrumbs = computed(() => {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   font-weight: 500;
+  transition: color var(--transition-fast);
 }
 
 .header-right {
@@ -183,6 +200,7 @@ const breadcrumbs = computed(() => {
 .search-btn:hover {
   border-color: var(--border-default);
   color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .search-label {
@@ -231,6 +249,7 @@ kbd {
 .lang-btn:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
+  transform: translateY(-1px);
 }
 
 .icon-btn {
@@ -242,11 +261,13 @@ kbd {
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
+  overflow: hidden;
 }
 
 .icon-btn:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 /* Auth buttons */
@@ -260,12 +281,28 @@ kbd {
   text-decoration: none;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-100%);
+  transition: transform 500ms ease;
 }
 
 .login-btn:hover {
   background: var(--color-primary-hover);
   color: var(--text-inverse);
-  box-shadow: 0 2px 8px var(--color-primary-muted);
+  box-shadow: 0 4px 16px var(--color-primary-muted);
+  transform: translateY(-1px);
+}
+
+.login-btn:hover::before {
+  transform: translateX(100%);
 }
 
 .user-btn {
@@ -284,6 +321,7 @@ kbd {
 .user-btn:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
+  transform: translateY(-1px);
 }
 
 .user-avatar {
@@ -299,6 +337,12 @@ kbd {
   font-weight: 700;
   font-family: var(--font-mono);
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.user-btn:hover .user-avatar {
+  background: var(--color-primary);
+  color: var(--text-inverse);
 }
 
 .user-codename {

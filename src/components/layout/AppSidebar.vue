@@ -21,12 +21,13 @@ const navItems = [
   <aside class="sidebar" :class="{ collapsed }">
     <nav class="nav">
       <router-link
-        v-for="item in navItems"
+        v-for="(item, index) in navItems"
         :key="item.path"
         :to="item.path"
         class="nav-item"
         :class="{ active: route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path)) }"
         :title="collapsed ? t(item.labelKey) : undefined"
+        :style="{ animationDelay: `${index * 50 + 200}ms` }"
       >
         <span class="nav-icon">{{ item.icon }}</span>
         <span class="nav-label">{{ t(item.labelKey) }}</span>
@@ -102,7 +103,15 @@ const navItems = [
   padding: var(--space-md) 0;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width var(--transition-normal);
+  transition: width 400ms var(--ease-out-expo);
+  animation: sidebar-in 500ms var(--ease-out-expo) backwards;
+}
+
+@keyframes sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
 }
 
 .sidebar.collapsed {
@@ -129,11 +138,20 @@ const navItems = [
   transition: all var(--transition-fast);
   position: relative;
   white-space: nowrap;
+  animation: nav-item-in 400ms var(--ease-out-expo) backwards;
+}
+
+@keyframes nav-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
 }
 
 .nav-item:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+  transform: translateX(2px);
 }
 
 .nav-item.active {
@@ -151,6 +169,14 @@ const navItems = [
   height: 20px;
   background: var(--color-primary);
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  animation: indicator-in 300ms var(--ease-out-back) backwards;
+}
+
+@keyframes indicator-in {
+  from {
+    height: 0;
+    opacity: 0;
+  }
 }
 
 .nav-icon {
@@ -158,6 +184,11 @@ const navItems = [
   width: 24px;
   text-align: center;
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
 }
 
 .nav-label {
@@ -221,6 +252,16 @@ const navItems = [
   border-radius: 50%;
   background: var(--color-success);
   box-shadow: 0 0 6px var(--color-success);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--color-success);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--color-success);
+  }
 }
 
 .collapse-btn {
@@ -243,11 +284,16 @@ const navItems = [
 .collapse-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+  transform: scale(1.1);
 }
 
 .collapsed .collapse-btn {
   right: 50%;
   transform: translateX(50%);
+}
+
+.collapsed .collapse-btn:hover {
+  transform: translateX(50%) scale(1.1);
 }
 
 /* Mobile nav */
@@ -274,15 +320,24 @@ const navItems = [
   color: var(--text-tertiary);
   text-decoration: none;
   font-size: var(--text-xs);
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .mobile-nav-item.active {
   color: var(--color-primary);
 }
 
+.mobile-nav-item:active {
+  transform: scale(0.95);
+}
+
 .mobile-nav-icon {
   font-size: var(--text-lg);
+  transition: transform var(--transition-fast);
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  transform: scale(1.15);
 }
 
 @media (max-width: 768px) {

@@ -28,7 +28,7 @@ const recent = computed(() => props.entries.slice(0, 4))
       </router-link>
     </div>
 
-    <div v-if="recent.length" class="entries-grid">
+    <div v-if="recent.length" class="entries-grid stagger-children">
       <router-link
         v-for="entry in recent"
         :key="entry.scpNumber"
@@ -43,6 +43,7 @@ const recent = computed(() => props.entries.slice(0, 4))
         <div class="entry-footer">
           <Badge :variant="entry.objectClass.toLowerCase() as any">{{ entry.objectClass }}</Badge>
         </div>
+        <div class="entry-shine"></div>
       </router-link>
     </div>
 
@@ -80,10 +81,20 @@ const recent = computed(() => props.entries.slice(0, 4))
   color: var(--color-accent);
   text-decoration: none;
   font-weight: 500;
+  transition: all var(--transition-fast);
 }
 
 .section-link:hover {
   color: var(--color-accent-hover);
+  gap: 8px;
+}
+
+.section-link svg {
+  transition: transform var(--transition-fast);
+}
+
+.section-link:hover svg {
+  transform: translateX(2px);
 }
 
 .entries-grid {
@@ -98,15 +109,32 @@ const recent = computed(() => props.entries.slice(0, 4))
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   text-decoration: none;
-  transition: all var(--transition-normal);
+  transition: all 400ms var(--ease-out-expo);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .entry-card:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 0 20px var(--color-primary-muted);
-  transform: translateY(-2px);
+  box-shadow: 0 0 24px var(--color-primary-muted), var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.entry-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201, 164, 74, 0.05), transparent);
+  transition: left 600ms ease;
+  pointer-events: none;
+}
+
+.entry-card:hover .entry-shine {
+  left: 100%;
 }
 
 .entry-header {
@@ -121,6 +149,11 @@ const recent = computed(() => props.entries.slice(0, 4))
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-primary);
+  transition: color var(--transition-fast);
+}
+
+.entry-card:hover .entry-id {
+  color: var(--color-primary-hover);
 }
 
 .entry-name {
@@ -128,6 +161,11 @@ const recent = computed(() => props.entries.slice(0, 4))
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-sm);
+  transition: color var(--transition-fast);
+}
+
+.entry-card:hover .entry-name {
+  color: var(--color-primary);
 }
 
 .entry-footer {
@@ -149,6 +187,12 @@ const recent = computed(() => props.entries.slice(0, 4))
   color: var(--text-tertiary);
   display: block;
   margin-bottom: var(--space-md);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 .empty-text {

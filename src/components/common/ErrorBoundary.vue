@@ -26,11 +26,9 @@ onErrorCaptured((err: Error) => {
   errorMessage.value = err.message || t(`errors.${props.fallbackCode}`)
   timestamp.value = new Date().toISOString()
   logger.error('Component error caught by ErrorBoundary', { error: err.message, stack: err.stack })
-  // Prevent the error from propagating further
   return false
 })
 
-// Reset error state on route change
 watch(() => route.fullPath, () => {
   if (hasError.value) {
     hasError.value = false
@@ -48,6 +46,7 @@ function handleRetry() {
   <div v-if="hasError" class="error-boundary">
     <div class="glitch-container">
       <div class="error-code" :data-text="t(`errors.${errorCode}`).slice(0, 3)">⚠</div>
+      <div class="scanline"></div>
     </div>
     <div class="error-content">
       <div class="error-badge">
@@ -92,10 +91,12 @@ function handleRetry() {
   min-height: 60vh;
   text-align: center;
   padding: var(--space-xl);
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
 }
 
 .glitch-container {
   margin-bottom: var(--space-xl);
+  position: relative;
 }
 
 .error-code {
@@ -106,18 +107,81 @@ function handleRetry() {
   position: relative;
   line-height: 1;
   text-shadow: 0 0 20px var(--color-danger-muted);
-  animation: glitch 3s infinite;
+  animation: glitch 4s infinite;
+}
+
+.error-code::before,
+.error-code::after {
+  content: '⚠';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.error-code::before {
+  color: var(--color-accent);
+  animation: glitch-1 3s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+}
+
+.error-code::after {
+  color: var(--color-primary);
+  animation: glitch-2 3s infinite;
+  clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
 }
 
 @keyframes glitch {
-  0%, 90%, 100% { transform: none; opacity: 1; }
-  91% { transform: skewX(2deg) translateX(2px); opacity: 0.8; }
-  92% { transform: skewX(-2deg) translateX(-2px); opacity: 0.9; }
-  93% { transform: none; opacity: 1; }
+  0%, 85%, 100% { transform: none; opacity: 1; }
+  86% { transform: skewX(4deg) translateX(3px); opacity: 0.85; }
+  87% { transform: skewX(-3deg) translateX(-2px); opacity: 0.9; }
+  88% { transform: skewX(2deg) translateX(1px); opacity: 0.95; }
+  89% { transform: none; opacity: 1; }
+}
+
+@keyframes glitch-1 {
+  0%, 85%, 100% { transform: translate(0); }
+  86% { transform: translate(-4px, -2px); }
+  87% { transform: translate(3px, 1px); }
+  88% { transform: translate(-1px, -1px); }
+  89% { transform: translate(0); }
+}
+
+@keyframes glitch-2 {
+  0%, 85%, 100% { transform: translate(0); }
+  86% { transform: translate(3px, 2px); }
+  87% { transform: translate(-2px, -1px); }
+  88% { transform: translate(1px, 1px); }
+  89% { transform: translate(0); }
+}
+
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  animation: scanline-move 8s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes scanline-move {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
 
 .error-content {
   max-width: 460px;
+  animation: fade-up 600ms var(--ease-out-expo) 200ms backwards;
 }
 
 .error-badge {
@@ -145,8 +209,8 @@ function handleRetry() {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--color-danger); }
+  50% { opacity: 0.4; box-shadow: 0 0 8px var(--color-danger); }
 }
 
 .error-content h1 {
@@ -202,9 +266,24 @@ function handleRetry() {
   font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: all 400ms var(--ease-out-expo);
   cursor: pointer;
   border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 600ms ease;
+}
+
+.btn:hover::before {
+  transform: translateX(100%);
 }
 
 .btn-primary {
@@ -214,7 +293,8 @@ function handleRetry() {
 
 .btn-primary:hover {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 16px var(--color-primary-muted);
+  box-shadow: 0 6px 24px var(--color-primary-muted);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -226,5 +306,6 @@ function handleRetry() {
 .btn-secondary:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 </style>

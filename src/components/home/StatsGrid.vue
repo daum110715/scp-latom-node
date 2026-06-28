@@ -29,11 +29,12 @@ const stats = computed(() => [
 </script>
 
 <template>
-  <section class="stats-grid">
-    <div v-for="stat in stats" :key="stat.labelKey" class="stat-card">
+  <section class="stats-grid stagger-children">
+    <div v-for="(stat, index) in stats" :key="stat.labelKey" class="stat-card" :style="{ '--accent': stat.color }">
       <div class="stat-icon" :style="{ color: stat.color }">{{ stat.icon }}</div>
       <div class="stat-value" :style="{ color: stat.color }">{{ stat.value }}</div>
       <div class="stat-label">{{ t(stat.labelKey) }}</div>
+      <div class="stat-glow"></div>
     </div>
   </section>
 </template>
@@ -52,18 +53,55 @@ const stats = computed(() => [
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   text-align: center;
-  transition: all var(--transition-normal);
+  transition: all 400ms var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--accent), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .stat-card:hover {
   border-color: var(--border-default);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card:hover::before {
+  opacity: 0.1;
+}
+
+.stat-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.stat-card:hover .stat-glow {
+  opacity: 1;
 }
 
 .stat-icon {
   font-size: var(--text-xl);
   margin-bottom: var(--space-xs);
+  transition: transform var(--transition-fast);
+  position: relative;
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.2);
 }
 
 .stat-value {
@@ -72,6 +110,7 @@ const stats = computed(() => [
   font-family: var(--font-mono);
   line-height: 1;
   margin-bottom: var(--space-xs);
+  position: relative;
 }
 
 .stat-label {
@@ -80,5 +119,6 @@ const stats = computed(() => [
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 500;
+  position: relative;
 }
 </style>

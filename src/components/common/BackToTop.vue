@@ -23,7 +23,6 @@ function scrollToTop() {
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
-  // Check initial scroll position (e.g. after page refresh)
   visible.value = window.scrollY > 300
 })
 
@@ -44,6 +43,7 @@ onUnmounted(() => {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="18 15 12 9 6 15" />
       </svg>
+      <span class="back-to-top-ring"></span>
     </button>
   </Transition>
 </template>
@@ -57,48 +57,72 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+  transition: all 400ms var(--ease-out-expo);
+  overflow: hidden;
+}
+
+.back-to-top-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast);
 }
 
 .back-to-top:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, var(--bg-surface));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg), 0 0 20px var(--color-primary-muted);
+}
+
+.back-to-top:hover .back-to-top-ring {
+  border-color: var(--color-primary-muted);
+}
+
+.back-to-top:active {
+  transform: translateY(-1px) scale(0.95);
 }
 
 .back-to-top:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* Transition */
-.back-to-top-enter-active,
-.back-to-top-leave-active {
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
+/* Transition — spring bounce */
+.back-to-top-enter-active {
+  transition: all 500ms var(--ease-out-back);
 }
 
-.back-to-top-enter-from,
+.back-to-top-leave-active {
+  transition: all 250ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.back-to-top-enter-from {
+  opacity: 0;
+  transform: translateY(16px) scale(0.8);
+}
+
 .back-to-top-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(8px) scale(0.9);
 }
 
 @media (max-width: 768px) {
   .back-to-top {
     bottom: calc(var(--nav-height) + var(--space-lg));
     right: var(--space-lg);
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
   }
 }
 </style>

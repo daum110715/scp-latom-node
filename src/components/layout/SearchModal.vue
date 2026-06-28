@@ -73,60 +73,63 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
 
 <template>
   <Teleport to="body">
-    <Transition name="fade">
+    <Transition name="overlay">
       <div v-if="search.isOpen" class="overlay" @click.self="search.close">
-        <div class="modal" @keydown="handleKeydown">
-          <div class="search-input-wrap">
-            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              ref="inputRef"
-              v-model="search.query"
-              type="text"
-              :placeholder="t('search.placeholder')"
-              class="search-input"
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <kbd class="esc-key">ESC</kbd>
-          </div>
+        <Transition name="modal">
+          <div v-if="search.isOpen" class="modal" @keydown="handleKeydown">
+            <div class="search-input-wrap">
+              <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                ref="inputRef"
+                v-model="search.query"
+                type="text"
+                :placeholder="t('search.placeholder')"
+                class="search-input"
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <kbd class="esc-key">ESC</kbd>
+            </div>
 
-          <div class="results" v-if="results.length > 0">
-            <div class="results-header">
-              <span class="results-count">{{ t('search.results', { count: results.length }) }}</span>
+            <div class="results" v-if="results.length > 0">
+              <div class="results-header">
+                <span class="results-count">{{ t('search.results', { count: results.length }) }}</span>
+              </div>
+              <div class="results-list">
+                <button
+                  v-for="(item, i) in results"
+                  :key="item.id"
+                  class="result-item"
+                  :class="{ selected: i === selectedIndex }"
+                  :style="{ animationDelay: `${i * 30}ms` }"
+                  @click="navigate(item.route)"
+                  @mouseenter="selectedIndex = i"
+                >
+                  <span class="result-type" :class="item.type">
+                    {{ item.type === 'entry' ? t('search.scp') : t('search.doc') }}
+                  </span>
+                  <div class="result-text">
+                    <span class="result-title">{{ item.title }}</span>
+                    <span class="result-subtitle">{{ item.subtitle }}</span>
+                  </div>
+                  <svg class="result-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div class="results-list">
-              <button
-                v-for="(item, i) in results"
-                :key="item.id"
-                class="result-item"
-                :class="{ selected: i === selectedIndex }"
-                @click="navigate(item.route)"
-                @mouseenter="selectedIndex = i"
-              >
-                <span class="result-type" :class="item.type">
-                  {{ item.type === 'entry' ? t('search.scp') : t('search.doc') }}
-                </span>
-                <div class="result-text">
-                  <span class="result-title">{{ item.title }}</span>
-                  <span class="result-subtitle">{{ item.subtitle }}</span>
-                </div>
-                <svg class="result-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </div>
-          </div>
 
-          <div class="results empty" v-else-if="search.query">
-            <div class="empty-state">
-              <span class="empty-icon">∅</span>
-              <span class="empty-text">{{ t('search.empty', { query: search.query }) }}</span>
+            <div class="results empty" v-else-if="search.query">
+              <div class="empty-state">
+                <span class="empty-icon">∅</span>
+                <span class="empty-text">{{ t('search.empty', { query: search.query }) }}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </div>
     </Transition>
   </Teleport>
@@ -137,12 +140,26 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: var(--z-modal);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 15vh;
+}
+
+.overlay-enter-active {
+  transition: opacity 300ms var(--ease-out-expo);
+}
+
+.overlay-leave-active {
+  transition: opacity 200ms ease-in;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
 }
 
 .modal {
@@ -151,8 +168,26 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+}
+
+.modal-enter-active {
+  transition: all 400ms var(--ease-out-expo);
+}
+
+.modal-leave-active {
+  transition: all 200ms ease-in;
+}
+
+.modal-enter-from {
+  opacity: 0;
+  transform: scale(0.96) translateY(-12px);
+}
+
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.98) translateY(-4px);
 }
 
 .search-input-wrap {
@@ -166,6 +201,12 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
 .search-icon {
   color: var(--text-tertiary);
   flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.search-input:focus ~ .search-icon,
+.search-input-wrap:focus-within .search-icon {
+  color: var(--color-primary);
 }
 
 .search-input {
@@ -189,6 +230,12 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.search-input-wrap:focus-within .esc-key {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .results {
@@ -220,12 +267,21 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
   border-radius: var(--radius-md);
   text-align: left;
   color: var(--text-secondary);
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
+  animation: result-in 300ms var(--ease-out-expo) backwards;
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
 }
 
 .result-item.selected,
 .result-item:hover {
   background: var(--bg-hover);
+  transform: translateX(2px);
 }
 
 .result-type {
@@ -266,13 +322,15 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
 }
 
 .result-arrow {
-  color: var(--text-tertiary);
+  color: var(--color-primary);
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: all var(--transition-fast);
+  transform: translateX(-4px);
 }
 
 .result-item.selected .result-arrow {
   opacity: 1;
+  transform: translateX(0);
 }
 
 .empty-state {

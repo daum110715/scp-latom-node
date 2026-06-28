@@ -38,7 +38,7 @@ const route = useRoute()
   <!-- Mobile Layout -->
   <MobileLayout v-else>
     <RouterView v-slot="{ Component }">
-      <Transition name="fade" mode="out-in">
+      <Transition name="page" mode="out-in">
         <component :is="Component" :key="route.fullPath" />
       </Transition>
     </RouterView>
@@ -59,7 +59,7 @@ const route = useRoute()
   margin-top: var(--header-height);
   min-height: calc(100vh - var(--header-height));
   padding: var(--space-2xl) var(--pad-page);
-  transition: margin-left var(--transition-normal);
+  transition: margin-left 400ms var(--ease-out-expo);
 }
 
 .main.sidebar-collapsed {

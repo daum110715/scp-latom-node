@@ -29,28 +29,34 @@ async function handleSubmit() {
       <form class="auth-form" @submit.prevent="handleSubmit">
         <div class="form-group">
           <label for="codename">{{ t('auth.codename') }}</label>
-          <input
-            id="codename"
-            v-model="codename"
-            type="text"
-            :placeholder="t('auth.codenamePlaceholder')"
-            autocomplete="username"
-            spellcheck="false"
-          />
+          <div class="input-wrapper">
+            <input
+              id="codename"
+              v-model="codename"
+              type="text"
+              :placeholder="t('auth.codenamePlaceholder')"
+              autocomplete="username"
+              spellcheck="false"
+            />
+            <div class="input-focus-line"></div>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="password">{{ t('auth.password') }}</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            :placeholder="t('auth.passwordPlaceholder')"
-            autocomplete="current-password"
-          />
+          <div class="input-wrapper">
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              :placeholder="t('auth.passwordPlaceholder')"
+              autocomplete="current-password"
+            />
+            <div class="input-focus-line"></div>
+          </div>
         </div>
 
-        <Transition name="fade">
+        <Transition name="slide-fade">
           <div v-if="auth.error" class="error-msg">
             <span class="error-icon">⚠</span>
             {{ auth.error }}
@@ -77,6 +83,7 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   min-height: 60vh;
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
 }
 
 .auth-card {
@@ -86,6 +93,14 @@ async function handleSubmit() {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
+  animation: scale-in 500ms var(--ease-out-expo) 100ms backwards;
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 
 .auth-header {
@@ -97,6 +112,12 @@ async function handleSubmit() {
   font-size: var(--text-3xl);
   color: var(--color-primary);
   margin-bottom: var(--space-sm);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 .auth-header h1 {
@@ -129,7 +150,12 @@ async function handleSubmit() {
   letter-spacing: 0.03em;
 }
 
+.input-wrapper {
+  position: relative;
+}
+
 .form-group input {
+  width: 100%;
   padding: 10px var(--space-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -143,6 +169,22 @@ async function handleSubmit() {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-muted);
+}
+
+.input-focus-line {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: all 300ms var(--ease-out-expo);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+.form-group input:focus ~ .input-focus-line {
+  width: 100%;
 }
 
 .form-group input::placeholder {
@@ -165,6 +207,24 @@ async function handleSubmit() {
   flex-shrink: 0;
 }
 
+.slide-fade-enter-active {
+  transition: all 300ms var(--ease-out-expo);
+}
+
+.slide-fade-leave-active {
+  transition: all 200ms ease-in;
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .auth-submit {
   padding: 10px var(--space-lg);
   background: var(--color-primary);
@@ -174,16 +234,36 @@ async function handleSubmit() {
   font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 400ms var(--ease-out-expo);
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 600ms ease;
 }
 
 .auth-submit:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 16px var(--color-primary-muted);
+  box-shadow: 0 6px 24px var(--color-primary-muted);
+  transform: translateY(-1px);
+}
+
+.auth-submit:hover:not(:disabled)::before {
+  transform: translateX(100%);
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .auth-submit:disabled {
@@ -217,6 +297,7 @@ async function handleSubmit() {
   color: var(--color-accent);
   margin-left: var(--space-xs);
   font-weight: 500;
+  transition: color var(--transition-fast);
 }
 
 .auth-footer a:hover {
