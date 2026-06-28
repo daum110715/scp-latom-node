@@ -4,10 +4,13 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import Badge from '@/components/common/Badge.vue'
+import AiChatPanel from '@/components/ai/AiChatPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+
+const activeTab = ref<'profile' | 'ai'>('profile')
 
 const editingCodename = ref(false)
 const changingPassword = ref(false)
@@ -79,7 +82,29 @@ function handleLogout() {
       <p class="page-desc">{{ t('auth.profileDesc') }}</p>
     </div>
 
-    <div class="profile-grid">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        {{ t('auth.profile') }}
+      </button>
+      <button class="tab" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        </svg>
+        {{ t('ai.title') }}
+      </button>
+    </div>
+
+    <!-- AI Chat Panel -->
+    <AiChatPanel v-if="activeTab === 'ai'" />
+
+    <!-- Profile Content -->
+    <div class="profile-grid" v-if="activeTab === 'profile'">
       <!-- User Info Card -->
       <div class="profile-card">
         <div class="card-header">
@@ -201,6 +226,39 @@ function handleLogout() {
 .page-desc {
   color: var(--text-secondary);
   font-size: var(--text-lg);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .profile-grid {

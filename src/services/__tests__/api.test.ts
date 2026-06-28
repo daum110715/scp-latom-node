@@ -6,6 +6,16 @@ import { ErrorCode } from '../errors'
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
+// Helper to create mock Response objects with headers support
+function mockResponse(data: unknown, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => data,
+    headers: new Headers(),
+  }
+}
+
 describe('api client', () => {
   beforeEach(() => {
     mockFetch.mockReset()
@@ -14,11 +24,7 @@ describe('api client', () => {
 
   describe('apiGet', () => {
     it('sends a GET request with correct URL and headers', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, data: 'test' }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true, data: 'test' }))
 
       await apiGet('/crawler/status')
 
@@ -32,11 +38,7 @@ describe('api client', () => {
 
     it('auto-injects token from localStorage when none is provided', async () => {
       localStorage.setItem('scp-auth-token', 'stored-token')
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, user: {} }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true, user: {} }))
 
       await apiGet('/auth/me')
 
@@ -46,11 +48,7 @@ describe('api client', () => {
 
     it('uses explicit token over localStorage', async () => {
       localStorage.setItem('scp-auth-token', 'stored-token')
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, user: {} }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true, user: {} }))
 
       await apiGet('/auth/me', 'explicit-token')
 
@@ -59,11 +57,7 @@ describe('api client', () => {
     })
 
     it('sends no Authorization header when no token exists', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true }))
 
       await apiGet('/crawler/status')
 
@@ -72,11 +66,9 @@ describe('api client', () => {
     })
 
     it('returns normalized success result', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, user: { id: 1, codename: 'test' }, token: 'abc' }),
-      })
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ success: true, user: { id: 1, codename: 'test' }, token: 'abc' })
+      )
 
       const result = await apiGet('/auth/me')
       expect(result.ok).toBe(true)
@@ -86,11 +78,9 @@ describe('api client', () => {
     })
 
     it('returns normalized error result for non-success response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ success: false, error: 'Unauthorized' }),
-      })
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ success: false, error: 'Unauthorized' }, 401)
+      )
 
       const result = await apiGet('/auth/me')
       expect(result.ok).toBe(false)
@@ -122,11 +112,9 @@ describe('api client', () => {
 
   describe('apiPost', () => {
     it('sends a POST request with JSON body', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 201,
-        json: async () => ({ success: true, user: {}, token: 'abc' }),
-      })
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ success: true, user: {}, token: 'abc' }, 201)
+      )
 
       await apiPost('/auth/register', { codename: 'test', password: 'pass1234' })
 
@@ -138,11 +126,7 @@ describe('api client', () => {
 
     it('auto-injects token from localStorage', async () => {
       localStorage.setItem('scp-auth-token', 'stored-token')
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true }))
 
       await apiPost('/proposals', { title: 'Test', content: 'Content', category: 'general' })
 
@@ -154,11 +138,7 @@ describe('api client', () => {
   describe('apiPut', () => {
     it('sends a PUT request with JSON body', async () => {
       localStorage.setItem('scp-auth-token', 'my-token')
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, user: {} }),
-      })
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true, user: {} }))
 
       await apiPut('/auth/profile', { codename: 'new_name' })
 

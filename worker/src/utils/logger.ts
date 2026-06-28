@@ -4,7 +4,7 @@ import type { D1Database } from '@cloudflare/workers-types'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
-export type LogCategory = 'request' | 'auth' | 'crawler' | 'system' | 'client'
+export type LogCategory = 'request' | 'auth' | 'crawler' | 'system' | 'client' | 'admin' | 'ai'
 
 export interface LogEntry {
   level: LogLevel

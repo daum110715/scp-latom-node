@@ -104,6 +104,26 @@ CREATE TABLE IF NOT EXISTS proposal_votes (
 CREATE INDEX IF NOT EXISTS idx_proposal_votes_proposal ON proposal_votes(proposal_id);
 CREATE INDEX IF NOT EXISTS idx_proposal_votes_user ON proposal_votes(user_id);
 
+-- ─── Entry Reports ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS entry_reports (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER NOT NULL,
+  scp_number   INTEGER NOT NULL,
+  language     TEXT NOT NULL CHECK (language IN ('en', 'cn')),
+  report_type  TEXT NOT NULL CHECK (report_type IN ('content_error', 'display_issue', 'special_handling', 'other')),
+  description  TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'reviewing', 'resolved', 'dismissed')),
+  admin_note   TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, scp_number, language, report_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_entry_reports_user ON entry_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_entry_reports_entry ON entry_reports(scp_number, language);
+CREATE INDEX IF NOT EXISTS idx_entry_reports_status ON entry_reports(status);
+
 -- ─── System Logs ──────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS system_logs (
@@ -127,3 +147,18 @@ CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_system_logs_source ON system_logs(source);
 CREATE INDEX IF NOT EXISTS idx_system_logs_request_id ON system_logs(request_id);
 CREATE INDEX IF NOT EXISTS idx_system_logs_category ON system_logs(category);
+
+-- ─── AI Conversations ─────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ai_conversations (
+  id              TEXT PRIMARY KEY,
+  user_id         INTEGER NOT NULL,
+  title           TEXT NOT NULL DEFAULT 'New Conversation',
+  system_prompt   TEXT NOT NULL DEFAULT '',
+  message_count   INTEGER NOT NULL DEFAULT 0,
+  last_message_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_user ON ai_conversations(user_id, last_message_at);

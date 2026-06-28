@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0a0a0f"/>
+  <path d="M32 8 L56 20 L56 44 L32 56 L8 44 L8 20 Z" fill="none" stroke="#c9a44a" stroke-width="2"/>
+  <text x="32" y="38" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="18" fill="#c9a44a">SCP</text>
+</svg>

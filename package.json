@@ -12,7 +12,10 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "vue-tsc -b --noEmit",
     "lint": "echo 'No linter configured yet'",
-    "ci": "npm run typecheck && npm run test && npm run build"
+    "ci": "npm run typecheck && npm run test && npm run build",
+    "admin:dev": "cd admin && npm run dev",
+    "admin:build": "cd admin && npm run build",
+    "admin:typecheck": "cd admin && npm run typecheck"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",

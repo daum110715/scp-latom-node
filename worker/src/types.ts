@@ -5,6 +5,8 @@ export interface Env {
   LOG_LEVEL?: string
   SCP_EN_CRAWLER: DurableObjectNamespace
   SCP_CN_CRAWLER: DurableObjectNamespace
+  AI_CHAT_DO: DurableObjectNamespace
+  GLM_API_KEY: string
 }
 
 export interface User {
@@ -141,4 +143,145 @@ export interface ProposalPublic {
   userVote: 'for' | 'against' | 'abstain' | null
   createdAt: string
   updatedAt: string
+}
+
+// ─── Report Types ────────────────────────────────────────
+
+export interface EntryReport {
+  id: number
+  user_id: number
+  scp_number: number
+  language: string
+  report_type: 'content_error' | 'display_issue' | 'special_handling' | 'other'
+  description: string
+  status: 'open' | 'reviewing' | 'resolved' | 'dismissed'
+  admin_note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ReportPublic {
+  id: number
+  scpNumber: number
+  language: string
+  reportType: string
+  description: string
+  status: string
+  createdAt: string
+}
+
+// ─── Admin Types ─────────────────────────────────────────
+
+export interface AdminStats {
+  totalUsers: number
+  entriesByLanguage: { language: string; count: number }[]
+  entriesByClass: { object_class: string; count: number }[]
+  proposalsByStatus: { status: string; count: number }[]
+  recentActivity: {
+    newUsersToday: number
+    newProposalsToday: number
+    newVotesToday: number
+    errorsLast24h: number
+  }
+  logErrorRate: { total: number; errors: number; rate: number }
+}
+
+export interface AdminUserDetail {
+  id: number
+  codename: string
+  role: string
+  clearance: number
+  created_at: string
+  updated_at: string
+  historyCount: number
+  bookmarkCount: number
+  proposalCount: number
+  voteCount: number
+}
+
+export interface AdminEntry {
+  id: number
+  scp_number: number
+  language: string
+  name: string
+  object_class: string
+  url: string
+  series: number
+  content: string | null
+  content_fetched_at: string | null
+  content_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminLogEntry {
+  id: number
+  timestamp: string
+  level: string
+  message: string
+  context: string | null
+  request_id: string | null
+  user_id: number | null
+  source: string
+  category: string | null
+  path: string | null
+  user_agent: string | null
+  ip: string | null
+  created_at: string
+}
+
+// ─── AI Chat Types ──────────────────────────────────────────
+
+export interface AiMessage {
+  id: string
+  role: 'system' | 'user' | 'assistant'
+  content: string
+  createdAt: string
+  tokenCount?: number
+}
+
+export interface AiConversationMeta {
+  id: string
+  userId: number
+  title: string
+  systemPrompt: string
+  messageCount: number
+  lastMessageAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AiConversationPublic {
+  id: string
+  title: string
+  systemPrompt: string
+  messageCount: number
+  lastMessageAt: string
+  createdAt: string
+}
+
+export interface AiConversationDetail extends AiConversationPublic {
+  messages: AiMessage[]
+}
+
+export interface AiChatRequest {
+  conversationId?: string
+  message: string
+  systemPrompt?: string
+  title?: string
+  stream?: boolean
+}
+
+export interface AiChatResponse {
+  conversationId: string
+  message: AiMessage
+  title: string
+}
+
+export interface AiConversationsListResponse {
+  conversations: AiConversationMeta[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }

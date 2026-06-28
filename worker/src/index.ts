@@ -7,7 +7,10 @@ import crawlerRoutes from './routes/crawler'
 import historyRoutes from './routes/history'
 import proposalRoutes from './routes/proposals'
 import bookmarkRoutes from './routes/bookmarks'
+import reportRoutes from './routes/reports'
 import logRoutes from './routes/logs'
+import adminRoutes from './routes/admin'
+import aiRoutes from './routes/ai'
 import type { Env } from './types'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -68,8 +71,17 @@ app.route('/api/proposals', proposalRoutes)
 // Bookmark routes
 app.route('/api/bookmarks', bookmarkRoutes)
 
+// Report routes
+app.route('/api/reports', reportRoutes)
+
 // Client log ingestion
 app.route('/api/logs', logRoutes)
+
+// Admin routes (all protected by admin middleware)
+app.route('/api/admin', adminRoutes)
+
+// AI chat routes
+app.route('/api/ai', aiRoutes)
 
 // 404 fallback
 app.notFound((c) => {
@@ -90,5 +102,6 @@ app.onError((err, c) => {
 
 export default app
 
-// Re-export Durable Object class for wrangler
+// Re-export Durable Object classes for wrangler
 export { ScpCrawlerDo } from './do/scp-crawler'
+export { AiChatDo } from './do/ai-chat'

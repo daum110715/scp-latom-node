@@ -133,7 +133,7 @@ Log in using your codename and login key. Your session will persist until you ex
 
 The terminal interface consists of three main areas:
 
-- **Header** — Search bar, language toggle (EN/CN), theme switch, and user profile
+- **Header** — Search bar, language toggle (EN/CN), theme switch, and personal terminal
 - **Sidebar** — Primary navigation links to all sections
 - **Content Area** — Active page content with contextual controls
 
@@ -225,9 +225,9 @@ Save SCP entries for quick reference:
 - Access all bookmarks from the **Activity** section
 - Remove bookmarks individually as needed
 
-## 8. User Profile
+## 8. Personal Terminal
 
-Access your profile from the sidebar footer or header menu:
+Access your terminal from the sidebar footer or header menu:
 
 - **View** your codename, role, clearance level, and join date
 - **Edit** your codename (must remain unique)
@@ -472,7 +472,7 @@ Following successful execution, all personnel involved will undergo Class-A amne
     hasAccount: 'Already registered?',
     registerLink: 'Register here',
     loginLink: 'Sign in',
-    profile: 'Agent Profile',
+    profile: 'Personal Terminal',
     profileDesc: 'View and manage your Foundation credentials.',
     role: 'Role',
     clearance: 'Clearance',
@@ -582,5 +582,16 @@ Following successful execution, all personnel involved will undergo Class-A amne
     'ERR-RENDER-FAULT': 'A rendering error has occurred.',
     'ERR-CHUNK-LOAD': 'Failed to load application resources.',
     retry: 'Retry',
+  },
+  ai: {
+    title: 'AI Assistant',
+    newConversation: 'New Conversation',
+    send: 'Send',
+    placeholder: 'Type your message...',
+    deleteConfirm: 'Delete this conversation?',
+    noConversations: 'No conversations yet. Start a new one!',
+    thinking: 'Thinking...',
+    conversations: 'Conversations',
+    regenerate: 'Regenerate',
   },
 }

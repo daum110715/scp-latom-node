@@ -3,6 +3,7 @@ import { ref, onErrorCaptured, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ErrorCode } from '@/services/errors'
+import { logger } from '@/services/logger'
 
 const props = withDefaults(defineProps<{
   fallbackCode?: ErrorCode
@@ -24,7 +25,7 @@ onErrorCaptured((err: Error) => {
   errorCode.value = props.fallbackCode
   errorMessage.value = err.message || t(`errors.${props.fallbackCode}`)
   timestamp.value = new Date().toISOString()
-  console.error('[ErrorBoundary]', err)
+  logger.error('Component error caught by ErrorBoundary', { error: err.message, stack: err.stack })
   // Prevent the error from propagating further
   return false
 })

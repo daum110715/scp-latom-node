@@ -3,10 +3,13 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
+import { downloadEntry } from '@/services/download'
+import { checkReports } from '@/services/reports'
 import { useAuthStore } from '@/stores/auth'
 import { useUserActivityStore } from '@/stores/userActivity'
 import Badge from '@/components/common/Badge.vue'
 import ClassBar from '@/components/common/ClassBar.vue'
+import ReportDialog from '@/components/common/ReportDialog.vue'
 import type { ObjectClass } from '@/types'
 
 const { t } = useI18n()
@@ -16,6 +19,10 @@ const activityStore = useUserActivityStore()
 
 const bookmarked = ref(false)
 const bookmarkLoading = ref(false)
+const downloading = ref(false)
+const reportOpen = ref(false)
+const reportCount = ref(0)
+const reportMax = ref(3)
 
 const lang = computed(() => route.params.lang as 'en' | 'cn')
 const scpNumber = computed(() => parseInt(route.params.scpNumber as string, 10))
@@ -104,6 +111,13 @@ async function toggleBookmark() {
   bookmarkLoading.value = false
 }
 
+function handleDownload() {
+  if (!data.value || downloading.value) return
+  downloading.value = true
+  downloadEntry(scpNumber.value, lang.value, data.value)
+  downloading.value = false
+}
+
 onMounted(() => {
   if (!scpNumber.value || isNaN(scpNumber.value)) {
     error.value = 'Invalid SCP number'
@@ -116,6 +130,12 @@ onMounted(() => {
   if (auth.isAuthenticated) {
     activityStore.checkBookmark(lang.value, scpNumber.value).then((result: boolean) => {
       bookmarked.value = result
+    })
+    checkReports(lang.value, scpNumber.value).then((res) => {
+      if (res.ok) {
+        reportCount.value = res.data.count
+        reportMax.value = res.data.maxReports
+      }
     })
   }
 })
@@ -170,18 +190,44 @@ onUnmounted(() => {
           <Badge v-if="data.objectClass" :variant="data.objectClass.toLowerCase() as any">
             {{ data.objectClass }}
           </Badge>
-          <button
-            v-if="auth.isAuthenticated"
-            class="m-bookmark-btn"
-            :class="{ active: bookmarked }"
-            :disabled="bookmarkLoading"
-            :title="bookmarked ? t('bookmarks.remove') : t('bookmarks.add')"
-            @click="toggleBookmark"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" :fill="bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-          </button>
+          <div class="m-entry-actions">
+            <button
+              class="m-download-btn"
+              :disabled="downloading"
+              :title="t('entry.download')"
+              @click="handleDownload"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+            <button
+              v-if="auth.isAuthenticated"
+              class="m-bookmark-btn"
+              :class="{ active: bookmarked }"
+              :disabled="bookmarkLoading"
+              :title="bookmarked ? t('bookmarks.remove') : t('bookmarks.add')"
+              @click="toggleBookmark"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" :fill="bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </button>
+            <button
+              v-if="auth.isAuthenticated"
+              class="m-report-btn"
+              :title="t('entry.report')"
+              @click="reportOpen = true"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </button>
+          </div>
         </div>
         <h1 class="m-entry-title">
           <span class="m-entry-id">{{ scpId }}</span>
@@ -196,6 +242,17 @@ onUnmounted(() => {
       </div>
 
       <div class="m-entry-body" v-if="data.content" v-html="data.content" />
+
+      <ReportDialog
+        :open="reportOpen"
+        :scp-number="scpNumber"
+        :language="lang"
+        :scp-id="scpId"
+        :existing-count="reportCount"
+        :max-reports="reportMax"
+        @close="reportOpen = false"
+        @submitted="reportCount++"
+      />
     </template>
   </div>
 </template>
@@ -230,7 +287,15 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.m-bookmark-btn {
+.m-entry-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.m-download-btn,
+.m-bookmark-btn,
+.m-report-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -242,15 +307,17 @@ onUnmounted(() => {
   color: var(--text-tertiary);
   cursor: pointer;
   transition: all var(--transition-fast);
-  margin-left: auto;
 }
 
+.m-download-btn:hover,
 .m-bookmark-btn:hover,
-.m-bookmark-btn.active {
+.m-bookmark-btn.active,
+.m-report-btn:hover {
   color: var(--color-accent);
   border-color: var(--color-accent);
 }
 
+.m-download-btn:disabled,
 .m-bookmark-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

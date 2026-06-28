@@ -4,10 +4,13 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import Badge from '@/components/common/Badge.vue'
+import MobileAiChatPanel from '@/components/mobile/MobileAiChatPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+
+const activeTab = ref<'profile' | 'ai'>('profile')
 
 const editingCodename = ref(false)
 const changingPassword = ref(false)
@@ -74,6 +77,29 @@ function handleLogout() {
 
 <template>
   <div class="m-profile" v-if="auth.user">
+    <!-- Tabs -->
+    <div class="m-tabs">
+      <button class="m-tab" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        {{ t('auth.profile') }}
+      </button>
+      <button class="m-tab" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        </svg>
+        {{ t('ai.title') }}
+      </button>
+    </div>
+
+    <!-- AI Chat Panel -->
+    <MobileAiChatPanel v-if="activeTab === 'ai'" />
+
+    <!-- Profile Content -->
+    <template v-if="activeTab === 'profile'">
     <!-- User Card -->
     <div class="m-user-card">
       <div class="m-user-avatar">{{ auth.user.codename.charAt(0).toUpperCase() }}</div>
@@ -171,6 +197,7 @@ function handleLogout() {
       </svg>
       {{ t('auth.logout') }}
     </button>
+    </template>
   </div>
 </template>
 
@@ -180,6 +207,37 @@ function handleLogout() {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+.m-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 3px;
+}
+
+.m-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.m-tab.active {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
 }
 
 .m-user-card {

@@ -1,5 +1,6 @@
 import { type ApiResult, normalizeResponse, networkError } from './response'
 import { API_URL } from './config'
+import { logger } from './logger'
 
 const TOKEN_KEY = 'scp-auth-token'
 
@@ -16,6 +17,8 @@ async function request<T = unknown>(
   const authToken = token ?? localStorage.getItem(TOKEN_KEY)
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`
 
+  const start = Date.now()
+
   try {
     const res = await fetch(`${API_URL}${path}`, {
       method,
@@ -24,8 +27,30 @@ async function request<T = unknown>(
     })
 
     const json = await res.json()
-    return normalizeResponse<T>(json, res.status)
+    const result = normalizeResponse<T>(json, res.status)
+    const duration = Date.now() - start
+
+    // Log slow requests and errors
+    if (!result.ok) {
+      if (res.status >= 500) {
+        logger.error(`API ${method} ${path} → ${res.status}`, { status: res.status, error: result.error, duration })
+      } else if (res.status >= 400) {
+        logger.warn(`API ${method} ${path} → ${res.status}`, { status: res.status, error: result.error, duration })
+      }
+    } else if (duration > 3000) {
+      logger.warn(`Slow API request: ${method} ${path}`, { duration })
+    }
+
+    // Propagate request ID from server if present
+    const requestId = res.headers.get('X-Request-Id')
+    if (requestId && !result.ok) {
+      logger.debug('Server request ID for error correlation', { requestId, path })
+    }
+
+    return result
   } catch (e) {
+    const duration = Date.now() - start
+    logger.error(`API ${method} ${path} network error`, { error: e instanceof Error ? e.message : String(e), duration })
     return networkError(e instanceof Error ? e.message : undefined)
   }
 }
