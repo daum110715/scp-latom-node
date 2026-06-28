@@ -112,14 +112,36 @@ export default {
   },
   documents: {
     title: 'Documents',
-    description: 'Foundation protocols, research papers, and incident reports.',
+    description: 'Foundation protocols, research papers, incident reports, and executive directives.',
+    hero: {
+      badge: '{count} DOCUMENTS // RESTRICTED → TOP SECRET',
+    },
     all: 'All',
-    read: 'Read →',
+    read: 'Read Document →',
+    count: '{count} documents',
+    sortBy: 'Sort by',
+    sort: {
+      date: 'Date',
+      classification: 'Classification',
+      type: 'Type',
+    },
+    filter: {
+      classification: 'Classification',
+    },
     types: {
       protocol: 'Protocol',
       research: 'Research',
       incident: 'Incident',
       directive: 'Directive',
+    },
+    meta: {
+      author: 'Author',
+      lastUpdated: 'Last Updated',
+      node: 'Node',
+      classification: 'Classification',
+    },
+    footer: {
+      disclaimer: 'All documents are property of the SCP Foundation. Unauthorized distribution is prohibited under Foundation Directive 101-B.',
     },
   },
   docs: {
@@ -389,6 +411,273 @@ Upon activation, the following steps will be executed in sequence:
 Following successful execution, all personnel involved will undergo Class-A amnestic treatment. This directive and all related documentation will be reclassified.
 
 > Document Classification: **Top Secret**`,
+    },
+    'doc-containment-procedures-guide': {
+      title: 'Containment Procedures Guide',
+      summary: 'Standard template and guidelines for authoring, reviewing, and maintaining containment procedures for anomalous objects.',
+      content: `# Containment Procedures Guide
+
+## 1. Purpose
+
+This document establishes the standard format, review process, and maintenance requirements for all Foundation containment procedures. Adherence to these guidelines ensures consistency, clarity, and operational reliability across all Foundation sites.
+
+> Containment procedures are the first line of defense. A poorly written procedure can be as dangerous as no procedure at all.
+
+## 2. Procedure Format
+
+### 2.1 Required Sections
+
+Every containment procedure document must include:
+
+- **Item Number** — SCP designation or internal reference number
+- **Object Class** — Current containment classification (Safe, Euclid, Keter, Thaumiel, Apollyon, Neutralized)
+- **Special Containment Procedures** — Detailed containment requirements
+- **Description** — Summary of the anomalous properties
+- **Revision History** — Log of all changes with dates and authorizing personnel
+
+### 2.2 Writing Standards
+
+- Use **imperative mood** for all containment instructions ("Place the object in...", not "The object should be placed in...")
+- Specify **exact measurements**, temperatures, and temporal intervals
+- Include **failure protocols** — what to do if primary containment fails
+- Reference **MTF assignments** for objects requiring active containment
+- Note all **interaction restrictions** between co-contained objects
+
+## 3. Classification Guidelines
+
+### 3.1 Safe
+
+Objects that can be reliably contained with standard storage. Procedures should focus on:
+
+- Storage environment specifications
+- Access authorization requirements
+- Routine inspection schedules
+
+### 3.2 Euclid
+
+Objects requiring active monitoring and specialized containment. Procedures must additionally include:
+
+- Behavioral monitoring protocols
+- Environmental trigger avoidance
+- Personnel interaction limits
+- Escalation response procedures
+
+### 3.3 Keter
+
+Objects that are difficult to contain or pose severe breach risk. Procedures must additionally include:
+
+- Multi-layered containment architecture
+- Redundant fail-safe systems
+- Dedicated MTF assignment
+- Omega-level contingency plans
+- Continuous monitoring requirements
+
+## 4. Review Process
+
+All containment procedures undergo a three-stage review:
+
+- **Technical Review** — Verified by containment engineering staff for feasibility
+- **Safety Review** — Assessed by the Safety Committee for personnel risk
+- **Senior Approval** — Authorized by the Site Director or above
+
+Procedure revisions follow the same review process. Emergency provisional procedures may be issued by Level 4+ personnel but must undergo full review within 72 hours.
+
+## 5. Maintenance
+
+- All procedures must be reviewed **annually** at minimum
+- Any breach event requires an **immediate procedure audit**
+- Keter-class procedures are reviewed **quarterly**
+- Outdated procedures are archived, never deleted
+
+> Document Classification: **Restricted**
+> Last Updated: 2026-04-10
+> Node: LATOM-7 | Version: 7.2.1`,
+    },
+    'doc-ethics-committee-guidelines': {
+      title: 'Ethics Committee Guidelines',
+      summary: 'Guidelines governing human-subject experimentation, D-Class personnel protocols, and ethical boundaries in anomalous research.',
+      content: `# Ethics Committee Guidelines
+
+## 1. Mandate
+
+The Ethics Committee is an independent body within the SCP Foundation responsible for overseeing the moral and ethical conduct of all Foundation operations. The Committee has the authority to veto, modify, or suspend any procedure deemed unnecessarily harmful.
+
+> The Foundation's mission does not exempt it from ethical responsibility.
+
+## 2. Human-Subject Experimentation
+
+### 2.1 General Principles
+
+- All experimentation involving human subjects must be approved by the Ethics Committee prior to commencement
+- The principle of **proportional risk** applies — the potential knowledge gained must justify the risk to the subject
+- Subjects must be informed of the nature of the experiment to the maximum extent possible without compromising security
+- All subjects have the right to withdraw at any stage, except when withdrawal itself poses a containment risk
+
+### 2.2 D-Class Personnel
+
+D-Class personnel are individuals sentenced to death or life imprisonment who have been conscripted into Foundation service. The following guidelines apply:
+
+- D-Class personnel are **not** expendable test subjects — their lives have value
+- Experiments must have a **reasonable expectation** of producing useful data
+- Lethal experiments require **O5-level authorization** and must be justified by extraordinary circumstances
+- D-Class personnel must receive adequate medical care, nutrition, and living conditions
+- Monthly psychological evaluations are mandatory for all D-Class assigned to active research programs
+
+## 3. Animal Experimentation
+
+- Animal experimentation follows the same proportional risk principles
+- Anomalous animals require specialized ethical consideration due to potential sapience
+- All animal experimentation must be documented and reviewed quarterly
+
+## 4. Amnestic Use
+
+### 4.1 Authorization Levels
+
+- **Class-A amnestics** (targeted memory erasure): Requires Level 3 authorization
+- **Class-B amnestics** (general confusion induction): Requires Level 4 authorization
+- **Class-C amnestics** (temporary disorientation): Requires Level 2 authorization
+- **Class-W amnestics** (total identity reset): Requires O5 Council authorization
+
+### 4.2 Restrictions
+
+- Amnestics may not be used to cover up Foundation negligence or misconduct
+- All amnestic administration must be logged in the Ethics Committee database
+- Subjects must be monitored for 72 hours post-administration for adverse effects
+
+## 5. Complaints and Appeals
+
+Any Foundation personnel may file an ethics complaint through the secure internal channel. Complaints are reviewed within 14 business days. Complainants are protected from retaliation under Foundation Directive 42-A.
+
+> Document Classification: **Confidential**
+> Last Updated: 2026-02-28
+> Node: LATOM-7 | Version: 7.2.1`,
+    },
+    'doc-cognitohazard-response': {
+      title: 'Cognitohazard Response Report',
+      summary: 'Incident report detailing a cognitohazard containment failure at Site-64 and the emergency response protocols enacted.',
+      content: `# Cognitohazard Response Report — Site-64
+
+## Classification: TOP SECRET — LEVEL 5 REQUIRED
+
+## Incident Summary
+
+On 2025-12-03 at 14:22 UTC, a cognitohazardous anomaly designated SCP-████ breached its informational containment at Site-64. The breach resulted in exposure of 23 personnel before emergency protocols could be enacted. This report documents the incident timeline, response actions, and corrective measures.
+
+## Background
+
+SCP-████ is a memetic construct capable of propagating through written text. Standard containment involves air-gapped information storage, physical-only document access, and mandatory cognitive screening for all personnel assigned to the project.
+
+## Timeline
+
+- **14:22** — Anomaly detected in Sector-7 document repository during routine audit
+- **14:23** — Automated cognitive screening alerts triggered for 3 personnel
+- **14:24** — Site-64 Director initiates LOCKDOWN PROTOCOL SIGMA-7
+- **14:25** — All Sector-7 personnel isolated; cognitive hazard teams deployed
+- **14:31** — Total of 23 confirmed exposures identified through screening
+- **14:45** — Amnestic treatment protocol initiated for all affected personnel
+- **15:30** — All affected personnel treated and cleared through secondary screening
+- **16:00** — Containment re-established; Sector-7 cleared for limited operations
+
+## Root Cause Analysis
+
+Investigation determined the breach originated from a corrupted data transfer during a routine system migration. The anomaly exploited a gap in the air-gap protocol when a technician connected a temporary diagnostic device to the primary repository without proper authorization.
+
+## Casualties
+
+- **Fatalities:** 0
+- **Permanent cognitive impairment:** 2 (Personnel D-8842, D-9103)
+- **Temporary exposure effects:** 21 (all resolved with amnestic treatment)
+
+## Corrective Actions
+
+- All air-gap protocols upgraded to include physical port disabling on all repository terminals
+- Mandatory two-person verification for any hardware connection to classified systems
+- Enhanced cognitive screening frequency for all Site-64 personnel (monthly → weekly)
+- Additional MTF Psi-7 ("Home Improvement") assets assigned to Site-64 security
+
+## Lessons Learned
+
+> The most dangerous breaches are not physical — they are informational. A locked door means nothing if the knowledge behind it can walk out through a human mind.
+
+> Document Classification: **Top Secret**
+> Last Updated: 2025-12-05
+> Node: LATOM-7 | Version: 7.2.1`,
+    },
+    'doc-mtf-deployment-records': {
+      title: 'MTF Deployment Records — Q3 2025',
+      summary: 'Operational summary of Mobile Task Force deployments, mission outcomes, and casualty reports for the third quarter of 2025.',
+      content: `# Mobile Task Force Deployment Records
+
+## Q3 2025 — Operational Summary
+
+## Classification: SECRET — LEVEL 4 REQUIRED
+
+## Overview
+
+This document provides a summary of all Mobile Task Force deployments during the third quarter of 2025 (July–September). A total of 47 deployments were authorized across 12 active MTFs.
+
+## Deployment Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Deployments | 47 |
+| Successful Missions | 42 (89.4%) |
+| Partial Success | 3 (6.4%) |
+| Failed Missions | 2 (4.2%) |
+| Personnel Deployed | 312 |
+| Casualties (KIA) | 4 |
+| Casualties (WIA) | 17 |
+
+## Notable Deployments
+
+### MTF Epsilon-11 ("Nine-Tailed Fox")
+
+**Mission:** Re-containment of SCP-████ at Site-19, Sector-4
+**Date:** 2025-07-14
+**Outcome:** Success
+
+Epsilon-11 successfully re-contained SCP-████ within 12 minutes of breach notification. Zero casualties. Recommended for commendation.
+
+### MTF Alpha-1 ("Red Right Hand")
+
+**Mission:** Secure and transport SCP-████ from Site-64 to Site-01
+**Date:** 2025-08-03
+**Outcome:** Success
+
+High-security transport completed without incident. Route counter-surveillance confirmed no external tracking.
+
+### MTF Zeta-9 ("Mole Rats")
+
+**Mission:** Exploration and mapping of SCP-████ subterranean structure
+**Date:** 2025-08-21
+**Outcome:** Partial Success
+
+Exploration team encountered unexpected spatial anomalies. 3 of 8 team members required extraction. Mapping 67% complete. Further exploration pending revised safety protocols.
+
+### MTF Psi-7 ("Home Improvement")
+
+**Mission:** Site-64 cognitohazard response and containment restoration
+**Date:** 2025-12-03
+**Outcome:** Success (see Incident Report doc-cognitohazard-response)
+
+## Casualty Report
+
+| MTF | Operation | KIA | WIA | Status |
+|-----|-----------|-----|-----|--------|
+| Epsilon-11 | Site-19 breach | 0 | 2 | Recovered |
+| Zeta-9 | Subterranean exploration | 1 | 4 | Under review |
+| Nu-7 ("Hammer Down") | Site-██ perimeter defense | 2 | 8 | Posthumous commendation |
+| Mu-3 ("Extra Eyes") | Surveillance operation | 1 | 3 | Under investigation |
+
+## Recommendations
+
+- Increase Zeta-9 team size for subterranean operations from 8 to 12
+- Upgrade Nu-7 heavy equipment allocation for perimeter defense scenarios
+- Review Mu-3 surveillance protocols following the loss of Operative ████████
+
+> Document Classification: **Secret**
+> Last Updated: 2025-10-01
+> Node: LATOM-7 | Version: 7.2.1`,
     },
   },
   about: {

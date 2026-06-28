@@ -1,19 +1,54 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { documents } from '@/data/documents'
 import Badge from '@/components/common/Badge.vue'
 import { useI18n } from 'vue-i18n'
 import type { Document } from '@/types'
 
 const { t } = useI18n()
+const visible = ref(false)
 const activeDoc = ref<Document | null>(null)
 const typeFilter = ref<string | null>(null)
 
-const types = ['protocol', 'research', 'incident', 'directive']
+onMounted(() => {
+  requestAnimationFrame(() => {
+    visible.value = true
+  })
+})
+
+const types = ['protocol', 'research', 'incident', 'directive'] as const
+
+const classLevel: Record<string, number> = {
+  Unclassified: 0,
+  Restricted: 1,
+  Confidential: 2,
+  Secret: 3,
+  'Top Secret': 4,
+}
+
+const classColor: Record<string, string> = {
+  Unclassified: 'var(--class-safe)',
+  Restricted: 'var(--class-euclid)',
+  Confidential: 'var(--class-keter)',
+  Secret: 'var(--class-thaumiel)',
+  'Top Secret': 'var(--color-danger)',
+}
+
+const typeIcon: Record<string, string> = {
+  protocol: '◈',
+  research: '◇',
+  incident: '⚠',
+  directive: '▣',
+}
 
 const filtered = computed(() => {
-  if (!typeFilter.value) return documents
-  return documents.filter((d) => d.type === typeFilter.value)
+  let list = documents
+  if (typeFilter.value) {
+    list = list.filter((d) => d.type === typeFilter.value)
+  }
+  return [...list].sort((a, b) => {
+    return (classLevel[b.classification] || 0) - (classLevel[a.classification] || 0)
+  })
 })
 
 const classVariant = (c: string) => {
@@ -54,9 +89,21 @@ function renderMarkdown(md: string): string {
 </script>
 
 <template>
-  <div class="m-docs">
+  <div class="m-docs" :class="{ visible }">
+    <!-- Ambient orbs -->
+    <div class="m-orb m-orb-primary"></div>
+
+    <!-- Hero -->
+    <header class="m-docs-hero">
+      <span class="m-hero-badge">{{ t('documents.hero.badge', { count: documents.length }) }}</span>
+      <h1 class="m-hero-title">
+        <span class="m-title-main">{{ t('documents.title') }}</span>
+      </h1>
+      <p class="m-hero-desc">{{ t('documents.description') }}</p>
+    </header>
+
     <!-- Filter Pills -->
-    <div class="m-filter-scroll">
+    <div class="m-filter-scroll fade-up-1">
       <div class="m-filter-pills">
         <button class="m-pill" :class="{ active: !typeFilter }" @click="typeFilter = null">
           {{ t('documents.all') }}
@@ -68,17 +115,34 @@ function renderMarkdown(md: string): string {
           :class="{ active: typeFilter === typ }"
           @click="typeFilter = typ"
         >
+          <span class="m-pill-icon">{{ typeIcon[typ] }}</span>
           {{ t(`documents.types.${typ}`) }}
         </button>
       </div>
     </div>
 
+    <!-- Document Count -->
+    <div class="m-doc-count fade-up-1">
+      {{ t('documents.count', { count: filtered.length }) }}
+    </div>
+
     <!-- Document Cards -->
     <div class="m-doc-list">
-      <div v-for="doc in filtered" :key="doc.id" class="m-doc-card" @click="openDoc(doc)">
+      <div
+        v-for="(doc, i) in filtered"
+        :key="doc.id"
+        class="m-doc-card"
+        :class="`fade-up-${Math.min(i + 2, 8)}`"
+        :style="{ '--card-color': classColor[doc.classification] }"
+        @click="openDoc(doc)"
+      >
+        <div class="m-doc-accent"></div>
         <div class="m-doc-top">
           <Badge :variant="classVariant(doc.classification)">{{ t(`classification.${doc.classification}`) }}</Badge>
-          <span class="m-doc-type">{{ t(`documents.types.${doc.type}`) }}</span>
+          <span class="m-doc-type">
+            <span class="m-type-icon">{{ typeIcon[doc.type] }}</span>
+            {{ t(`documents.types.${doc.type}`) }}
+          </span>
         </div>
         <h3 class="m-doc-title">{{ t(`docs.${doc.id}.title`) }}</h3>
         <p class="m-doc-summary">{{ t(`docs.${doc.id}.summary`) }}</p>
@@ -88,6 +152,11 @@ function renderMarkdown(md: string): string {
         </div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="m-docs-footer fade-up-8">
+      <p>{{ t('documents.footer.disclaimer') }}</p>
+    </footer>
 
     <!-- Full-Screen Document Modal -->
     <Teleport to="body">
@@ -103,12 +172,29 @@ function renderMarkdown(md: string): string {
               <Badge :variant="classVariant(activeDoc.classification)">
                 {{ t(`classification.${activeDoc.classification}`) }}
               </Badge>
-              <span class="m-doc-modal-type">{{ t(`documents.types.${activeDoc.type}`) }}</span>
+              <span class="m-doc-modal-type">
+                <span class="m-type-icon">{{ typeIcon[activeDoc.type] }}</span>
+                {{ t(`documents.types.${activeDoc.type}`) }}
+              </span>
             </div>
           </div>
           <div class="m-doc-modal-body">
             <h2 class="m-doc-modal-title">{{ t(`docs.${activeDoc.id}.title`) }}</h2>
             <div class="m-doc-modal-content" v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"></div>
+            <div class="m-doc-modal-footer">
+              <div class="m-footer-row">
+                <span class="m-footer-label">{{ t('documents.meta.classification') }}</span>
+                <span class="m-footer-value">{{ t(`classification.${activeDoc.classification}`) }}</span>
+              </div>
+              <div class="m-footer-row">
+                <span class="m-footer-label">{{ t('documents.meta.lastUpdated') }}</span>
+                <span class="m-footer-value">{{ activeDoc.date }}</span>
+              </div>
+              <div class="m-footer-row">
+                <span class="m-footer-label">{{ t('documents.meta.node') }}</span>
+                <span class="m-footer-value">LATOM-7</span>
+              </div>
+            </div>
           </div>
         </div>
       </Transition>
@@ -119,12 +205,105 @@ function renderMarkdown(md: string): string {
 <style scoped>
 .m-docs {
   padding: var(--space-md);
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 600ms var(--ease-out-expo);
 }
 
+.m-docs.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══ Orb ═══ */
+.m-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1.5s ease;
+}
+
+.m-docs.visible .m-orb {
+  opacity: 0.07;
+}
+
+.m-orb-primary {
+  width: 300px;
+  height: 300px;
+  background: var(--color-primary);
+  top: 5%;
+  right: -20%;
+  animation: m-orb-float 22s ease-in-out infinite;
+}
+
+@keyframes m-orb-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(15px, -25px); }
+}
+
+/* ═══ Animations ═══ */
+.fade-up-1 { animation: fade-up 500ms var(--ease-out-expo) 200ms backwards; }
+.fade-up-2 { animation: fade-up 500ms var(--ease-out-expo) 300ms backwards; }
+.fade-up-3 { animation: fade-up 500ms var(--ease-out-expo) 400ms backwards; }
+.fade-up-4 { animation: fade-up 500ms var(--ease-out-expo) 500ms backwards; }
+.fade-up-5 { animation: fade-up 500ms var(--ease-out-expo) 600ms backwards; }
+.fade-up-6 { animation: fade-up 500ms var(--ease-out-expo) 700ms backwards; }
+.fade-up-7 { animation: fade-up 500ms var(--ease-out-expo) 800ms backwards; }
+.fade-up-8 { animation: fade-up 500ms var(--ease-out-expo) 900ms backwards; }
+
+/* ═══ Hero ═══ */
+.m-docs-hero {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-lg) 0 var(--space-xl);
+  margin-bottom: var(--space-md);
+}
+
+.m-hero-badge {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-md);
+  animation: fade-up 500ms var(--ease-out-expo) 100ms backwards;
+}
+
+.m-hero-title {
+  margin-bottom: var(--space-sm);
+  animation: fade-up 500ms var(--ease-out-expo) 200ms backwards;
+}
+
+.m-title-main {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.m-hero-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  animation: fade-up 500ms var(--ease-out-expo) 300ms backwards;
+}
+
+/* ═══ Filters ═══ */
 .m-filter-scroll {
   overflow-x: auto;
   scrollbar-width: none;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
+  position: relative;
+  z-index: 1;
 }
 
 .m-filter-scroll::-webkit-scrollbar {
@@ -138,6 +317,9 @@ function renderMarkdown(md: string): string {
 
 .m-pill {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 6px 14px;
   border-radius: var(--radius-full);
   background: var(--bg-surface);
@@ -154,10 +336,28 @@ function renderMarkdown(md: string): string {
   color: var(--text-inverse);
 }
 
+.m-pill-icon {
+  font-size: 10px;
+}
+
+/* ═══ Doc Count ═══ */
+.m-doc-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-md);
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══ Doc Cards ═══ */
 .m-doc-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  position: relative;
+  z-index: 1;
 }
 
 .m-doc-card {
@@ -167,10 +367,22 @@ function renderMarkdown(md: string): string {
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.m-doc-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--card-color);
+  opacity: 0.6;
 }
 
 .m-doc-card:active {
-  border-color: var(--color-accent);
+  border-color: var(--card-color);
 }
 
 .m-doc-top {
@@ -181,10 +393,18 @@ function renderMarkdown(md: string): string {
 }
 
 .m-doc-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--text-xs);
   font-family: var(--font-mono);
   color: var(--text-tertiary);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.m-type-icon {
+  font-size: 10px;
 }
 
 .m-doc-title {
@@ -225,7 +445,23 @@ function renderMarkdown(md: string): string {
   font-weight: 500;
 }
 
-/* Full-Screen Modal */
+/* ═══ Footer ═══ */
+.m-docs-footer {
+  padding: var(--space-xl) 0 var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.m-docs-footer p {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+  text-align: center;
+}
+
+/* ═══ Full-Screen Modal ═══ */
 .m-doc-overlay {
   position: fixed;
   inset: 0;
@@ -267,6 +503,9 @@ function renderMarkdown(md: string): string {
 }
 
 .m-doc-modal-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--text-xs);
   font-family: var(--font-mono);
   color: var(--text-tertiary);
@@ -303,6 +542,12 @@ function renderMarkdown(md: string): string {
   color: var(--text-primary);
 }
 
+.m-doc-modal-content :deep(h4) {
+  font-size: var(--text-sm);
+  margin: var(--space-md) 0 var(--space-sm);
+  color: var(--text-primary);
+}
+
 .m-doc-modal-content :deep(p) {
   margin-bottom: var(--space-md);
 }
@@ -334,6 +579,58 @@ function renderMarkdown(md: string): string {
   font-weight: 600;
 }
 
+.m-doc-modal-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-md) 0;
+  font-size: var(--text-xs);
+}
+
+.m-doc-modal-content :deep(th),
+.m-doc-modal-content :deep(td) {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.m-doc-modal-content :deep(th) {
+  background: var(--bg-elevated);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.m-doc-modal-content :deep(td) {
+  color: var(--text-secondary);
+}
+
+/* Modal Footer */
+.m-doc-modal-footer {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.m-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.m-footer-label {
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+}
+
+.m-footer-value {
+  color: var(--text-secondary);
+}
+
+/* ═══ Transitions ═══ */
 .slide-up-enter-active {
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
