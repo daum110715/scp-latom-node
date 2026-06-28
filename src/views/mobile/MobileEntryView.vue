@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
@@ -32,6 +32,21 @@ const loading = ref(true)
 const error = ref('')
 const data = ref<EntryContentResponse | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
+
+// Collapse all <details> elements in footer content after render
+function collapseFooterDetails() {
+  nextTick(() => {
+    const body = document.querySelector('.m-entry-body')
+    if (!body) return
+    body.querySelectorAll('details').forEach((el) => {
+      el.removeAttribute('open')
+    })
+  })
+}
+
+watch(() => data.value?.content, (content) => {
+  if (content) collapseFooterDetails()
+})
 
 async function loadContent() {
   loading.value = true

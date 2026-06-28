@@ -481,10 +481,12 @@ pre code {
   font-size: var(--text-xs);
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
-  padding: var(--space-xs) 0;
+  padding: var(--space-xs) var(--space-sm);
+  margin: 0 calc(-1 * var(--space-sm));
   user-select: none;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
   list-style: none;
+  border-radius: var(--radius-sm);
 }
 
 .scp-content .scp-copyright summary::-webkit-details-marker {
@@ -503,13 +505,16 @@ pre code {
 
 .scp-content .scp-copyright summary:hover {
   color: var(--text-secondary);
+  background: var(--bg-surface);
 }
 
 .scp-content .scp-copyright-body {
-  padding: var(--space-md) 0;
+  padding: var(--space-md) var(--space-sm);
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   line-height: var(--leading-relaxed);
+  border-left: 2px solid var(--border-subtle);
+  margin-left: var(--space-xs);
 }
 
 .scp-content .scp-copyright-body a {

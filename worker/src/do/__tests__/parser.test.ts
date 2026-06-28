@@ -798,4 +798,94 @@ describe('cleanEntryHtml', () => {
 
     expect(result).toContain('href="https://example.com/page"')
   })
+
+  // ─── Enhanced footer extraction ───────────────────────────
+
+  it('wraps credits class in collapsible copyright notice', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <div class="credits">Written by Agent Smith</div>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('Content')
+    expect(result).toContain('scp-copyright')
+    expect(result).toContain('Copyright / Attribution')
+    expect(result).toContain('Written by Agent Smith')
+    expect(result).toContain('<details')
+  })
+
+  it('handles nested divs inside licensebox', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <div class="licensebox">
+        <div class="inner">
+          <p>CC BY-SA 3.0</p>
+          <p>Author: Dr. Bright</p>
+        </div>
+      </div>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('Content')
+    expect(result).toContain('scp-copyright')
+    expect(result).toContain('CC BY-SA 3.0')
+    expect(result).toContain('Author: Dr. Bright')
+    expect(result).toContain('inner')
+  })
+
+  it('combines multiple footer sections', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <div class="licensebox">CC BY-SA 3.0</div>
+      <div class="credits">Written by Agent Smith</div>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('Content')
+    expect(result).toContain('scp-copyright')
+    expect(result).toContain('CC BY-SA 3.0')
+    expect(result).toContain('Written by Agent Smith')
+    // Should have exactly one <details> element wrapping both
+    const detailsCount = (result.match(/<details/g) || []).length
+    expect(detailsCount).toBe(1)
+  })
+
+  it('removes original licensebox and credits elements from content', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <div class="licensebox">CC BY-SA 3.0</div>
+      <div class="credits">Written by Agent Smith</div>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    // Original elements should be removed
+    expect(result).not.toMatch(/class="licensebox"/)
+    expect(result).not.toMatch(/class="credits"/)
+    // But content should be in the collapsible section
+    expect(result).toContain('CC BY-SA 3.0')
+    expect(result).toContain('Written by Agent Smith')
+  })
+
+  it('handles section element with licensebox class', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <section class="licensebox">CC BY-SA 3.0</section>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('scp-copyright')
+    expect(result).toContain('CC BY-SA 3.0')
+  })
+
+  it('handles aside element with credits class', () => {
+    const html = `<div id="page-content">
+      <p>Content</p>
+      <aside class="credits">Written by Agent Smith</aside>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('scp-copyright')
+    expect(result).toContain('Written by Agent Smith')
+  })
 })

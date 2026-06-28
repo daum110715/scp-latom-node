@@ -466,6 +466,8 @@ const REMOVE_CLASSES = [
   'comments-box',
   'page-options-bottom',
   'footer-wikiwalk-nav',
+  'licensebox',
+  'credits',
   'pager',
   'scp-image-block',
   'collapsible-block-link',   // collapse toggle links (content kept)
@@ -540,6 +542,69 @@ function extractPageContent(html: string): string | null {
 }
 
 /**
+ * Extract footer sections (licensebox, credits) from page content.
+ * Returns the combined inner HTML of all matching sections.
+ * Uses depth-counting to handle nested elements correctly.
+ */
+function extractFooterSections(html: string): string {
+  const sections: string[] = []
+  // Match opening tags with licensebox or credits classes
+  const openPattern = /<(div|span|section|aside)[^>]*?\bclass="[^"]*(?:licensebox|credits)[^"]*"[^>]*/gi
+  let match: RegExpExecArray | null
+
+  while ((match = openPattern.exec(html)) !== null) {
+    const fullOpen = match[0]
+    const tag = match[1].toLowerCase()
+    const startIdx = match.index
+
+    // Find the end of the opening tag
+    const openTagEnd = html.indexOf('>', startIdx)
+    if (openTagEnd === -1) continue
+
+    // Check for self-closing
+    if (html[openTagEnd - 1] === '/') {
+      continue // self-closing, skip
+    }
+
+    const contentStart = openTagEnd + 1
+    const closeTag = `</${tag}>`
+
+    // Count nested same-type tags to find the matching closing tag
+    let depth = 1
+    let pos = contentStart
+    while (pos < html.length && depth > 0) {
+      const nextOpen = html.indexOf(`<${tag}`, pos)
+      const nextClose = html.indexOf(closeTag, pos)
+
+      if (nextClose === -1) break // malformed HTML
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        const afterOpen = html.indexOf('>', nextOpen)
+        if (afterOpen !== -1 && afterOpen < nextClose) {
+          if (html[afterOpen - 1] !== '/') {
+            depth++
+          }
+          pos = afterOpen + 1
+        } else {
+          pos = nextOpen + tag.length + 1
+        }
+      } else {
+        depth--
+        if (depth === 0) {
+          sections.push(html.slice(contentStart, nextClose).trim())
+          // Move past this match so outer while loop doesn't re-process
+          openPattern.lastIndex = nextClose + closeTag.length
+          break
+        }
+        pos = nextClose + closeTag.length
+      }
+    }
+  }
+
+  return sections.join('\n')
+}
+
+/**
  * Clean an SCP wiki entry page HTML for storage and rendering.
  *
  * Steps:
@@ -566,23 +631,17 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
   content = content.replace(/<style[\s\S]*?<\/style>/gi, '')
   content = content.replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
 
-  // 3. Extract licensebox content before removal (for collapsible copyright notice)
-  let licenseboxHtml = ''
-  const licenseboxMatch = content.match(/<(?:div|span|section|aside)[^>]*?\bclass="[^"]*licensebox[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span|section|aside)>/i)
-  if (licenseboxMatch) {
-    // Strip the outer wrapper tag, keep inner content
-    const innerMatch = licenseboxMatch[0].match(/^<\w+[^>]*>([\s\S]*)<\/\w+>$/i)
-    licenseboxHtml = innerMatch ? innerMatch[1].trim() : licenseboxMatch[1].trim()
-  }
+  // 3. Extract licensebox/credits content before removal (for collapsible copyright notice)
+  const footerHtml = extractFooterSections(content)
 
   // 4. Remove elements with known non-content classes
   //    We do this by matching opening+content+closing tags for divs/spans with those classes.
   //    This is a best-effort regex approach (no DOM parser in Workers).
   const removePattern = buildRemoveClassPattern()
   // Remove self-closing or simple elements with those classes
-  content = content.replace(/<\w+[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*\/>/gi, '')
+  content = content.replace(/<\w+[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*\/>/gi, '')
   // Remove block-level elements with those classes (greedy removal up to next matching close tag)
-  content = content.replace(/<(?:div|span|section|aside|nav)[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*>[\s\S]*?<\/(?:div|span|section|aside|nav)>/gi, '')
+  content = content.replace(/<(?:div|span|section|aside|nav)[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*>[\s\S]*?<\/(?:div|span|section|aside|nav)>/gi, '')
 
   // 5. Remove on* event handler attributes
   content = content.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
@@ -604,16 +663,16 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
     return `href="/entry/${language}/${scpNum}"`
   })
 
-  // 9. Append collapsible copyright notice if licensebox was found
-  if (licenseboxHtml) {
-    // Clean the licensebox HTML with the same URL conversion
-    licenseboxHtml = licenseboxHtml.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
-    licenseboxHtml = licenseboxHtml.replace(/\bsrc="\/(?!\/)/g, `src="${baseUrl}/`)
-    // Also convert SCP links in licensebox
-    licenseboxHtml = licenseboxHtml.replace(scpLinkPattern, (_match: string, scpNum: string) => {
+  // 9. Append collapsible copyright notice if footer sections were found
+  if (footerHtml) {
+    // Clean the footer HTML with the same URL conversion
+    let cleanedFooter = footerHtml.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
+    cleanedFooter = cleanedFooter.replace(/\bsrc="\/(?!\/)/g, `src="${baseUrl}/`)
+    // Also convert SCP links in footer
+    cleanedFooter = cleanedFooter.replace(scpLinkPattern, (_match: string, scpNum: string) => {
       return `href="/entry/${language}/${scpNum}"`
     })
-    content += `\n<details class="scp-copyright"><summary>Copyright / Attribution</summary><div class="scp-copyright-body">${licenseboxHtml}</div></details>`
+    content += `\n<details class="scp-copyright"><summary>Copyright / Attribution</summary><div class="scp-copyright-body">${cleanedFooter}</div></details>`
   }
 
   // 10. Wrap in container
