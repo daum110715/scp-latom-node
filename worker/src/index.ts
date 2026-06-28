@@ -105,3 +105,4 @@ export default app
 // Re-export Durable Object classes for wrangler
 export { ScpCrawlerDo } from './do/scp-crawler'
 export { AiChatDo } from './do/ai-chat'
+export { AiQueueDo } from './do/ai-queue'

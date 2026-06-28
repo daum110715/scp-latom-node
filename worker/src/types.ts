@@ -6,6 +6,7 @@ export interface Env {
   SCP_EN_CRAWLER: DurableObjectNamespace
   SCP_CN_CRAWLER: DurableObjectNamespace
   AI_CHAT_DO: DurableObjectNamespace
+  AI_QUEUE_DO: DurableObjectNamespace
   GLM_API_KEY: string
 }
 

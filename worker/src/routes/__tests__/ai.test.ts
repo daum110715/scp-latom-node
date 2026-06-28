@@ -146,14 +146,31 @@ function createMockDB() {
   }
 }
 
+function createQueueMockNamespace(chatNs: DurableObjectNamespace): DurableObjectNamespace {
+  return {
+    idFromName: vi.fn(() => 'mock-queue-id' as unknown as DurableObjectId),
+    get: vi.fn(() => ({
+      fetch: vi.fn(async (url: string, init?: RequestInit) => {
+        // Queue DO forwards to the chat DO
+        const body = init?.body ? JSON.parse(init.body as string) : {}
+        const chatStub = chatNs.get('' as unknown as DurableObjectId)
+        const doPath = body.stream ? 'https://do.ai/stream' : 'https://do.ai/send'
+        return chatStub.fetch(doPath, init)
+      }),
+    })),
+  } as unknown as DurableObjectNamespace
+}
+
 function createTestEnv(overrides?: Partial<Env>): Env {
+  const chatNs = createMockNamespace()
   return {
     DB: createMockDB() as unknown as D1Database,
     JWT_SECRET: 'test-secret-key-for-jwt',
     CORS_ORIGINS: '*',
     SCP_EN_CRAWLER: {} as DurableObjectNamespace,
     SCP_CN_CRAWLER: {} as DurableObjectNamespace,
-    AI_CHAT_DO: createMockNamespace(),
+    AI_CHAT_DO: chatNs,
+    AI_QUEUE_DO: createQueueMockNamespace(chatNs),
     GLM_API_KEY: 'test-glm-key',
     ...overrides,
   } as Env
@@ -231,7 +248,7 @@ describe('AI Routes', () => {
       expect(data.message.role).toBe('assistant')
     })
 
-    it('forwards existing conversationId to DO', async () => {
+    it('routes through per-user queue DO', async () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
@@ -245,8 +262,9 @@ describe('AI Routes', () => {
       }, env)
 
       expect(res.status).toBe(200)
-      const ns = env.AI_CHAT_DO as any
-      expect(ns.idFromName).toHaveBeenCalledWith('existing-id')
+      // Chat goes through the queue DO (per-user), not directly to AiChatDo
+      const queueNs = env.AI_QUEUE_DO as any
+      expect(queueNs.idFromName).toHaveBeenCalledWith('queue:user:1')
     })
   })
 

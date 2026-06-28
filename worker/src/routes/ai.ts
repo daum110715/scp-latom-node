@@ -51,9 +51,14 @@ ai.use('/*', authMiddleware)
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function getDoStub(env: Env, conversationId: string): DurableObjectStub {
+function getConversationStub(env: Env, conversationId: string): DurableObjectStub {
   const id = env.AI_CHAT_DO.idFromName(conversationId)
   return env.AI_CHAT_DO.get(id)
+}
+
+function getQueueStub(env: Env, userId: number): DurableObjectStub {
+  const id = env.AI_QUEUE_DO.idFromName(`queue:user:${userId}`)
+  return env.AI_QUEUE_DO.get(id)
 }
 
 function generateConversationId(): string {
@@ -79,8 +84,6 @@ ai.post('/chat', async (c) => {
     isNew = true
   }
 
-  const stub = getDoStub(c.env, conversationId)
-
   const doBody = {
     message: body.message.trim(),
     userId: payload.sub,
@@ -88,11 +91,15 @@ ai.post('/chat', async (c) => {
     title: body.title,
     isNew,
     conversationId,
+    stream: body.stream ?? false,
   }
 
+  // Route through the per-user queue for serial processing
+  const queueStub = getQueueStub(c.env, payload.sub)
+
   if (body.stream) {
-    // Streaming mode
-    const doResponse = await stub.fetch('https://do.ai/stream', {
+    // Streaming mode — queue DO proxies the ReadableStream
+    const queueResponse = await queueStub.fetch('https://queue.ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(doBody),
@@ -112,8 +119,8 @@ ai.post('/chat', async (c) => {
       logger.info('AI conversation created (stream)', { conversationId, userId: payload.sub })
     }
 
-    return new Response(doResponse.body, {
-      status: doResponse.status,
+    return new Response(queueResponse.body, {
+      status: queueResponse.status,
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -122,14 +129,14 @@ ai.post('/chat', async (c) => {
     })
   }
 
-  // Non-streaming mode
-  const doResponse = await stub.fetch('https://do.ai/send', {
+  // Non-streaming mode — queue DO waits for full response
+  const queueResponse = await queueStub.fetch('https://queue.ai/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(doBody),
   })
 
-  const data = await doResponse.json() as {
+  const data = await queueResponse.json() as {
     success: boolean
     conversationId: string
     message: unknown
@@ -212,7 +219,7 @@ ai.get('/conversations/:id', async (c) => {
   }
 
   // Get messages from DO
-  const stub = getDoStub(c.env, conversationId)
+  const stub = getConversationStub(c.env, conversationId)
   const doResponse = await stub.fetch('https://do.ai/messages')
   const data = await doResponse.json() as { success: boolean; messages: unknown[] }
 
@@ -238,7 +245,7 @@ ai.put('/conversations/:id', async (c) => {
   }
 
   // Update in DO
-  const stub = getDoStub(c.env, conversationId)
+  const stub = getConversationStub(c.env, conversationId)
   await stub.fetch('https://do.ai/meta', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -298,7 +305,7 @@ ai.post('/conversations/:id/regenerate', async (c) => {
     return c.json({ success: false, error: 'Conversation not found' }, 404)
   }
 
-  const stub = getDoStub(c.env, conversationId)
+  const stub = getConversationStub(c.env, conversationId)
   const doResponse = await stub.fetch('https://do.ai/regenerate', {
     method: 'POST',
   })

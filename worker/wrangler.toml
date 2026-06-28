@@ -17,7 +17,8 @@ database_id = "85985e6c-c19e-43e3-9fc5-45754f2a215c"
 bindings = [
   { name = "SCP_EN_CRAWLER", class_name = "ScpCrawlerDo" },
   { name = "SCP_CN_CRAWLER", class_name = "ScpCrawlerDo" },
-  { name = "AI_CHAT_DO", class_name = "AiChatDo" }
+  { name = "AI_CHAT_DO", class_name = "AiChatDo" },
+  { name = "AI_QUEUE_DO", class_name = "AiQueueDo" }
 ]
 
 [[migrations]]
@@ -27,3 +28,7 @@ new_sqlite_classes = ["ScpCrawlerDo"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["AiChatDo"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["AiQueueDo"]
