@@ -85,15 +85,18 @@ describe('LoginView', () => {
   })
 
   it('displays error message from auth store', () => {
-    const { wrapper, mockAuthStore } = createTestSetup()
+    const { mockAuthStore } = createTestSetup()
     mockAuthStore.error = 'Invalid credentials'
     // Need to re-mount to get the updated error
-    const wrapper2 = mount(LoginView, {
+    mount(LoginView, {
       global: {
         plugins: [
           createPinia(),
           createI18n({ legacy: false, locale: 'en', fallbackLocale: 'en', messages: { en, zh } }),
-          createRouter({ history: createMemoryHistory(), routes: [{ path: '/login', component: LoginView }] }),
+          createRouter({
+            history: createMemoryHistory(),
+            routes: [{ path: '/login', component: LoginView }],
+          }),
         ],
       },
     })
@@ -103,7 +106,7 @@ describe('LoginView', () => {
   })
 
   it('disables submit button when loading', () => {
-    const { wrapper, mockAuthStore } = createTestSetup()
+    const { mockAuthStore } = createTestSetup()
     mockAuthStore.loading = true
     // Re-mount with updated state
     const pinia = createPinia()
@@ -115,7 +118,10 @@ describe('LoginView', () => {
         plugins: [
           pinia,
           createI18n({ legacy: false, locale: 'en', fallbackLocale: 'en', messages: { en, zh } }),
-          createRouter({ history: createMemoryHistory(), routes: [{ path: '/login', component: LoginView }] }),
+          createRouter({
+            history: createMemoryHistory(),
+            routes: [{ path: '/login', component: LoginView }],
+          }),
         ],
       },
     })

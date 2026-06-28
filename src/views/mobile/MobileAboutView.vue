@@ -283,8 +283,13 @@ const classColors: Record<string, string> = {
 }
 
 @keyframes m-orb-float {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(20px, -30px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, -30px);
+  }
 }
 
 /* ═══ Hero ═══ */
@@ -315,7 +320,12 @@ const classColors: Record<string, string> = {
 }
 
 .m-title-main {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--color-primary) 50%,
+    var(--color-accent) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -343,14 +353,30 @@ const classColors: Record<string, string> = {
   gap: var(--space-sm);
 }
 
-.fade-up-1 { animation: fade-up 500ms var(--ease-out-expo) 250ms backwards; }
-.fade-up-2 { animation: fade-up 500ms var(--ease-out-expo) 350ms backwards; }
-.fade-up-3 { animation: fade-up 500ms var(--ease-out-expo) 450ms backwards; }
-.fade-up-4 { animation: fade-up 500ms var(--ease-out-expo) 550ms backwards; }
-.fade-up-5 { animation: fade-up 500ms var(--ease-out-expo) 650ms backwards; }
-.fade-up-6 { animation: fade-up 500ms var(--ease-out-expo) 750ms backwards; }
-.fade-up-7 { animation: fade-up 500ms var(--ease-out-expo) 850ms backwards; }
-.fade-up-8 { animation: fade-up 500ms var(--ease-out-expo) 950ms backwards; }
+.fade-up-1 {
+  animation: fade-up 500ms var(--ease-out-expo) 250ms backwards;
+}
+.fade-up-2 {
+  animation: fade-up 500ms var(--ease-out-expo) 350ms backwards;
+}
+.fade-up-3 {
+  animation: fade-up 500ms var(--ease-out-expo) 450ms backwards;
+}
+.fade-up-4 {
+  animation: fade-up 500ms var(--ease-out-expo) 550ms backwards;
+}
+.fade-up-5 {
+  animation: fade-up 500ms var(--ease-out-expo) 650ms backwards;
+}
+.fade-up-6 {
+  animation: fade-up 500ms var(--ease-out-expo) 750ms backwards;
+}
+.fade-up-7 {
+  animation: fade-up 500ms var(--ease-out-expo) 850ms backwards;
+}
+.fade-up-8 {
+  animation: fade-up 500ms var(--ease-out-expo) 950ms backwards;
+}
 
 .m-section-header {
   display: flex;
@@ -430,8 +456,15 @@ const classColors: Record<string, string> = {
 }
 
 @keyframes indicator-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 .m-class-header h3 {
@@ -482,11 +515,26 @@ const classColors: Record<string, string> = {
   border-radius: var(--radius-full);
 }
 
-.m-spectrum-seg.safe { background: var(--class-safe); flex: 1; }
-.m-spectrum-seg.euclid { background: var(--class-euclid); flex: 1.5; }
-.m-spectrum-seg.keter { background: var(--class-keter); flex: 2; }
-.m-spectrum-seg.thaumiel { background: var(--class-thaumiel); flex: 1; }
-.m-spectrum-seg.apollyon { background: var(--color-danger); flex: 2.5; }
+.m-spectrum-seg.safe {
+  background: var(--class-safe);
+  flex: 1;
+}
+.m-spectrum-seg.euclid {
+  background: var(--class-euclid);
+  flex: 1.5;
+}
+.m-spectrum-seg.keter {
+  background: var(--class-keter);
+  flex: 2;
+}
+.m-spectrum-seg.thaumiel {
+  background: var(--class-thaumiel);
+  flex: 1;
+}
+.m-spectrum-seg.apollyon {
+  background: var(--color-danger);
+  flex: 2.5;
+}
 
 .m-spectrum-names {
   display: flex;
@@ -584,9 +632,15 @@ const classColors: Record<string, string> = {
   border-radius: 50%;
 }
 
-.m-dot.red { background: #ef4444; }
-.m-dot.yellow { background: #facc15; }
-.m-dot.green { background: #4ade80; }
+.m-dot.red {
+  background: #ef4444;
+}
+.m-dot.yellow {
+  background: #facc15;
+}
+.m-dot.green {
+  background: #4ade80;
+}
 
 .m-terminal-title {
   font-family: var(--font-mono);
@@ -642,8 +696,13 @@ const classColors: Record<string, string> = {
 }
 
 @keyframes m-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ═══ Footer ═══ */

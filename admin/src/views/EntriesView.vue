@@ -15,9 +15,15 @@ onMounted(() => {
   store.getCrawlStatus()
 })
 
-function onSearch(q: string) { store.setSearch(q) }
-function onLangFilter(e: Event) { store.setLanguageFilter((e.target as HTMLSelectElement).value) }
-function onClassFilter(e: Event) { store.setClassFilter((e.target as HTMLSelectElement).value) }
+function onSearch(q: string) {
+  store.setSearch(q)
+}
+function onLangFilter(e: Event) {
+  store.setLanguageFilter((e.target as HTMLSelectElement).value)
+}
+function onClassFilter(e: Event) {
+  store.setClassFilter((e.target as HTMLSelectElement).value)
+}
 
 async function confirmDelete() {
   if (deleteTarget.value !== null) {
@@ -47,17 +53,21 @@ async function triggerCrawl(lang: string) {
         <span class="admin-card-title">Crawler Status</span>
       </div>
       <div class="crawl-controls">
-        <button class="btn btn-primary" @click="triggerCrawl('en')" :disabled="!!crawlLang">
+        <button class="btn btn-primary" :disabled="!!crawlLang" @click="triggerCrawl('en')">
           {{ crawlLang === 'en' ? 'Crawling EN...' : 'Crawl EN' }}
         </button>
-        <button class="btn btn-primary" @click="triggerCrawl('cn')" :disabled="!!crawlLang">
+        <button class="btn btn-primary" :disabled="!!crawlLang" @click="triggerCrawl('cn')">
           {{ crawlLang === 'cn' ? 'Crawling CN...' : 'Crawl CN' }}
         </button>
       </div>
     </div>
 
     <div class="filter-bar">
-      <SearchInput :model-value="store.searchQuery" @update:model-value="onSearch" placeholder="Search by SCP number or name..." />
+      <SearchInput
+        :model-value="store.searchQuery"
+        placeholder="Search by SCP number or name..."
+        @update:model-value="onSearch"
+      />
       <select class="select" @change="onLangFilter">
         <option value="">All Languages</option>
         <option value="en">EN</option>
@@ -76,7 +86,7 @@ async function triggerCrawl(lang: string) {
     </div>
 
     <div v-if="store.loading && !store.entries.length" class="loading-state">
-      <div class="skeleton" v-for="i in 10" :key="i" style="height: 48px" />
+      <div v-for="i in 10" :key="i" class="skeleton" style="height: 48px" />
     </div>
 
     <template v-else>
@@ -98,15 +108,27 @@ async function triggerCrawl(lang: string) {
               <td class="cell-mono">SCP-{{ String(entry.scp_number).padStart(3, '0') }}</td>
               <td>{{ entry.language.toUpperCase() }}</td>
               <td>{{ entry.name || '—' }}</td>
-              <td><StatusBadge :variant="entry.object_class?.toLowerCase() || 'unknown'" :label="entry.object_class" /></td>
+              <td>
+                <StatusBadge
+                  :variant="entry.object_class?.toLowerCase() || 'unknown'"
+                  :label="entry.object_class"
+                />
+              </td>
               <td class="cell-mono">{{ entry.series }}</td>
               <td>
-                <StatusBadge :variant="entry.has_content ? 'approved' : 'rejected'" :label="entry.has_content ? 'Cached' : 'None'" />
+                <StatusBadge
+                  :variant="entry.has_content ? 'approved' : 'rejected'"
+                  :label="entry.has_content ? 'Cached' : 'None'"
+                />
               </td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/entries/${entry.id}`" class="btn btn-ghost btn-sm">View</router-link>
-                  <button class="btn btn-danger btn-sm" @click="deleteTarget = entry.id">Delete</button>
+                  <router-link :to="`/entries/${entry.id}`" class="btn btn-ghost btn-sm"
+                    >View</router-link
+                  >
+                  <button class="btn btn-danger btn-sm" @click="deleteTarget = entry.id">
+                    Delete
+                  </button>
                 </div>
               </td>
             </tr>
@@ -130,12 +152,24 @@ async function triggerCrawl(lang: string) {
 </template>
 
 <style scoped>
-.entries-view { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-xl); }
-.page-header h2 { margin-bottom: var(--space-xs); }
-.page-desc { color: var(--text-tertiary); font-size: var(--text-sm); }
+.entries-view {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-header h2 {
+  margin-bottom: var(--space-xs);
+}
+.page-desc {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
 
-.crawl-card { margin-bottom: var(--space-lg); }
+.crawl-card {
+  margin-bottom: var(--space-lg);
+}
 
 .crawl-controls {
   display: flex;

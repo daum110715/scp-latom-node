@@ -41,15 +41,24 @@ const mockTag = {
   updated_at: '2026-06-26',
 }
 
-function createMockDB(data: {
-  categories?: any[]
-  category?: any
-  tags?: any[]
-  tag?: any
-  entryTags?: any[]
-  countResult?: { total: number }
-} = {}) {
-  const { categories = [], category = null, tags = [], tag = null, entryTags = [], countResult } = data
+function createMockDB(
+  data: {
+    categories?: any[]
+    category?: any
+    tags?: any[]
+    tag?: any
+    entryTags?: any[]
+    countResult?: { total: number }
+  } = {},
+) {
+  const {
+    categories = [],
+    category = null,
+    tags = [],
+    tag = null,
+    entryTags = [],
+    countResult,
+  } = data
 
   return {
     prepare: (sql: string) => {
@@ -219,7 +228,13 @@ describe('Tag Routes', () => {
   describe('GET /api/tags/:id/entries', () => {
     it('returns entries for a tag', async () => {
       const entryTags = [
-        { scp_number: 173, language: 'en', created_at: '2026-06-26', name: 'The Sculpture', object_class: 'Euclid' },
+        {
+          scp_number: 173,
+          language: 'en',
+          created_at: '2026-06-26',
+          name: 'The Sculpture',
+          object_class: 'Euclid',
+        },
       ]
       const env = createEnv({ tag: { id: 'safe' }, entryTags, countResult: { total: 1 } })
       const res = await app.request('/api/tags/safe/entries', { method: 'GET' }, env)
@@ -237,7 +252,11 @@ describe('Tag Routes', () => {
 
     it('supports pagination', async () => {
       const env = createEnv({ tag: { id: 'safe' }, entryTags: [], countResult: { total: 50 } })
-      const res = await app.request('/api/tags/safe/entries?page=2&limit=10', { method: 'GET' }, env)
+      const res = await app.request(
+        '/api/tags/safe/entries?page=2&limit=10',
+        { method: 'GET' },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.page).toBe(2)

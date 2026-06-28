@@ -7,9 +7,27 @@ import crawlerRoutes from '../crawler'
 // ─── Mock Durable Object ────────────────────────────────────
 
 const mockEntries = [
-  { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
-  { scpNumber: 682, name: 'Hard-to-Destroy Reptile', objectClass: 'Keter', url: 'https://scp-wiki.wikidot.com/scp-682', series: 1 },
-  { scpNumber: 999, name: 'Tickle Monster', objectClass: 'Safe', url: 'https://scp-wiki.wikidot.com/scp-999', series: 1 },
+  {
+    scpNumber: 173,
+    name: 'The Sculpture',
+    objectClass: 'Euclid',
+    url: 'https://scp-wiki.wikidot.com/scp-173',
+    series: 1,
+  },
+  {
+    scpNumber: 682,
+    name: 'Hard-to-Destroy Reptile',
+    objectClass: 'Keter',
+    url: 'https://scp-wiki.wikidot.com/scp-682',
+    series: 1,
+  },
+  {
+    scpNumber: 999,
+    name: 'Tickle Monster',
+    objectClass: 'Safe',
+    url: 'https://scp-wiki.wikidot.com/scp-999',
+    series: 1,
+  },
 ]
 
 let mockStatus = 'idle'
@@ -95,7 +113,10 @@ async function signAdminToken() {
 }
 
 async function signUserToken() {
-  return signToken({ sub: 2, codename: 'regular_user', role: 'personnel', clearance: 1 }, 'test-secret')
+  return signToken(
+    { sub: 2, codename: 'regular_user', role: 'personnel', clearance: 1 },
+    'test-secret',
+  )
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -190,7 +211,7 @@ describe('Crawler Routes', () => {
       const res = await app.request(
         '/api/crawler/en/entries?class=Safe&page=1&limit=10',
         undefined,
-        createMockEnv()
+        createMockEnv(),
       )
       const body = (await res.json()) as { success: boolean }
 
@@ -235,10 +256,14 @@ describe('Crawler Routes', () => {
   describe('POST /api/crawler/:lang/crawl', () => {
     it('triggers crawl for English with admin token', async () => {
       const token = await signAdminToken()
-      const res = await app.request('/api/crawler/en/crawl', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, createMockEnv())
+      const res = await app.request(
+        '/api/crawler/en/crawl',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        createMockEnv(),
+      )
       const body = (await res.json()) as {
         success: boolean
         language: string
@@ -252,11 +277,7 @@ describe('Crawler Routes', () => {
     })
 
     it('returns 401 without auth token', async () => {
-      const res = await app.request(
-        '/api/crawler/en/crawl',
-        { method: 'POST' },
-        createMockEnv()
-      )
+      const res = await app.request('/api/crawler/en/crawl', { method: 'POST' }, createMockEnv())
       const body = (await res.json()) as { success: boolean; error: string }
 
       expect(res.status).toBe(401)
@@ -266,10 +287,14 @@ describe('Crawler Routes', () => {
 
     it('returns 403 for non-admin users', async () => {
       const token = await signUserToken()
-      const res = await app.request('/api/crawler/en/crawl', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, createMockEnv())
+      const res = await app.request(
+        '/api/crawler/en/crawl',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        createMockEnv(),
+      )
       const body = (await res.json()) as { success: boolean; error: string }
 
       expect(res.status).toBe(403)
@@ -282,7 +307,7 @@ describe('Crawler Routes', () => {
       const res = await app.request(
         '/api/crawler/xx/crawl',
         { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
-        createMockEnv()
+        createMockEnv(),
       )
       const body = (await res.json()) as { success: boolean }
 

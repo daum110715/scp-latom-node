@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
-import type { Env, TagCategory, Tag, TagPublic, TagCategoryPublic, EntryTag } from '../types'
+import type { Env, TagCategory, Tag, TagPublic, TagCategoryPublic } from '../types'
 
 const tags = new Hono<{ Bindings: Env }>()
 
 // ─── Helpers ────────────────────────────────────────────────
 
 function toTagPublic(tag: Tag): TagPublic {
-  let aiKeywords: string[] = []
+  let aiKeywords: string[]
   try {
     aiKeywords = JSON.parse(tag.ai_keywords)
   } catch {
@@ -28,11 +28,11 @@ function toTagPublic(tag: Tag): TagPublic {
 
 tags.get('/', async (c) => {
   const categories = await c.env.DB.prepare(
-    'SELECT * FROM tag_categories ORDER BY sort_order ASC'
+    'SELECT * FROM tag_categories ORDER BY sort_order ASC',
   ).all<TagCategory>()
 
   const allTags = await c.env.DB.prepare(
-    'SELECT * FROM tags ORDER BY category_id ASC, sort_order ASC'
+    'SELECT * FROM tags ORDER BY category_id ASC, sort_order ASC',
   ).all<Tag>()
 
   // Group tags by category
@@ -60,7 +60,7 @@ tags.get('/', async (c) => {
 
 tags.get('/categories', async (c) => {
   const rows = await c.env.DB.prepare(
-    'SELECT * FROM tag_categories ORDER BY sort_order ASC'
+    'SELECT * FROM tag_categories ORDER BY sort_order ASC',
   ).all<TagCategory>()
 
   return c.json({
@@ -81,15 +81,17 @@ tags.get('/categories', async (c) => {
 tags.get('/categories/:id', async (c) => {
   const id = c.req.param('id')
 
-  const category = await c.env.DB.prepare(
-    'SELECT * FROM tag_categories WHERE id = ?'
-  ).bind(id).first<TagCategory>()
+  const category = await c.env.DB.prepare('SELECT * FROM tag_categories WHERE id = ?')
+    .bind(id)
+    .first<TagCategory>()
 
   if (!category) return c.json({ success: false, error: 'Category not found' }, 404)
 
   const categoryTags = await c.env.DB.prepare(
-    'SELECT * FROM tags WHERE category_id = ? ORDER BY sort_order ASC'
-  ).bind(id).all<Tag>()
+    'SELECT * FROM tags WHERE category_id = ? ORDER BY sort_order ASC',
+  )
+    .bind(id)
+    .all<Tag>()
 
   return c.json({
     success: true,
@@ -115,8 +117,10 @@ tags.get('/search', async (c) => {
     `SELECT * FROM tags
      WHERE name LIKE ? OR name_zh LIKE ? OR ai_keywords LIKE ?
      ORDER BY sort_order ASC
-     LIMIT 50`
-  ).bind(`%${q}%`, `%${q}%`, `%${q}%`).all<Tag>()
+     LIMIT 50`,
+  )
+    .bind(`%${q}%`, `%${q}%`, `%${q}%`)
+    .all<Tag>()
 
   return c.json({
     success: true,
@@ -131,9 +135,7 @@ tags.get('/search', async (c) => {
 tags.get('/:id', async (c) => {
   const id = c.req.param('id')
 
-  const tag = await c.env.DB.prepare(
-    'SELECT * FROM tags WHERE id = ?'
-  ).bind(id).first<Tag>()
+  const tag = await c.env.DB.prepare('SELECT * FROM tags WHERE id = ?').bind(id).first<Tag>()
 
   if (!tag) return c.json({ success: false, error: 'Tag not found' }, 404)
 
@@ -151,9 +153,7 @@ tags.get('/:id/entries', async (c) => {
   const language = c.req.query('language')?.trim()
 
   // Verify tag exists
-  const tag = await c.env.DB.prepare(
-    'SELECT id FROM tags WHERE id = ?'
-  ).bind(tagId).first<Tag>()
+  const tag = await c.env.DB.prepare('SELECT id FROM tags WHERE id = ?').bind(tagId).first<Tag>()
 
   if (!tag) return c.json({ success: false, error: 'Tag not found' }, 404)
 
@@ -165,9 +165,9 @@ tags.get('/:id/entries', async (c) => {
     params.push(language)
   }
 
-  const countRow = await c.env.DB.prepare(
-    `SELECT COUNT(*) as total FROM entry_tags et ${where}`
-  ).bind(...params).first<{ total: number }>()
+  const countRow = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM entry_tags et ${where}`)
+    .bind(...params)
+    .first<{ total: number }>()
   const total = countRow?.total ?? 0
 
   const rows = await c.env.DB.prepare(
@@ -177,14 +177,16 @@ tags.get('/:id/entries', async (c) => {
      LEFT JOIN scp_entries se ON et.scp_number = se.scp_number AND et.language = se.language
      ${where}
      ORDER BY et.scp_number ASC
-     LIMIT ? OFFSET ?`
-  ).bind(...params, limit, offset).all<{
-    scp_number: number
-    language: string
-    created_at: string
-    name: string | null
-    object_class: string | null
-  }>()
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(...params, limit, offset)
+    .all<{
+      scp_number: number
+      language: string
+      created_at: string
+      name: string | null
+      object_class: string | null
+    }>()
 
   return c.json({
     success: true,
@@ -216,8 +218,10 @@ tags.get('/entry/:scpNumber', async (c) => {
      FROM entry_tags et
      JOIN tags t ON et.tag_id = t.id
      WHERE et.scp_number = ? AND et.language = ?
-     ORDER BY t.category_id ASC, t.sort_order ASC`
-  ).bind(scpNumber, language).all<Tag>()
+     ORDER BY t.category_id ASC, t.sort_order ASC`,
+  )
+    .bind(scpNumber, language)
+    .all<Tag>()
 
   // Group by category
   const grouped: Record<string, TagPublic[]> = {}

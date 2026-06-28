@@ -1,5 +1,13 @@
 import type { CrawlEntry, CrawlState, Env, EntryContentResponse, SyncResult } from '../types'
-import { parseScpIndexPage, SERIES_PAGES, getWikiBaseUrl, cleanEntryHtml, extractObjectClassFromEntryPage, buildClassMap, applyClassMap } from './parser'
+import {
+  parseScpIndexPage,
+  SERIES_PAGES,
+  getWikiBaseUrl,
+  cleanEntryHtml,
+  extractObjectClassFromEntryPage,
+  buildClassMap,
+  applyClassMap,
+} from './parser'
 import { fetchPageLikeBrowser, humanDelay } from './http-client'
 import { Logger } from '../utils/logger'
 import { autoTagEntry } from '../utils/auto-tagger'
@@ -11,7 +19,7 @@ const STORAGE_KEY_LAST_CRAWL_MAP = 'last_crawl_map'
 
 const BASE_CRAWL_DELAY_MS = 1200
 const FETCH_TIMEOUT_MS = 15_000
-const MAX_RETRIES = 2
+const _MAX_RETRIES = 2
 const BATCH_SIZE = 50
 const DAILY_CRON_HOUR_UTC = 3 // 03:00 UTC
 
@@ -120,7 +128,7 @@ export class ScpCrawlerDo {
   private async cleanupOldLogs(): Promise<void> {
     try {
       const result = await this.env.DB.prepare(
-        "DELETE FROM system_logs WHERE created_at < datetime('now', '-30 days')"
+        "DELETE FROM system_logs WHERE created_at < datetime('now', '-30 days')",
       ).run()
       if (result.meta.changes > 0) {
         this.logger.info(`Cleaned up ${result.meta.changes} old log entries`)
@@ -134,8 +142,9 @@ export class ScpCrawlerDo {
 
   private async handleStatus(language: 'en' | 'cn'): Promise<Response> {
     const state = await this.getStateFromD1(language)
-    const cursor = await this.state.storage.get<number>(STORAGE_KEY_CURSOR) ?? 0
-    const lastCrawlMap = await this.state.storage.get<Record<number, number>>(STORAGE_KEY_LAST_CRAWL_MAP) ?? {}
+    const cursor = (await this.state.storage.get<number>(STORAGE_KEY_CURSOR)) ?? 0
+    const lastCrawlMap =
+      (await this.state.storage.get<Record<number, number>>(STORAGE_KEY_LAST_CRAWL_MAP)) ?? {}
     const classDistribution = await this.getClassDistribution(language)
 
     return jsonResponse({
@@ -152,8 +161,14 @@ export class ScpCrawlerDo {
 
     if (state.totalEntries === 0) {
       return jsonResponse({
-        success: true, language, entries: [], total: 0,
-        page: 1, limit: 50, totalPages: 0, state,
+        success: true,
+        language,
+        entries: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        state,
       })
     }
 
@@ -175,25 +190,32 @@ export class ScpCrawlerDo {
 
     // Count total
     const countResult = await this.env.DB.prepare(
-      `SELECT COUNT(*) as total FROM scp_entries ${where}`
-    ).bind(...params).first<{ total: number }>()
+      `SELECT COUNT(*) as total FROM scp_entries ${where}`,
+    )
+      .bind(...params)
+      .first<{ total: number }>()
     const total = countResult?.total ?? 0
 
     // Paginate
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
-    const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get('limit') ?? '50', 10) || 50))
+    const limit = Math.min(
+      200,
+      Math.max(1, parseInt(url.searchParams.get('limit') ?? '50', 10) || 50),
+    )
     const totalPages = Math.ceil(total / limit)
     const offset = (page - 1) * limit
 
     const rows = await this.env.DB.prepare(
-      `SELECT scp_number, name, object_class, url, series FROM scp_entries ${where} ORDER BY scp_number ASC LIMIT ? OFFSET ?`
-    ).bind(...params, limit, offset).all<{
-      scp_number: number
-      name: string
-      object_class: string
-      url: string
-      series: number
-    }>()
+      `SELECT scp_number, name, object_class, url, series FROM scp_entries ${where} ORDER BY scp_number ASC LIMIT ? OFFSET ?`,
+    )
+      .bind(...params, limit, offset)
+      .all<{
+        scp_number: number
+        name: string
+        object_class: string
+        url: string
+        series: number
+      }>()
 
     const entries: CrawlEntry[] = rows.results.map((r) => ({
       scpNumber: r.scp_number,
@@ -204,7 +226,14 @@ export class ScpCrawlerDo {
     }))
 
     return jsonResponse({
-      success: true, language, entries, total, page, limit, totalPages, state,
+      success: true,
+      language,
+      entries,
+      total,
+      page,
+      limit,
+      totalPages,
+      state,
     })
   }
 
@@ -214,14 +243,16 @@ export class ScpCrawlerDo {
     }
 
     const rows = await this.env.DB.prepare(
-      'SELECT scp_number, name, object_class, url, series FROM scp_entries WHERE language = ? AND series = ? ORDER BY scp_number ASC'
-    ).bind(language, seriesNum).all<{
-      scp_number: number
-      name: string
-      object_class: string
-      url: string
-      series: number
-    }>()
+      'SELECT scp_number, name, object_class, url, series FROM scp_entries WHERE language = ? AND series = ? ORDER BY scp_number ASC',
+    )
+      .bind(language, seriesNum)
+      .all<{
+        scp_number: number
+        name: string
+        object_class: string
+        url: string
+        series: number
+      }>()
 
     const entries: CrawlEntry[] = rows.results.map((r) => ({
       scpNumber: r.scp_number,
@@ -232,7 +263,11 @@ export class ScpCrawlerDo {
     }))
 
     return jsonResponse({
-      success: true, language, series: seriesNum, entries, total: entries.length,
+      success: true,
+      language,
+      series: seriesNum,
+      entries,
+      total: entries.length,
     })
   }
 
@@ -254,7 +289,8 @@ export class ScpCrawlerDo {
     }
 
     return jsonResponse({
-      success: true, language,
+      success: true,
+      language,
       message: limit > 0 ? `Crawl triggered (limit: ${limit} entries)` : 'Full crawl triggered',
       state: { ...state, status: 'crawling' },
     })
@@ -265,20 +301,25 @@ export class ScpCrawlerDo {
   private async handleEntryContent(language: 'en' | 'cn', scpNumber: number): Promise<Response> {
     // 1. Check D1 for cached content
     const row = await this.env.DB.prepare(
-      'SELECT name, object_class, content, content_fetched_at, content_error FROM scp_entries WHERE scp_number = ? AND language = ?'
-    ).bind(scpNumber, language).first<{
-      name: string
-      object_class: string
-      content: string | null
-      content_fetched_at: string | null
-      content_error: string | null
-    }>()
+      'SELECT name, object_class, content, content_fetched_at, content_error FROM scp_entries WHERE scp_number = ? AND language = ?',
+    )
+      .bind(scpNumber, language)
+      .first<{
+        name: string
+        object_class: string
+        content: string | null
+        content_fetched_at: string | null
+        content_error: string | null
+      }>()
 
     if (!row) {
-      return jsonResponse({
-        success: false,
-        error: `SCP-${scpNumber} not found in index for language '${language}'`,
-      }, 404)
+      return jsonResponse(
+        {
+          success: false,
+          error: `SCP-${scpNumber} not found in index for language '${language}'`,
+        },
+        404,
+      )
     }
 
     // 2. If content is cached (explicit null check — empty string is valid), return it
@@ -286,7 +327,11 @@ export class ScpCrawlerDo {
       // Trigger background auto-tagging if entry has no tags yet
       const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
       if (typeof ctx.waitUntil === 'function') {
-        ctx.waitUntil(autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).then(() => {}).catch(() => {}))
+        ctx.waitUntil(
+          autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger)
+            .then(() => {})
+            .catch(() => {}),
+        )
       }
 
       const resp: EntryContentResponse = {
@@ -355,27 +400,43 @@ export class ScpCrawlerDo {
 
       if (!result.ok || !result.html) {
         const errMsg = result.error ?? `HTTP ${result.status}`
-        this.logger.error(`Failed to fetch entry scp-${scpNumber} (${language})`, { error: errMsg, scpNumber, language })
+        this.logger.error(`Failed to fetch entry scp-${scpNumber} (${language})`, {
+          error: errMsg,
+          scpNumber,
+          language,
+        })
         await this.env.DB.prepare(
-          `UPDATE scp_entries SET content_error = ?, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`
-        ).bind(errMsg, scpNumber, language).run()
+          `UPDATE scp_entries SET content_error = ?, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`,
+        )
+          .bind(errMsg, scpNumber, language)
+          .run()
         return
       }
 
       const cleaned = cleanEntryHtml(result.html, baseUrl, language)
 
       await this.env.DB.prepare(
-        `UPDATE scp_entries SET content = ?, content_error = NULL, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`
-      ).bind(cleaned, scpNumber, language).run()
+        `UPDATE scp_entries SET content = ?, content_error = NULL, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`,
+      )
+        .bind(cleaned, scpNumber, language)
+        .run()
 
       // Auto-tag the entry now that content is available
-      await autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).catch(() => {})
+      await autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).catch(
+        () => {},
+      )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
-      this.logger.error(`Error fetching entry scp-${scpNumber} (${language})`, { error: err, scpNumber, language })
+      this.logger.error(`Error fetching entry scp-${scpNumber} (${language})`, {
+        error: err,
+        scpNumber,
+        language,
+      })
       await this.env.DB.prepare(
-        `UPDATE scp_entries SET content_error = ?, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`
-      ).bind(errMsg, scpNumber, language).run()
+        `UPDATE scp_entries SET content_error = ?, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`,
+      )
+        .bind(errMsg, scpNumber, language)
+        .run()
     }
   }
 
@@ -386,13 +447,19 @@ export class ScpCrawlerDo {
    * Uses parallel batched fetching: processes `batchSize` entries concurrently
    * per batch, with a short delay between batches for rate limiting.
    */
-  private async backfillUnknownClasses(language: 'en' | 'cn', maxEntries = 2000, batchSize = 5): Promise<number> {
+  private async backfillUnknownClasses(
+    language: 'en' | 'cn',
+    maxEntries = 2000,
+    batchSize = 5,
+  ): Promise<number> {
     const baseUrl = getWikiBaseUrl(language)
 
     // Find entries still marked Unknown
     const rows = await this.env.DB.prepare(
-      'SELECT scp_number FROM scp_entries WHERE language = ? AND object_class = ? ORDER BY scp_number ASC LIMIT ?'
-    ).bind(language, 'Unknown', maxEntries).all<{ scp_number: number }>()
+      'SELECT scp_number FROM scp_entries WHERE language = ? AND object_class = ? ORDER BY scp_number ASC LIMIT ?',
+    )
+      .bind(language, 'Unknown', maxEntries)
+      .all<{ scp_number: number }>()
 
     if (rows.results.length === 0) return 0
 
@@ -423,30 +490,28 @@ export class ScpCrawlerDo {
             return { scpNumber, objectClass }
           }
           return null
-        })
+        }),
       )
 
       // Batch update D1 with resolved classes
       const updates: { scpNumber: number; objectClass: string }[] = []
-      let fetchFailed = 0
-      let classNotFound = 0
+      let _fetchFailed = 0
+      let _classNotFound = 0
       for (const r of results) {
         if (r.status === 'fulfilled' && r.value) {
           updates.push(r.value)
         } else if (r.status === 'fulfilled') {
-          classNotFound++
+          _classNotFound++
         } else {
-          fetchFailed++
+          _fetchFailed++
         }
       }
 
       if (updates.length > 0) {
         const stmt = this.env.DB.prepare(
-          `UPDATE scp_entries SET object_class = ?, updated_at = datetime('now') WHERE scp_number = ? AND language = ?`
+          `UPDATE scp_entries SET object_class = ?, updated_at = datetime('now') WHERE scp_number = ? AND language = ?`,
         )
-        await this.env.DB.batch(
-          updates.map((u) => stmt.bind(u.objectClass, u.scpNumber, language))
-        )
+        await this.env.DB.batch(updates.map((u) => stmt.bind(u.objectClass, u.scpNumber, language)))
         updated += updates.length
       }
 
@@ -456,7 +521,11 @@ export class ScpCrawlerDo {
       }
     }
 
-    this.logger.info(`Backfill ${language}: ${updated}/${entries.length} entries updated`, { language, updated, total: entries.length })
+    this.logger.info(`Backfill ${language}: ${updated}/${entries.length} entries updated`, {
+      language,
+      updated,
+      total: entries.length,
+    })
     return updated
   }
 
@@ -468,8 +537,10 @@ export class ScpCrawlerDo {
    */
   private async getClassDistribution(language: 'en' | 'cn'): Promise<Record<string, number>> {
     const rows = await this.env.DB.prepare(
-      'SELECT object_class, COUNT(*) as count FROM scp_entries WHERE language = ? GROUP BY object_class'
-    ).bind(language).all<{ object_class: string; count: number }>()
+      'SELECT object_class, COUNT(*) as count FROM scp_entries WHERE language = ? GROUP BY object_class',
+    )
+      .bind(language)
+      .all<{ object_class: string; count: number }>()
 
     const dist: Record<string, number> = {}
     for (const r of rows.results) {
@@ -480,13 +551,15 @@ export class ScpCrawlerDo {
 
   private async getStateFromD1(language: 'en' | 'cn'): Promise<CrawlState> {
     const row = await this.env.DB.prepare(
-      'SELECT status, last_crawl, total_entries, error FROM crawl_state WHERE language = ?'
-    ).bind(language).first<{
-      status: string
-      last_crawl: number
-      total_entries: number
-      error: string | null
-    }>()
+      'SELECT status, last_crawl, total_entries, error FROM crawl_state WHERE language = ?',
+    )
+      .bind(language)
+      .first<{
+        status: string
+        last_crawl: number
+        total_entries: number
+        error: string | null
+      }>()
 
     return {
       status: (row?.status as CrawlState['status']) ?? 'idle',
@@ -504,7 +577,8 @@ export class ScpCrawlerDo {
     const totalEntries = state.totalEntries ?? existing.totalEntries
     const error = state.error ?? existing.error ?? null
 
-    await this.env.DB.prepare(`
+    await this.env.DB.prepare(
+      `
       INSERT INTO crawl_state (language, status, last_crawl, total_entries, error, updated_at)
       VALUES (?, ?, ?, ?, ?, datetime('now'))
       ON CONFLICT(language) DO UPDATE SET
@@ -513,13 +587,10 @@ export class ScpCrawlerDo {
         total_entries = excluded.total_entries,
         error = excluded.error,
         updated_at = excluded.updated_at
-    `).bind(
-      language,
-      status,
-      lastCrawl,
-      totalEntries,
-      error,
-    ).run()
+    `,
+    )
+      .bind(language, status, lastCrawl, totalEntries, error)
+      .run()
   }
 
   private async upsertEntriesToD1(language: 'en' | 'cn', entries: CrawlEntry[]): Promise<void> {
@@ -540,7 +611,7 @@ export class ScpCrawlerDo {
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
       const chunk = entries.slice(i, i + BATCH_SIZE)
       const batch = chunk.map((e) =>
-        stmt.bind(e.scpNumber, language, e.name, e.objectClass, e.url, e.series)
+        stmt.bind(e.scpNumber, language, e.name, e.objectClass, e.url, e.series),
       )
       await this.env.DB.batch(batch)
     }
@@ -548,14 +619,14 @@ export class ScpCrawlerDo {
 
   private async getStoredLanguage(): Promise<string> {
     const row = await this.env.DB.prepare(
-      'SELECT language FROM crawl_state ORDER BY last_crawl DESC LIMIT 1'
+      'SELECT language FROM crawl_state ORDER BY last_crawl DESC LIMIT 1',
     ).first<{ language: string }>()
     return row?.language ?? 'en'
   }
 
   private async getStoredState(): Promise<CrawlState> {
     const row = await this.env.DB.prepare(
-      'SELECT status, last_crawl, total_entries FROM crawl_state ORDER BY last_crawl DESC LIMIT 1'
+      'SELECT status, last_crawl, total_entries FROM crawl_state ORDER BY last_crawl DESC LIMIT 1',
     ).first<{ status: string; last_crawl: number; total_entries: number }>()
     return {
       status: (row?.status as CrawlState['status']) ?? 'idle',
@@ -578,14 +649,16 @@ export class ScpCrawlerDo {
     // Paginated query to avoid unbounded result sets
     while (true) {
       const rows = await this.env.DB.prepare(
-        'SELECT scp_number, name, object_class, url, series FROM scp_entries WHERE language = ? ORDER BY scp_number ASC LIMIT ? OFFSET ?'
-      ).bind(language, pageSize, offset).all<{
-        scp_number: number
-        name: string
-        object_class: string
-        url: string
-        series: number
-      }>()
+        'SELECT scp_number, name, object_class, url, series FROM scp_entries WHERE language = ? ORDER BY scp_number ASC LIMIT ? OFFSET ?',
+      )
+        .bind(language, pageSize, offset)
+        .all<{
+          scp_number: number
+          name: string
+          object_class: string
+          url: string
+          series: number
+        }>()
 
       for (const r of rows.results) {
         map.set(r.scp_number, {
@@ -624,7 +697,10 @@ export class ScpCrawlerDo {
       const seriesNum = i + 1
 
       const result = await fetchPageLikeBrowser(pageUrl, {
-        baseUrl, language, fetcher: this.fetcher, timeoutMs: FETCH_TIMEOUT_MS,
+        baseUrl,
+        language,
+        fetcher: this.fetcher,
+        timeoutMs: FETCH_TIMEOUT_MS,
       })
 
       if (!result.ok || !result.html) {
@@ -633,7 +709,9 @@ export class ScpCrawlerDo {
       }
 
       const { entries: pageEntries } = parseScpIndexPage(result.html, {
-        baseUrl, language, seriesHint: seriesNum,
+        baseUrl,
+        language,
+        seriesHint: seriesNum,
       })
 
       fetchedEntries.push(...pageEntries)
@@ -654,9 +732,15 @@ export class ScpCrawlerDo {
         })
         applyClassMap(fetchedEntries, classMap)
         const resolved = [...classMap.values()].length
-        this.logger.info(`Class map resolved ${resolved} entries from tag pages`, { language, resolved })
+        this.logger.info(`Class map resolved ${resolved} entries from tag pages`, {
+          language,
+          resolved,
+        })
       } catch (err) {
-        this.logger.warn('Failed to build class map, falling back to backfill', { error: err, language })
+        this.logger.warn('Failed to build class map, falling back to backfill', {
+          error: err,
+          language,
+        })
       }
     }
 
@@ -696,17 +780,27 @@ export class ScpCrawlerDo {
 
     // Update crawl state in D1
     const totalRow = await this.env.DB.prepare(
-      'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?'
-    ).bind(language).first<{ total: number }>()
+      'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?',
+    )
+      .bind(language)
+      .first<{ total: number }>()
 
     const classDist = await this.getClassDistribution(language)
     const unknownCount = classDist['Unknown'] ?? 0
 
     const syncResult: SyncResult = { added, changed, unchanged }
-    this.logger.info(`Daily crawl ${language}: +${added} ~${changed} =${unchanged} (${toUpsert.length} upserted) | total=${totalRow?.total ?? 0} unknown=${unknownCount}`, {
-      language, added, changed, unchanged, upserted: toUpsert.length,
-      total: totalRow?.total ?? 0, unknown: unknownCount,
-    })
+    this.logger.info(
+      `Daily crawl ${language}: +${added} ~${changed} =${unchanged} (${toUpsert.length} upserted) | total=${totalRow?.total ?? 0} unknown=${unknownCount}`,
+      {
+        language,
+        added,
+        changed,
+        unchanged,
+        upserted: toUpsert.length,
+        total: totalRow?.total ?? 0,
+        unknown: unknownCount,
+      },
+    )
 
     await this.state.storage.put(STORAGE_KEY_LAST_CRAWL_MAP, lastCrawlMap)
 
@@ -714,7 +808,8 @@ export class ScpCrawlerDo {
       status: errors.length > 0 && fetchedEntries.length === 0 ? 'error' : 'idle',
       lastCrawl: Date.now(),
       totalEntries: totalRow?.total ?? 0,
-      error: errors.length > 0 && fetchedEntries.length === 0 ? errors[errors.length - 1] : undefined,
+      error:
+        errors.length > 0 && fetchedEntries.length === 0 ? errors[errors.length - 1] : undefined,
       lastSyncResult: syncResult,
     })
   }
@@ -738,8 +833,10 @@ export class ScpCrawlerDo {
     let startAfter = 0
     if (limit > 0) {
       const maxRow = await this.env.DB.prepare(
-        'SELECT MAX(scp_number) as max_num FROM scp_entries WHERE language = ?'
-      ).bind(language).first<{ max_num: number | null }>()
+        'SELECT MAX(scp_number) as max_num FROM scp_entries WHERE language = ?',
+      )
+        .bind(language)
+        .first<{ max_num: number | null }>()
       startAfter = maxRow?.max_num ?? 0
     }
 
@@ -751,7 +848,10 @@ export class ScpCrawlerDo {
       const seriesNum = i + 1
 
       const result = await fetchPageLikeBrowser(pageUrl, {
-        baseUrl, language, fetcher: this.fetcher, timeoutMs: FETCH_TIMEOUT_MS,
+        baseUrl,
+        language,
+        fetcher: this.fetcher,
+        timeoutMs: FETCH_TIMEOUT_MS,
       })
 
       if (!result.ok || !result.html) {
@@ -760,7 +860,9 @@ export class ScpCrawlerDo {
       }
 
       let { entries: pageEntries } = parseScpIndexPage(result.html, {
-        baseUrl, language, seriesHint: seriesNum,
+        baseUrl,
+        language,
+        seriesHint: seriesNum,
       })
 
       // Skip entries we already have in D1
@@ -792,9 +894,15 @@ export class ScpCrawlerDo {
         })
         applyClassMap(collected, classMap)
         const resolved = [...classMap.values()].length
-        this.logger.info(`Class map resolved ${resolved} entries from tag pages`, { language, resolved })
+        this.logger.info(`Class map resolved ${resolved} entries from tag pages`, {
+          language,
+          resolved,
+        })
       } catch (err) {
-        this.logger.warn('Failed to build class map, falling back to backfill', { error: err, language })
+        this.logger.warn('Failed to build class map, falling back to backfill', {
+          error: err,
+          language,
+        })
       }
     }
 
@@ -808,18 +916,29 @@ export class ScpCrawlerDo {
 
     // Get total count from D1
     const totalRow = await this.env.DB.prepare(
-      'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?'
-    ).bind(language).first<{ total: number }>()
+      'SELECT COUNT(*) as total FROM scp_entries WHERE language = ?',
+    )
+      .bind(language)
+      .first<{ total: number }>()
 
     const classDist = await this.getClassDistribution(language)
     const unknownCount = classDist['Unknown'] ?? 0
 
-    this.logger.info(`Full crawl ${language}: collected=${collected.length} errors=${errors.length} | total=${totalRow?.total ?? 0} unknown=${unknownCount}`, {
-      language, collected: collected.length, errors: errors.length,
-      total: totalRow?.total ?? 0, unknown: unknownCount,
-    })
+    this.logger.info(
+      `Full crawl ${language}: collected=${collected.length} errors=${errors.length} | total=${totalRow?.total ?? 0} unknown=${unknownCount}`,
+      {
+        language,
+        collected: collected.length,
+        errors: errors.length,
+        total: totalRow?.total ?? 0,
+        unknown: unknownCount,
+      },
+    )
     if (errors.length > 0) {
-      this.logger.warn(`Full crawl ${language} errors: ${errors.join('; ')}`, { language, errorList: errors })
+      this.logger.warn(`Full crawl ${language} errors: ${errors.join('; ')}`, {
+        language,
+        errorList: errors,
+      })
     }
 
     await this.state.storage.put(STORAGE_KEY_CURSOR, 0)

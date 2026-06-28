@@ -43,7 +43,10 @@ settings.get('/', async (c) => {
           system_logs: tableCounts[7]?.count ?? 0,
         },
       },
-      cors: (c.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+      cors: (c.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
       logLevel: c.env.LOG_LEVEL || 'info',
       crawlStates: crawlStates.results ?? [],
       totals: {

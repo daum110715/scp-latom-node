@@ -23,7 +23,7 @@ export const useEntriesStore = defineStore('entries', () => {
   const languageFilter = ref('')
   const classFilter = ref('')
   const currentEntry = ref<AdminEntry | null>(null)
-  const crawlStatus = ref<any>(null)
+  const crawlStatus = ref<unknown>(null)
 
   async function fetchEntries() {
     loading.value = true
@@ -107,10 +107,28 @@ export const useEntriesStore = defineStore('entries', () => {
   }
 
   return {
-    entries, total, page, limit, totalPages, loading, error,
-    searchQuery, languageFilter, classFilter, currentEntry, crawlStatus,
-    fetchEntries, fetchEntry, updateEntry, removeEntry,
-    refetch, crawl, getCrawlStatus,
-    setPage, setSearch, setLanguageFilter, setClassFilter,
+    entries,
+    total,
+    page,
+    limit,
+    totalPages,
+    loading,
+    error,
+    searchQuery,
+    languageFilter,
+    classFilter,
+    currentEntry,
+    crawlStatus,
+    fetchEntries,
+    fetchEntry,
+    updateEntry,
+    removeEntry,
+    refetch,
+    crawl,
+    getCrawlStatus,
+    setPage,
+    setSearch,
+    setLanguageFilter,
+    setClassFilter,
   }
 })

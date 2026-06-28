@@ -102,9 +102,25 @@ export const useUsersStore = defineStore('users', () => {
   }
 
   return {
-    users, total, page, limit, totalPages, loading, error,
-    searchQuery, roleFilter, currentUser,
-    fetchUsers, fetchUser, changeRole, changeClearance,
-    ban, unban, remove, setPage, setSearch, setRoleFilter,
+    users,
+    total,
+    page,
+    limit,
+    totalPages,
+    loading,
+    error,
+    searchQuery,
+    roleFilter,
+    currentUser,
+    fetchUsers,
+    fetchUser,
+    changeRole,
+    changeClearance,
+    ban,
+    unban,
+    remove,
+    setPage,
+    setSearch,
+    setRoleFilter,
   }
 })

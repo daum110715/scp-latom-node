@@ -32,19 +32,21 @@ export interface LogStats {
   errorRate: { total: number; errors: number; rate: number }
 }
 
-export function fetchAdminLogs(params: {
-  page?: number
-  limit?: number
-  level?: string
-  source?: string
-  category?: string
-  userId?: string
-  q?: string
-  from?: string
-  to?: string
-  sort?: string
-  order?: string
-} = {}): Promise<ApiResult<AdminLogsListResponse>> {
+export function fetchAdminLogs(
+  params: {
+    page?: number
+    limit?: number
+    level?: string
+    source?: string
+    category?: string
+    userId?: string
+    q?: string
+    from?: string
+    to?: string
+    sort?: string
+    order?: string
+  } = {},
+): Promise<ApiResult<AdminLogsListResponse>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))

@@ -53,10 +53,14 @@ describe('adminMiddleware', () => {
   })
 
   it('returns 401 when Authorization header does not start with Bearer', async () => {
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: 'Basic dXNlcjpwYXNz' },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: 'Basic dXNlcjpwYXNz' },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(401)
     const body = await res.json<{ success: boolean; error: string }>()
     expect(body.success).toBe(false)
@@ -64,10 +68,14 @@ describe('adminMiddleware', () => {
   })
 
   it('returns 401 when token is invalid', async () => {
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: 'Bearer invalid.token.here' },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: 'Bearer invalid.token.here' },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(401)
     const body = await res.json<{ success: boolean; error: string }>()
     expect(body.success).toBe(false)
@@ -76,10 +84,14 @@ describe('adminMiddleware', () => {
 
   it('returns 401 when token is signed with wrong secret', async () => {
     const token = await signAdminToken('wrong-secret')
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(401)
     const body = await res.json<{ success: boolean; error: string }>()
     expect(body.success).toBe(false)
@@ -88,10 +100,14 @@ describe('adminMiddleware', () => {
 
   it('returns 403 when user is not an admin', async () => {
     const token = await signUserToken()
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(403)
     const body = await res.json<{ success: boolean; error: string }>()
     expect(body.success).toBe(false)
@@ -100,10 +116,14 @@ describe('adminMiddleware', () => {
 
   it('passes through and sets user for admin tokens', async () => {
     const token = await signAdminToken()
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(200)
     const body = await res.json<{ success: boolean; user: JwtPayload }>()
     expect(body.success).toBe(true)
@@ -114,10 +134,14 @@ describe('adminMiddleware', () => {
   })
 
   it('returns 401 for empty Bearer token', async () => {
-    const res = await app.request('/admin/test', {
-      method: 'GET',
-      headers: { Authorization: 'Bearer ' },
-    }, createEnv())
+    const res = await app.request(
+      '/admin/test',
+      {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' },
+      },
+      createEnv(),
+    )
     expect(res.status).toBe(401)
   })
 })

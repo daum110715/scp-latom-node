@@ -114,7 +114,9 @@ export class Logger {
     }
 
     // Always output to console (structured JSON for Workers log drain)
-    const consoleFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log
+    const consoleFn =
+      // eslint-disable-next-line no-console
+      level === 'error' ? console.error : level === 'warn' ? console.warn : console.log
     consoleFn(JSON.stringify(entry))
 
     // Persist warn/error to D1 if available (fire-and-forget)
@@ -129,21 +131,24 @@ export class Logger {
     if (!this.db) return
 
     try {
-      await this.db.prepare(
-        `INSERT INTO system_logs (level, message, context, request_id, user_id, source, category, path, user_agent, ip)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        entry.level,
-        entry.message,
-        entry.context ? JSON.stringify(entry.context) : null,
-        entry.request_id ?? null,
-        entry.user_id ?? null,
-        entry.source,
-        entry.category ?? null,
-        entry.path ?? null,
-        entry.user_agent ?? null,
-        entry.ip ?? null,
-      ).run()
+      await this.db
+        .prepare(
+          `INSERT INTO system_logs (level, message, context, request_id, user_id, source, category, path, user_agent, ip)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          entry.level,
+          entry.message,
+          entry.context ? JSON.stringify(entry.context) : null,
+          entry.request_id ?? null,
+          entry.user_id ?? null,
+          entry.source,
+          entry.category ?? null,
+          entry.path ?? null,
+          entry.user_agent ?? null,
+          entry.ip ?? null,
+        )
+        .run()
     } catch {
       // Swallow — logging must never throw
     }

@@ -23,7 +23,7 @@ function toggle() {
   <aside class="admin-sidebar" :class="{ collapsed }">
     <div class="sidebar-brand">
       <div class="brand-icon">◈</div>
-      <div class="brand-text" v-if="!collapsed">
+      <div v-if="!collapsed" class="brand-text">
         <div class="brand-title">SCP FOUNDATION</div>
         <div class="brand-subtitle">ADMIN TERMINAL</div>
       </div>
@@ -35,17 +35,21 @@ function toggle() {
         :key="item.path"
         :to="item.path"
         class="nav-item"
-        :class="{ active: route.name === item.name || (item.name !== 'dashboard' && route.path.startsWith(item.path)) }"
+        :class="{
+          active:
+            route.name === item.name ||
+            (item.name !== 'dashboard' && route.path.startsWith(item.path)),
+        }"
         :title="collapsed ? item.label : undefined"
       >
         <span class="nav-icon">{{ item.icon }}</span>
-        <span class="nav-label" v-if="!collapsed">{{ item.label }}</span>
+        <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
       </router-link>
     </nav>
 
     <div class="sidebar-footer">
       <div class="sidebar-divider"></div>
-      <div class="sidebar-info" v-if="!collapsed">
+      <div v-if="!collapsed" class="sidebar-info">
         <div class="info-row">
           <span class="info-label">NODE</span>
           <span class="info-value">ADMIN-01</span>
@@ -62,8 +66,17 @@ function toggle() {
       </div>
     </div>
 
-    <button class="collapse-btn" @click="toggle" :title="collapsed ? 'Expand' : 'Collapse'">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <button class="collapse-btn" :title="collapsed ? 'Expand' : 'Collapse'" @click="toggle">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <polyline :points="collapsed ? '6 3 11 8 6 13' : '10 3 5 8 10 13'" />
       </svg>
     </button>

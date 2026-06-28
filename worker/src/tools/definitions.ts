@@ -43,12 +43,13 @@ export const SCP_TOOLS: McpTool[] = [
         properties: {
           query: {
             type: 'string',
-            description: 'Search term to match against entry names (partial match, case-insensitive)',
+            description:
+              'Search term to match against entry names (partial match, case-insensitive)',
           },
           language: {
             type: 'string',
             enum: ['en', 'cn'],
-            description: 'Language of entries to search. Defaults to the user\'s current language.',
+            description: "Language of entries to search. Defaults to the user's current language.",
           },
           limit: {
             type: 'number',
@@ -64,7 +65,7 @@ export const SCP_TOOLS: McpTool[] = [
     function: {
       name: 'get_scp_entry',
       description:
-        'Get detailed information about a specific SCP entry by its SCP number. Returns the entry\'s name, object class, containment procedures, and description.',
+        "Get detailed information about a specific SCP entry by its SCP number. Returns the entry's name, object class, containment procedures, and description.",
       parameters: {
         type: 'object',
         properties: {

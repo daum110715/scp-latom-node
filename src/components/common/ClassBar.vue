@@ -20,7 +20,10 @@ const classColors: Record<ObjectClass, string> = {
   <div class="class-bar" :title="objectClass">
     <div
       class="class-indicator"
-      :style="{ background: classColors[objectClass], boxShadow: `0 0 8px ${classColors[objectClass]}` }"
+      :style="{
+        background: classColors[objectClass],
+        boxShadow: `0 0 8px ${classColors[objectClass]}`,
+      }"
     />
     <span v-if="showLabel" class="class-label">{{ objectClass }}</span>
   </div>
@@ -43,7 +46,8 @@ const classColors: Record<ObjectClass, string> = {
 }
 
 @keyframes indicator-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }

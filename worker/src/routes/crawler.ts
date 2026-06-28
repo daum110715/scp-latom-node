@@ -34,13 +34,13 @@ async function forwardToDo(
   env: Env,
   lang: string,
   path: string,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Response> {
   const stub = getDoStub(env, lang)
   if (!stub) {
     return Response.json(
       { success: false, error: "Invalid language. Use 'en' or 'cn'" },
-      { status: 400 }
+      { status: 400 },
     )
   }
   const doUrl = `https://do.scp/${lang}${path}`
@@ -60,8 +60,16 @@ crawler.get('/status', async (c) => {
       forwardToDo(c.env, 'cn', '/status'),
     ])
 
-    const enData = await enRes.json<{ success: boolean; state: unknown; classDistribution?: Record<string, number> }>()
-    const cnData = await cnRes.json<{ success: boolean; state: unknown; classDistribution?: Record<string, number> }>()
+    const enData = await enRes.json<{
+      success: boolean
+      state: unknown
+      classDistribution?: Record<string, number>
+    }>()
+    const cnData = await cnRes.json<{
+      success: boolean
+      state: unknown
+      classDistribution?: Record<string, number>
+    }>()
 
     return c.json({
       success: true,

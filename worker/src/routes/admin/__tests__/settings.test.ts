@@ -72,10 +72,14 @@ describe('Admin Settings Routes', () => {
     it('returns system settings', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/settings', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/settings',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import app from '../../index'
-import { createIntegrationDB, createIntegrationEnv, parseJson, signUserToken } from './helpers'
+import { createIntegrationDB, createIntegrationEnv, parseJson } from './helpers'
 
 describe('Middleware Integration', () => {
   let db: ReturnType<typeof createIntegrationDB>
@@ -38,42 +38,58 @@ describe('Middleware Integration', () => {
   describe('CORS Headers', () => {
     it('includes CORS headers for allowed origins', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/health', {
-        method: 'GET',
-        headers: { Origin: 'https://scp.lat' },
-      }, env)
+      const res = await app.request(
+        '/api/health',
+        {
+          method: 'GET',
+          headers: { Origin: 'https://scp.lat' },
+        },
+        env,
+      )
       expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://scp.lat')
       expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true')
     })
 
     it('handles wildcard subdomain origins', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/health', {
-        method: 'GET',
-        headers: { Origin: 'https://node.scp.lat' },
-      }, env)
+      const res = await app.request(
+        '/api/health',
+        {
+          method: 'GET',
+          headers: { Origin: 'https://node.scp.lat' },
+        },
+        env,
+      )
       expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://node.scp.lat')
     })
 
     it('rejects disallowed origins', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/health', {
-        method: 'GET',
-        headers: { Origin: 'https://evil.com' },
-      }, env)
+      const res = await app.request(
+        '/api/health',
+        {
+          method: 'GET',
+          headers: { Origin: 'https://evil.com' },
+        },
+        env,
+      )
       expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe('https://evil.com')
     })
 
     it('handles preflight OPTIONS requests', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/auth/register', {
-        method: 'OPTIONS',
-        headers: {
-          Origin: 'https://scp.lat',
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'Content-Type, Authorization',
+      const res = await app.request(
+        '/api/auth/register',
+        {
+          method: 'OPTIONS',
+          headers: {
+            Origin: 'https://scp.lat',
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'Content-Type, Authorization',
+          },
         },
-      }, env)
+        env,
+      )
       expect(res.status).toBe(204)
       expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST')
       expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Content-Type')

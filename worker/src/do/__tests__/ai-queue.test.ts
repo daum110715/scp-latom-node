@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AiQueueDo } from '../ai-queue'
 import type { Env } from '../../types'
 
@@ -6,7 +6,15 @@ import type { Env } from '../../types'
 
 function createMockEnv(overrides?: Partial<Env>): Env {
   return {
-    DB: { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: vi.fn(async () => null), all: vi.fn(async () => ({ results: [] })), run: vi.fn(async () => ({})) })) })) } as unknown as D1Database,
+    DB: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => null),
+          all: vi.fn(async () => ({ results: [] })),
+          run: vi.fn(async () => ({})),
+        })),
+      })),
+    } as unknown as D1Database,
     JWT_SECRET: 'test',
     CORS_ORIGINS: '*',
     SCP_EN_CRAWLER: {} as DurableObjectNamespace,
@@ -20,7 +28,11 @@ function createMockEnv(overrides?: Partial<Env>): Env {
             const stream = new ReadableStream({
               start(controller) {
                 controller.enqueue(encoder.encode('data: {"delta":"Hi"}\n\n'))
-                controller.enqueue(encoder.encode('data: {"message":{"id":"msg-1","role":"assistant","content":"Hi","createdAt":"2025-01-01T00:00:01Z"},"done":true}\n\n'))
+                controller.enqueue(
+                  encoder.encode(
+                    'data: {"message":{"id":"msg-1","role":"assistant","content":"Hi","createdAt":"2025-01-01T00:00:01Z"},"done":true}\n\n',
+                  ),
+                )
                 controller.close()
               },
             })
@@ -29,7 +41,12 @@ function createMockEnv(overrides?: Partial<Env>): Env {
           return Response.json({
             success: true,
             conversationId: 'conv-1',
-            message: { id: 'msg-1', role: 'assistant', content: 'Hello!', createdAt: '2025-01-01T00:00:01Z' },
+            message: {
+              id: 'msg-1',
+              role: 'assistant',
+              content: 'Hello!',
+              createdAt: '2025-01-01T00:00:01Z',
+            },
             title: 'Test',
           })
         }),
@@ -61,7 +78,7 @@ describe('AiQueueDo', () => {
     it('returns queue status', async () => {
       const doInstance = new AiQueueDo(createState(), env)
       const res = await doInstance.fetch(new Request('https://queue.ai/status'))
-      const data = await res.json() as any
+      const data = (await res.json()) as any
 
       expect(data.success).toBe(true)
       expect(data.queueLength).toBe(0)
@@ -73,19 +90,21 @@ describe('AiQueueDo', () => {
     it('processes a non-streaming request immediately', async () => {
       const doInstance = new AiQueueDo(createState(), env)
 
-      const res = await doInstance.fetch(new Request('https://queue.ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: 'conv-1',
-          message: 'Hello',
-          userId: 1,
-          isNew: true,
-          stream: false,
+      const res = await doInstance.fetch(
+        new Request('https://queue.ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: 'conv-1',
+            message: 'Hello',
+            userId: 1,
+            isNew: true,
+            stream: false,
+          }),
         }),
-      }))
+      )
 
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
       expect(data.message.content).toBe('Hello!')
     })
@@ -93,17 +112,19 @@ describe('AiQueueDo', () => {
     it('processes a streaming request', async () => {
       const doInstance = new AiQueueDo(createState(), env)
 
-      const res = await doInstance.fetch(new Request('https://queue.ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: 'conv-1',
-          message: 'Hello',
-          userId: 1,
-          isNew: true,
-          stream: true,
+      const res = await doInstance.fetch(
+        new Request('https://queue.ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: 'conv-1',
+            message: 'Hello',
+            userId: 1,
+            isNew: true,
+            stream: true,
+          }),
         }),
-      }))
+      )
 
       expect(res.status).toBe(200)
       expect(res.headers.get('Content-Type')).toContain('text/event-stream')
@@ -125,17 +146,19 @@ describe('AiQueueDo', () => {
     it('returns error for missing conversationId', async () => {
       const doInstance = new AiQueueDo(createState(), env)
 
-      const res = await doInstance.fetch(new Request('https://queue.ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hello',
-          userId: 1,
+      const res = await doInstance.fetch(
+        new Request('https://queue.ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: 'Hello',
+            userId: 1,
+          }),
         }),
-      }))
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('Missing conversationId')
     })
 
@@ -144,7 +167,7 @@ describe('AiQueueDo', () => {
 
       // Override env with a mock that tracks call order
       const chatDoFetch = vi.fn(async (url: string) => {
-        const body = JSON.parse(url.includes('/stream') ? '{}' : '{}')
+        const _body = JSON.parse(url.includes('/stream') ? '{}' : '{}')
         // Simulate async delay
         const id = callOrder.length + 1
         callOrder.push(id)
@@ -152,7 +175,12 @@ describe('AiQueueDo', () => {
         return Response.json({
           success: true,
           conversationId: 'conv-1',
-          message: { id: `msg-${id}`, role: 'assistant', content: `Response ${id}`, createdAt: '2025-01-01T00:00:01Z' },
+          message: {
+            id: `msg-${id}`,
+            role: 'assistant',
+            content: `Response ${id}`,
+            createdAt: '2025-01-01T00:00:01Z',
+          },
           title: 'Test',
         })
       })
@@ -168,23 +196,25 @@ describe('AiQueueDo', () => {
 
       // Fire 3 requests concurrently
       const promises = [1, 2, 3].map((i) =>
-        doInstance.fetch(new Request('https://queue.ai/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: `conv-${i}`,
-            message: `Message ${i}`,
-            userId: 1,
-            stream: false,
+        doInstance.fetch(
+          new Request('https://queue.ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationId: `conv-${i}`,
+              message: `Message ${i}`,
+              userId: 1,
+              stream: false,
+            }),
           }),
-        }))
+        ),
       )
 
       const results = await Promise.all(promises)
 
       // All should succeed
       for (const res of results) {
-        const data = await res.json() as any
+        const data = (await res.json()) as any
         expect(data.success).toBe(true)
       }
 
@@ -213,23 +243,25 @@ describe('AiQueueDo', () => {
 
       const doInstance = new AiQueueDo(createState(), env)
 
-      const resPromise = doInstance.fetch(new Request('https://queue.ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: 'conv-1',
-          message: 'Hello',
-          userId: 1,
-          stream: false,
+      const resPromise = doInstance.fetch(
+        new Request('https://queue.ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: 'conv-1',
+            message: 'Hello',
+            userId: 1,
+            stream: false,
+          }),
         }),
-      }))
+      )
 
       // Advance past the 60s timeout
       await vi.advanceTimersByTimeAsync(61_000)
 
       const res = await resPromise
       expect(res.status).toBe(504)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('timed out')
 
       vi.useRealTimers()

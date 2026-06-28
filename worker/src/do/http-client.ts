@@ -144,7 +144,7 @@ const cookieJar = new CookieJar()
  */
 export async function fetchPageLikeBrowser(
   url: string,
-  options: FetchOptions
+  options: FetchOptions,
 ): Promise<FetchResult> {
   const { baseUrl, language, fetcher = globalThis.fetch, timeoutMs = 15_000 } = options
 
@@ -155,11 +155,12 @@ export async function fetchPageLikeBrowser(
   // Build realistic headers
   const headers: Record<string, string> = {
     'User-Agent': ua,
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    Accept:
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': acceptLang,
     'Accept-Encoding': 'gzip, deflate, br',
     'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache',
+    Pragma: 'no-cache',
     'Sec-Ch-Ua': '"Chromium";v="125", "Not.A/Brand";v="24", "Google Chrome";v="125"',
     'Sec-Ch-Ua-Mobile': '?0',
     'Sec-Ch-Ua-Platform': '"Windows"',
@@ -168,7 +169,7 @@ export async function fetchPageLikeBrowser(
     'Sec-Fetch-Site': 'same-origin',
     'Sec-Fetch-User': '?1',
     'Upgrade-Insecure-Requests': '1',
-    'Referer': `${baseUrl}/`,
+    Referer: `${baseUrl}/`,
   }
 
   // Attach cookies if we have any for this domain

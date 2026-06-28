@@ -37,9 +37,7 @@ onMounted(() => {
 
 <template>
   <div class="proposal-detail-view">
-    <button class="back-btn" @click="goBack">
-      ← {{ t('proposals.back') }}
-    </button>
+    <button class="back-btn" @click="goBack">← {{ t('proposals.back') }}</button>
 
     <!-- Loading -->
     <div v-if="store.loading" class="loading-state">
@@ -159,9 +157,15 @@ onMounted(() => {
   letter-spacing: 0.05em;
 }
 
-.detail-status.open { color: var(--color-accent); }
-.detail-status.approved { color: var(--color-success); }
-.detail-status.rejected { color: var(--color-danger); }
+.detail-status.open {
+  color: var(--color-accent);
+}
+.detail-status.approved {
+  color: var(--color-success);
+}
+.detail-status.rejected {
+  color: var(--color-danger);
+}
 
 .detail-title {
   font-size: clamp(1.5rem, 3vw, 2rem);
@@ -211,9 +215,15 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.vote-count.for { color: var(--color-success); }
-.vote-count.against { color: var(--color-danger); }
-.vote-count.abstain { color: var(--text-tertiary); }
+.vote-count.for {
+  color: var(--color-success);
+}
+.vote-count.against {
+  color: var(--color-danger);
+}
+.vote-count.abstain {
+  color: var(--text-tertiary);
+}
 
 .voted-msg {
   font-size: var(--text-sm);
@@ -237,12 +247,30 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
-.vote-btn.for { color: var(--color-success); }
-.vote-btn.for:hover { background: var(--color-success); color: var(--text-inverse); border-color: var(--color-success); }
-.vote-btn.against { color: var(--color-danger); }
-.vote-btn.against:hover { background: var(--color-danger); color: var(--text-inverse); border-color: var(--color-danger); }
-.vote-btn.abstain { color: var(--text-tertiary); }
-.vote-btn.abstain:hover { background: var(--text-tertiary); color: var(--text-inverse); border-color: var(--text-tertiary); }
+.vote-btn.for {
+  color: var(--color-success);
+}
+.vote-btn.for:hover {
+  background: var(--color-success);
+  color: var(--text-inverse);
+  border-color: var(--color-success);
+}
+.vote-btn.against {
+  color: var(--color-danger);
+}
+.vote-btn.against:hover {
+  background: var(--color-danger);
+  color: var(--text-inverse);
+  border-color: var(--color-danger);
+}
+.vote-btn.abstain {
+  color: var(--text-tertiary);
+}
+.vote-btn.abstain:hover {
+  background: var(--text-tertiary);
+  color: var(--text-inverse);
+  border-color: var(--text-tertiary);
+}
 
 /* ─── States ─── */
 
@@ -258,28 +286,45 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.skeleton-title { height: 40px; width: 70%; }
-.skeleton-meta { height: 20px; width: 30%; }
-.skeleton-body { height: 300px; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.skeleton-title {
+  height: 40px;
+  width: 70%;
+}
+.skeleton-meta {
+  height: 20px;
+  width: 30%;
+}
+.skeleton-body {
+  height: 300px;
 }
 
-.error-state, .empty-state {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.error-state,
+.empty-state {
   text-align: center;
   padding: var(--space-3xl) 0;
 }
 
-.error-icon, .empty-icon {
+.error-icon,
+.empty-icon {
   font-size: 3rem;
   color: var(--text-tertiary);
   display: block;
   margin-bottom: var(--space-md);
 }
 
-.error-icon { color: var(--color-danger); }
+.error-icon {
+  color: var(--color-danger);
+}
 
 .retry-btn {
   margin-top: var(--space-md);

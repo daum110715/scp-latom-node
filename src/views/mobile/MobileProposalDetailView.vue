@@ -38,9 +38,7 @@ onMounted(() => {
 <template>
   <div class="m-proposal-detail">
     <!-- Back button -->
-    <button class="m-back-btn" @click="goBack">
-      ← {{ t('proposals.back') }}
-    </button>
+    <button class="m-back-btn" @click="goBack">← {{ t('proposals.back') }}</button>
 
     <!-- Loading -->
     <div v-if="store.loading" class="m-loading">
@@ -159,9 +157,15 @@ onMounted(() => {
   letter-spacing: 0.05em;
 }
 
-.m-detail-status.open { color: var(--color-accent); }
-.m-detail-status.approved { color: var(--color-success); }
-.m-detail-status.rejected { color: var(--color-danger); }
+.m-detail-status.open {
+  color: var(--color-accent);
+}
+.m-detail-status.approved {
+  color: var(--color-success);
+}
+.m-detail-status.rejected {
+  color: var(--color-danger);
+}
 
 .m-detail-title {
   font-size: clamp(1.125rem, 5vw, 1.5rem);
@@ -207,9 +211,15 @@ onMounted(() => {
   margin-bottom: var(--space-md);
 }
 
-.m-vc.for { color: var(--color-success); }
-.m-vc.against { color: var(--color-danger); }
-.m-vc.abstain { color: var(--text-tertiary); }
+.m-vc.for {
+  color: var(--color-success);
+}
+.m-vc.against {
+  color: var(--color-danger);
+}
+.m-vc.abstain {
+  color: var(--text-tertiary);
+}
 
 .m-voted-msg {
   font-size: var(--text-xs);
@@ -235,12 +245,30 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
-.m-vote-btn.for { color: var(--color-success); }
-.m-vote-btn.for:hover { background: var(--color-success); color: var(--text-inverse); border-color: var(--color-success); }
-.m-vote-btn.against { color: var(--color-danger); }
-.m-vote-btn.against:hover { background: var(--color-danger); color: var(--text-inverse); border-color: var(--color-danger); }
-.m-vote-btn.abstain { color: var(--text-tertiary); }
-.m-vote-btn.abstain:hover { background: var(--text-tertiary); color: var(--text-inverse); border-color: var(--text-tertiary); }
+.m-vote-btn.for {
+  color: var(--color-success);
+}
+.m-vote-btn.for:hover {
+  background: var(--color-success);
+  color: var(--text-inverse);
+  border-color: var(--color-success);
+}
+.m-vote-btn.against {
+  color: var(--color-danger);
+}
+.m-vote-btn.against:hover {
+  background: var(--color-danger);
+  color: var(--text-inverse);
+  border-color: var(--color-danger);
+}
+.m-vote-btn.abstain {
+  color: var(--text-tertiary);
+}
+.m-vote-btn.abstain:hover {
+  background: var(--text-tertiary);
+  color: var(--text-inverse);
+  border-color: var(--text-tertiary);
+}
 
 /* ─── States ─── */
 
@@ -256,28 +284,47 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.m-skeleton-title { height: 32px; width: 80%; }
-.m-skeleton-meta { height: 16px; width: 40%; }
-.m-skeleton-body { height: 200px; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.m-skeleton-title {
+  height: 32px;
+  width: 80%;
+}
+.m-skeleton-meta {
+  height: 16px;
+  width: 40%;
+}
+.m-skeleton-body {
+  height: 200px;
 }
 
-.m-error, .m-empty {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.m-error,
+.m-empty {
   text-align: center;
   padding: var(--space-3xl) var(--space-lg);
 }
 
-.m-error-icon, .m-empty-icon {
+.m-error-icon,
+.m-empty-icon {
   font-size: 2.5rem;
   display: block;
   margin-bottom: var(--space-md);
 }
 
-.m-error-icon { color: var(--color-danger); }
-.m-empty-icon { color: var(--text-tertiary); }
+.m-error-icon {
+  color: var(--color-danger);
+}
+.m-empty-icon {
+  color: var(--text-tertiary);
+}
 
 .m-retry-btn {
   margin-top: var(--space-md);

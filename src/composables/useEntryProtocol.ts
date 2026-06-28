@@ -13,12 +13,8 @@ const MODE_KEY = 'scp-protocol-mode'
 const INTERVAL_KEY = 'scp-protocol-interval'
 
 // ─── Shared state (persists across component mount/unmount cycles) ───
-const mode = ref<ProtocolMode>(
-  (localStorage.getItem(MODE_KEY) as ProtocolMode) || 'manual'
-)
-const interval = ref<number>(
-  Number(localStorage.getItem(INTERVAL_KEY)) || DEFAULT_INTERVAL
-)
+const mode = ref<ProtocolMode>((localStorage.getItem(MODE_KEY) as ProtocolMode) || 'manual')
+const interval = ref<number>(Number(localStorage.getItem(INTERVAL_KEY)) || DEFAULT_INTERVAL)
 const recommendedEntries = ref<CrawlEntry[]>([])
 const isPaused = ref(false)
 const countdown = ref(interval.value)
@@ -58,7 +54,7 @@ function stopAutoRotation() {
 // Internal shuffle called by the timer (no composable context needed)
 async function shuffleFromTimer() {
   transitioning.value = true
-  await new Promise(resolve => setTimeout(resolve, 300))
+  await new Promise((resolve) => setTimeout(resolve, 300))
 
   // We need to determine the language — use the stored locale
   const locale = localStorage.getItem('scp-locale') || 'en'
@@ -122,7 +118,7 @@ export function useEntryProtocol() {
 
   async function shuffle() {
     transitioning.value = true
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
     loadingRecommendations.value = true
     const entries = await fetchRandomEntries()

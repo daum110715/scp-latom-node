@@ -21,7 +21,10 @@ export class AiQueueDo {
 
   constructor(_state: DurableObjectState, env: Env) {
     this.env = env
-    this.logger = new Logger({ db: env.DB, level: env.LOG_LEVEL as any })
+    this.logger = new Logger({
+      db: env.DB,
+      level: env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error' | undefined,
+    })
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -65,7 +68,7 @@ export class AiQueueDo {
         const response = await Promise.race([
           this.processTask(task.request),
           new Promise<Response>((_, reject) =>
-            setTimeout(() => reject(new Error('Queue task timeout')), QUEUE_TASK_TIMEOUT_MS)
+            setTimeout(() => reject(new Error('Queue task timeout')), QUEUE_TASK_TIMEOUT_MS),
           ),
         ])
         task.resolve(response)
@@ -73,9 +76,10 @@ export class AiQueueDo {
         const errMsg = err instanceof Error ? err.message : String(err)
         this.logger.error('Queue task failed', { error: errMsg })
         const status = errMsg === 'Queue task timeout' ? 504 : 500
-        const error = errMsg === 'Queue task timeout'
-          ? 'Request timed out. Please try again.'
-          : 'Internal queue error'
+        const error =
+          errMsg === 'Queue task timeout'
+            ? 'Request timed out. Please try again.'
+            : 'Internal queue error'
         task.resolve(Response.json({ success: false, error }, { status }))
       }
     }
@@ -84,7 +88,7 @@ export class AiQueueDo {
   }
 
   private async processTask(request: Request): Promise<Response> {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       conversationId: string
       message: string
       userId?: number

@@ -8,7 +8,13 @@ import { signToken } from '../../utils/jwt'
 
 const mockMessages = [
   { id: 'msg-1', role: 'user', content: 'Hello', createdAt: '2025-01-01T00:00:00Z' },
-  { id: 'msg-2', role: 'assistant', content: 'Hi there!', createdAt: '2025-01-01T00:00:01Z', tokenCount: 5 },
+  {
+    id: 'msg-2',
+    role: 'assistant',
+    content: 'Hi there!',
+    createdAt: '2025-01-01T00:00:01Z',
+    tokenCount: 5,
+  },
 ]
 
 function createMockDoResponse(path: string, method: string): Response {
@@ -27,7 +33,11 @@ function createMockDoResponse(path: string, method: string): Response {
       start(controller) {
         controller.enqueue(encoder.encode('data: {"conversationId":"conv-123","title":"Test"}\n\n'))
         controller.enqueue(encoder.encode('data: {"delta":"Hi"}\n\n'))
-        controller.enqueue(encoder.encode('data: {"message":{"id":"msg-2","role":"assistant","content":"Hi","createdAt":"2025-01-01T00:00:01Z"},"done":true}\n\n'))
+        controller.enqueue(
+          encoder.encode(
+            'data: {"message":{"id":"msg-2","role":"assistant","content":"Hi","createdAt":"2025-01-01T00:00:01Z"},"done":true}\n\n',
+          ),
+        )
         controller.close()
       },
     })
@@ -60,7 +70,12 @@ function createMockDoResponse(path: string, method: string): Response {
   if (path === '/regenerate' && method === 'POST') {
     return Response.json({
       success: true,
-      message: { id: 'msg-3', role: 'assistant', content: 'Regenerated', createdAt: '2025-01-01T00:00:02Z' },
+      message: {
+        id: 'msg-3',
+        role: 'assistant',
+        content: 'Regenerated',
+        createdAt: '2025-01-01T00:00:02Z',
+      },
     })
   }
 
@@ -176,19 +191,22 @@ function createTestEnv(overrides?: Partial<Env>): Env {
   } as Env
 }
 
-function createTestApp(envOverrides?: Partial<Env>): Hono<{ Bindings: Env }> {
+function createTestApp(_envOverrides?: Partial<Env>): Hono<{ Bindings: Env }> {
   const app = new Hono<{ Bindings: Env }>()
   app.route('/api/ai', aiRoutes)
   return app
 }
 
 async function getAuthToken(secret: string): Promise<string> {
-  return signToken({
-    sub: 1,
-    codename: 'test-agent',
-    role: 'personnel',
-    clearance: 2,
-  }, secret)
+  return signToken(
+    {
+      sub: 1,
+      codename: 'test-agent',
+      role: 'personnel',
+      clearance: 2,
+    },
+    secret,
+  )
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -202,11 +220,15 @@ describe('AI Routes', () => {
 
   describe('POST /api/ai/chat', () => {
     it('returns 401 without auth token', async () => {
-      const res = await app.request('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: 'Hello' }),
-      }, createTestEnv())
+      const res = await app.request(
+        '/api/ai/chat',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'Hello' }),
+        },
+        createTestEnv(),
+      )
 
       expect(res.status).toBe(401)
     })
@@ -215,17 +237,21 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/ai/chat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: '' }),
         },
-        body: JSON.stringify({ message: '' }),
-      }, env)
+        env,
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('Message is required')
     })
 
@@ -233,17 +259,21 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/ai/chat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: 'Hello' }),
         },
-        body: JSON.stringify({ message: 'Hello' }),
-      }, env)
+        env,
+      )
 
       expect(res.status).toBe(200)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
       expect(data.message.role).toBe('assistant')
     })
@@ -252,14 +282,18 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/ai/chat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: 'Follow up', conversationId: 'existing-id' }),
         },
-        body: JSON.stringify({ message: 'Follow up', conversationId: 'existing-id' }),
-      }, env)
+        env,
+      )
 
       expect(res.status).toBe(200)
       // Chat goes through the queue DO (per-user), not directly to AiChatDo
@@ -278,12 +312,16 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/conversations?page=1&limit=10', {
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/ai/conversations?page=1&limit=10',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
 
       expect(res.status).toBe(200)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
       expect(data).toHaveProperty('conversations')
       expect(data).toHaveProperty('total')
@@ -297,9 +335,13 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/conversations/nonexistent', {
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/ai/conversations/nonexistent',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
 
       expect(res.status).toBe(404)
     })
@@ -310,14 +352,18 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/conversations/nonexistent', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/ai/conversations/nonexistent',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: 'New Title' }),
         },
-        body: JSON.stringify({ title: 'New Title' }),
-      }, env)
+        env,
+      )
 
       expect(res.status).toBe(404)
     })
@@ -328,10 +374,14 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/conversations/nonexistent', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/ai/conversations/nonexistent',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
 
       expect(res.status).toBe(404)
     })
@@ -342,10 +392,14 @@ describe('AI Routes', () => {
       const env = createTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
-      const res = await app.request('/api/ai/conversations/nonexistent/regenerate', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/ai/conversations/nonexistent/regenerate',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
 
       expect(res.status).toBe(404)
     })

@@ -22,14 +22,16 @@ export interface AdminUsersListResponse {
   totalPages: number
 }
 
-export function fetchAdminUsers(params: {
-  page?: number
-  limit?: number
-  q?: string
-  role?: string
-  sort?: string
-  order?: string
-} = {}): Promise<ApiResult<AdminUsersListResponse>> {
+export function fetchAdminUsers(
+  params: {
+    page?: number
+    limit?: number
+    q?: string
+    role?: string
+    sort?: string
+    order?: string
+  } = {},
+): Promise<ApiResult<AdminUsersListResponse>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))
@@ -45,11 +47,15 @@ export function fetchAdminUser(id: number): Promise<ApiResult<{ user: AdminUser 
   return apiGet(`/admin/users/${id}`)
 }
 
-export function fetchAdminUserHistory(id: number, page = 1, limit = 50): Promise<ApiResult<{ history: any[] }>> {
+export function fetchAdminUserHistory(
+  id: number,
+  page = 1,
+  limit = 50,
+): Promise<ApiResult<{ history: unknown[] }>> {
   return apiGet(`/admin/users/${id}/history?page=${page}&limit=${limit}`)
 }
 
-export function fetchAdminUserBookmarks(id: number): Promise<ApiResult<{ bookmarks: any[] }>> {
+export function fetchAdminUserBookmarks(id: number): Promise<ApiResult<{ bookmarks: unknown[] }>> {
   return apiGet(`/admin/users/${id}/bookmarks`)
 }
 

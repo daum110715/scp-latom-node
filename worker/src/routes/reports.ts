@@ -36,8 +36,14 @@ reports.post('/', async (c) => {
   if (language !== 'en' && language !== 'cn') {
     return c.json({ success: false, error: 'Invalid language. Use "en" or "cn"' }, 400)
   }
-  if (!reportType || !VALID_REPORT_TYPES.includes(reportType as typeof VALID_REPORT_TYPES[number])) {
-    return c.json({ success: false, error: `Invalid report type. Use: ${VALID_REPORT_TYPES.join(', ')}` }, 400)
+  if (
+    !reportType ||
+    !VALID_REPORT_TYPES.includes(reportType as (typeof VALID_REPORT_TYPES)[number])
+  ) {
+    return c.json(
+      { success: false, error: `Invalid report type. Use: ${VALID_REPORT_TYPES.join(', ')}` },
+      400,
+    )
   }
   if (!description || description.length < 10 || description.length > 2000) {
     return c.json({ success: false, error: 'Description must be 10-2000 characters' }, 400)
@@ -45,8 +51,10 @@ reports.post('/', async (c) => {
 
   // Check if the entry exists
   const entry = await c.env.DB.prepare(
-    'SELECT id FROM scp_entries WHERE scp_number = ? AND language = ?'
-  ).bind(scpNumber, language).first<{ id: number }>()
+    'SELECT id FROM scp_entries WHERE scp_number = ? AND language = ?',
+  )
+    .bind(scpNumber, language)
+    .first<{ id: number }>()
 
   if (!entry) {
     return c.json({ success: false, error: 'SCP entry not found' }, 404)
@@ -54,31 +62,43 @@ reports.post('/', async (c) => {
 
   // Check per-entry report limit for this user
   const existingCount = await c.env.DB.prepare(
-    'SELECT COUNT(*) as count FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?'
-  ).bind(user.sub, scpNumber, language).first<{ count: number }>()
+    'SELECT COUNT(*) as count FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?',
+  )
+    .bind(user.sub, scpNumber, language)
+    .first<{ count: number }>()
 
   if ((existingCount?.count ?? 0) >= MAX_REPORTS_PER_ENTRY) {
-    return c.json({
-      success: false,
-      error: `You have reached the maximum number of reports (${MAX_REPORTS_PER_ENTRY}) for this entry`,
-    }, 429)
+    return c.json(
+      {
+        success: false,
+        error: `You have reached the maximum number of reports (${MAX_REPORTS_PER_ENTRY}) for this entry`,
+      },
+      429,
+    )
   }
 
   // Check for duplicate report type
   const duplicate = await c.env.DB.prepare(
-    'SELECT id FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ? AND report_type = ?'
-  ).bind(user.sub, scpNumber, language, reportType).first<{ id: number }>()
+    'SELECT id FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ? AND report_type = ?',
+  )
+    .bind(user.sub, scpNumber, language, reportType)
+    .first<{ id: number }>()
 
   if (duplicate) {
-    return c.json({ success: false, error: 'You have already submitted this type of report for this entry' }, 409)
+    return c.json(
+      { success: false, error: 'You have already submitted this type of report for this entry' },
+      409,
+    )
   }
 
   // Insert report
   const result = await c.env.DB.prepare(
     `INSERT INTO entry_reports (user_id, scp_number, language, report_type, description)
      VALUES (?, ?, ?, ?, ?)
-     RETURNING *`
-  ).bind(user.sub, scpNumber, language, reportType, description).first<EntryReport>()
+     RETURNING *`,
+  )
+    .bind(user.sub, scpNumber, language, reportType, description)
+    .first<EntryReport>()
 
   if (!result) {
     logger.error('Report creation failed: DB insert returned no result', { userId: user.sub })
@@ -93,19 +113,22 @@ reports.post('/', async (c) => {
     reportType,
   })
 
-  return c.json({
-    success: true,
-    message: 'Report submitted successfully',
-    report: {
-      id: result.id,
-      scpNumber: result.scp_number,
-      language: result.language,
-      reportType: result.report_type,
-      description: result.description,
-      status: result.status,
-      createdAt: result.created_at,
+  return c.json(
+    {
+      success: true,
+      message: 'Report submitted successfully',
+      report: {
+        id: result.id,
+        scpNumber: result.scp_number,
+        language: result.language,
+        reportType: result.report_type,
+        description: result.description,
+        status: result.status,
+        createdAt: result.created_at,
+      },
     },
-  }, 201)
+    201,
+  )
 })
 
 // ─── GET /api/reports ─────────────────────────────────────
@@ -118,8 +141,10 @@ reports.get('/', async (c) => {
   const offset = (page - 1) * limit
 
   const countRow = await c.env.DB.prepare(
-    'SELECT COUNT(*) as total FROM entry_reports WHERE user_id = ?'
-  ).bind(user.sub).first<{ total: number }>()
+    'SELECT COUNT(*) as total FROM entry_reports WHERE user_id = ?',
+  )
+    .bind(user.sub)
+    .first<{ total: number }>()
   const total = countRow?.total ?? 0
 
   const rows = await c.env.DB.prepare(
@@ -128,20 +153,23 @@ reports.get('/', async (c) => {
      LEFT JOIN scp_entries e ON r.scp_number = e.scp_number AND r.language = e.language
      WHERE r.user_id = ?
      ORDER BY r.created_at DESC
-     LIMIT ? OFFSET ?`
-  ).bind(user.sub, limit, offset).all<EntryReport & { name: string | null; object_class: string | null }>()
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(user.sub, limit, offset)
+    .all<EntryReport & { name: string | null; object_class: string | null }>()
 
-  const result: (ReportPublic & { name: string | null; objectClass: string | null })[] = rows.results.map((r) => ({
-    id: r.id,
-    scpNumber: r.scp_number,
-    language: r.language,
-    reportType: r.report_type,
-    description: r.description,
-    status: r.status,
-    createdAt: r.created_at,
-    name: r.name,
-    objectClass: r.object_class,
-  }))
+  const result: (ReportPublic & { name: string | null; objectClass: string | null })[] =
+    rows.results.map((r) => ({
+      id: r.id,
+      scpNumber: r.scp_number,
+      language: r.language,
+      reportType: r.report_type,
+      description: r.description,
+      status: r.status,
+      createdAt: r.created_at,
+      name: r.name,
+      objectClass: r.object_class,
+    }))
 
   return c.json({
     success: true,
@@ -165,8 +193,10 @@ reports.get('/:id', async (c) => {
     `SELECT r.*, e.name, e.object_class
      FROM entry_reports r
      LEFT JOIN scp_entries e ON r.scp_number = e.scp_number AND r.language = e.language
-     WHERE r.id = ? AND r.user_id = ?`
-  ).bind(id, user.sub).first<EntryReport & { name: string | null; object_class: string | null }>()
+     WHERE r.id = ? AND r.user_id = ?`,
+  )
+    .bind(id, user.sub)
+    .first<EntryReport & { name: string | null; object_class: string | null }>()
 
   if (!row) return c.json({ success: false, error: 'Report not found' }, 404)
 
@@ -204,8 +234,10 @@ reports.get('/check/:lang/:scpNumber', async (c) => {
   }
 
   const rows = await c.env.DB.prepare(
-    'SELECT id, report_type, status FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?'
-  ).bind(user.sub, scpNumber, lang).all<{ id: number; report_type: string; status: string }>()
+    'SELECT id, report_type, status FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?',
+  )
+    .bind(user.sub, scpNumber, lang)
+    .all<{ id: number; report_type: string; status: string }>()
 
   return c.json({
     success: true,

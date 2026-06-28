@@ -281,6 +281,26 @@ export interface EntryTag {
   created_at: string
 }
 
+// ─── Rate Limit Types ──────────────────────────────────────
+
+export interface RateLimitConfig {
+  windowSec: number // Time window in seconds
+  max: number // Max attempts in the window
+  action: string // e.g., 'login', 'register', 'password_change'
+}
+
+export interface RateLimitResult {
+  allowed: boolean
+  remaining: number // How many more attempts allowed
+  retryAfter: number // Seconds until next attempt allowed (0 if allowed)
+  total: number // Total attempts in window
+}
+
+export interface DelayThreshold {
+  afterAttempts: number // Apply delay after this many failures
+  delaySec: number // Seconds to wait
+}
+
 // ─── AI Chat Types ──────────────────────────────────────────
 
 export interface AiMessage {

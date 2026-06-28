@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useDevice } from '@/composables/useDevice'
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, type Component } from 'vue'
 
 const props = defineProps<{
-  desktop: () => Promise<any>
-  mobile: () => Promise<any>
+  desktop: () => Promise<Component>
+  mobile: () => Promise<Component>
 }>()
 
 const { isMobile } = useDevice()

@@ -13,8 +13,16 @@ const recent = computed(() => crawler.entries.slice(0, 4))
 
 const stats = computed(() => [
   { labelKey: 'stats.totalEntries', value: crawler.total, color: 'var(--color-primary)' },
-  { labelKey: 'stats.safe', value: crawler.classDistribution?.['Safe'] ?? 0, color: 'var(--class-safe)' },
-  { labelKey: 'stats.keter', value: crawler.classDistribution?.['Keter'] ?? 0, color: 'var(--class-keter)' },
+  {
+    labelKey: 'stats.safe',
+    value: crawler.classDistribution?.['Safe'] ?? 0,
+    color: 'var(--class-safe)',
+  },
+  {
+    labelKey: 'stats.keter',
+    value: crawler.classDistribution?.['Keter'] ?? 0,
+    color: 'var(--class-keter)',
+  },
 ])
 
 onMounted(() => {
@@ -39,7 +47,14 @@ onMounted(() => {
       <p class="m-hero-desc">{{ t('hero.description') }}</p>
       <router-link to="/catalog" class="m-hero-btn">
         {{ t('hero.browseCatalog') }}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
         </svg>
@@ -62,7 +77,14 @@ onMounted(() => {
         <h2 class="m-section-title">{{ t('recent.title') }}</h2>
         <router-link to="/catalog" class="m-section-link">
           {{ t('recent.viewAll') }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </router-link>
@@ -141,8 +163,13 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .m-hero-title {
@@ -332,29 +359,43 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.m-skeleton-card { height: 120px; }
+.m-skeleton-card {
+  height: 120px;
+}
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Error & Empty */
-.m-error, .m-empty {
+.m-error,
+.m-empty {
   text-align: center;
   padding: var(--space-3xl) var(--space-lg);
 }
 
-.m-error-icon, .m-empty-icon {
+.m-error-icon,
+.m-empty-icon {
   font-size: 2.5rem;
   display: block;
   margin-bottom: var(--space-md);
 }
 
-.m-error-icon { color: var(--color-danger); }
-.m-empty-icon { color: var(--text-tertiary); }
+.m-error-icon {
+  color: var(--color-danger);
+}
+.m-empty-icon {
+  color: var(--text-tertiary);
+}
 
-.m-error p, .m-empty p {
+.m-error p,
+.m-empty p {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
 }

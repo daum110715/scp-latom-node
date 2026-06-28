@@ -4,7 +4,7 @@
 
 import { glmChat } from './glm-client'
 import { Logger } from './logger'
-import type { Env, Tag } from '../types'
+import type { Tag } from '../types'
 
 const TAG_MODEL = 'glm-4-flash'
 const TAG_TEMPERATURE = 0.3 // Low temperature for consistent, deterministic tagging
@@ -22,11 +22,6 @@ interface TagCandidate {
   nameZh: string
   description: string
   keywords: string[]
-}
-
-interface AutoTagResult {
-  tagIds: string[]
-  tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number }
 }
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -76,9 +71,10 @@ function buildUserMessage(
   content: string,
   tags: TagCandidate[],
 ): string {
-  const truncated = content.length > MAX_CONTENT_CHARS
-    ? content.slice(0, MAX_CONTENT_CHARS) + '\n...[truncated]'
-    : content
+  const truncated =
+    content.length > MAX_CONTENT_CHARS
+      ? content.slice(0, MAX_CONTENT_CHARS) + '\n...[truncated]'
+      : content
 
   // Group tags by category for clearer presentation
   const byCategory = new Map<string, TagCandidate[]>()
@@ -135,23 +131,29 @@ export async function autoTagEntry(
 ): Promise<string[] | null> {
   try {
     // 1. Check if entry already has tags — skip if so
-    const existingTags = await db.prepare(
-      'SELECT COUNT(*) as count FROM entry_tags WHERE scp_number = ? AND language = ?'
-    ).bind(scpNumber, language).first<{ count: number }>()
+    const existingTags = await db
+      .prepare('SELECT COUNT(*) as count FROM entry_tags WHERE scp_number = ? AND language = ?')
+      .bind(scpNumber, language)
+      .first<{ count: number }>()
 
     if (existingTags && existingTags.count > 0) {
-      logger.debug(`Entry SCP-${scpNumber} (${language}) already has ${existingTags.count} tags, skipping auto-tag`)
+      logger.debug(
+        `Entry SCP-${scpNumber} (${language}) already has ${existingTags.count} tags, skipping auto-tag`,
+      )
       return null
     }
 
     // 2. Fetch entry content from D1
-    const entry = await db.prepare(
-      'SELECT name, object_class, content FROM scp_entries WHERE scp_number = ? AND language = ?'
-    ).bind(scpNumber, language).first<{
-      name: string
-      object_class: string
-      content: string | null
-    }>()
+    const entry = await db
+      .prepare(
+        'SELECT name, object_class, content FROM scp_entries WHERE scp_number = ? AND language = ?',
+      )
+      .bind(scpNumber, language)
+      .first<{
+        name: string
+        object_class: string
+        content: string | null
+      }>()
 
     if (!entry || !entry.content) {
       logger.warn(`Cannot auto-tag SCP-${scpNumber} (${language}): entry or content not found`)
@@ -159,11 +161,13 @@ export async function autoTagEntry(
     }
 
     // 3. Fetch all available tags from the tag pool
-    const tagRows = await db.prepare(
-      `SELECT t.id, t.category_id, t.name, t.name_zh, t.description, t.ai_keywords
+    const tagRows = await db
+      .prepare(
+        `SELECT t.id, t.category_id, t.name, t.name_zh, t.description, t.ai_keywords
        FROM tags t
-       ORDER BY t.category_id ASC, t.sort_order ASC`
-    ).all<Tag>()
+       ORDER BY t.category_id ASC, t.sort_order ASC`,
+      )
+      .all<Tag>()
 
     if (tagRows.results.length === 0) {
       logger.warn('Cannot auto-tag: no tags in the tag pool')
@@ -191,11 +195,17 @@ export async function autoTagEntry(
     const plainText = stripHtml(entry.content)
     const systemPrompt = buildSystemPrompt()
     const userMessage = buildUserMessage(
-      scpNumber, language, entry.name, entry.object_class, plainText, candidates,
+      scpNumber,
+      language,
+      entry.name,
+      entry.object_class,
+      plainText,
+      candidates,
     )
 
     logger.info(`Auto-tagging SCP-${scpNumber} (${language}) with GLM-4-flash`, {
-      scpNumber, language,
+      scpNumber,
+      language,
       contentLength: plainText.length,
       tagPoolSize: candidates.length,
     })
@@ -225,7 +235,9 @@ export async function autoTagEntry(
     await storeTags(db, scpNumber, language, tagIds)
 
     logger.info(`Auto-tagged SCP-${scpNumber} (${language}) with ${tagIds.length} tags`, {
-      scpNumber, language, tagIds,
+      scpNumber,
+      language,
+      tagIds,
       tokenUsage: result.tokenUsage,
     })
 
@@ -233,7 +245,9 @@ export async function autoTagEntry(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error(`Auto-tagging failed for SCP-${scpNumber} (${language})`, {
-      error: message, scpNumber, language,
+      error: message,
+      scpNumber,
+      language,
     })
     return null
   }
@@ -257,18 +271,14 @@ function parseTagIds(response: string, candidates: TagCandidate[]): string[] {
     if (!Array.isArray(parsed)) return []
 
     // Filter to only valid tag IDs
-    return parsed.filter((id: unknown): id is string =>
-      typeof id === 'string' && validIds.has(id),
-    )
+    return parsed.filter((id: unknown): id is string => typeof id === 'string' && validIds.has(id))
   } catch {
     // Try to extract IDs manually from malformed JSON
     const idPattern = /"[A-Z]{2}\d{3}"/g
     const matches = jsonMatch[0].match(idPattern)
     if (!matches) return []
 
-    return matches
-      .map((m) => m.replace(/"/g, ''))
-      .filter((id) => validIds.has(id))
+    return matches.map((m) => m.replace(/"/g, '')).filter((id) => validIds.has(id))
   }
 }
 
@@ -287,12 +297,10 @@ async function storeTags(
   if (tagIds.length === 0) return 0
 
   const stmt = db.prepare(
-    'INSERT OR IGNORE INTO entry_tags (scp_number, language, tag_id) VALUES (?, ?, ?)'
+    'INSERT OR IGNORE INTO entry_tags (scp_number, language, tag_id) VALUES (?, ?, ?)',
   )
 
-  const results = await db.batch(
-    tagIds.map((tagId) => stmt.bind(scpNumber, language, tagId))
-  )
+  const results = await db.batch(tagIds.map((tagId) => stmt.bind(scpNumber, language, tagId)))
 
   return results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0)
 }

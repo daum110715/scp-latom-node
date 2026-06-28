@@ -29,7 +29,14 @@ onMounted(() => {
       <div class="hero-actions">
         <router-link to="/catalog" class="btn btn-primary">
           <span>{{ t('hero.browseCatalog') }}</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
           </svg>
@@ -76,9 +83,15 @@ onMounted(() => {
 }
 
 @keyframes grid-float {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(-10px, -10px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-10px, -10px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .hero-orb {
@@ -108,9 +121,16 @@ onMounted(() => {
 }
 
 @keyframes orb-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, -20px) scale(1.1); }
-  66% { transform: translate(-10px, 10px) scale(0.95); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(20px, -20px) scale(1.1);
+  }
+  66% {
+    transform: translate(-10px, 10px) scale(0.95);
+  }
 }
 
 .hero-content {
@@ -143,8 +163,15 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--color-success); }
-  50% { opacity: 0.6; box-shadow: 0 0 12px var(--color-success); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px var(--color-success);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 12px var(--color-success);
+  }
 }
 
 .hero-title {
@@ -208,7 +235,7 @@ onMounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transform: translateX(-100%);
   transition: transform 600ms ease;
 }

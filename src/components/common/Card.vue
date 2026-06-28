@@ -25,7 +25,11 @@ defineProps<{
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--color-primary-muted), transparent 40%);
+  background: radial-gradient(
+    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    var(--color-primary-muted),
+    transparent 40%
+  );
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
@@ -37,7 +41,9 @@ defineProps<{
 
 .hoverable:hover {
   border-color: var(--border-default);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--color-primary-muted);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px var(--color-primary-muted);
   transform: translateY(-4px);
 }
 

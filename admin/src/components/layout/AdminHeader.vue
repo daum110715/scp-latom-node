@@ -25,14 +25,18 @@ const breadcrumbs: Record<string, string> = {
     <div class="header-left">
       <nav class="breadcrumb">
         <router-link to="/">Home</router-link>
-        <span class="breadcrumb-sep" v-if="route.name !== 'dashboard'">/</span>
-        <span class="breadcrumb-current" v-if="route.name !== 'dashboard'">
+        <span v-if="route.name !== 'dashboard'" class="breadcrumb-sep">/</span>
+        <span v-if="route.name !== 'dashboard'" class="breadcrumb-current">
           {{ breadcrumbs[route.name as string] || '' }}
         </span>
       </nav>
     </div>
     <div class="header-right">
-      <button class="btn btn-icon btn-ghost" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'">
+      <button
+        class="btn btn-icon btn-ghost"
+        :title="theme === 'dark' ? 'Switch to light' : 'Switch to dark'"
+        @click="toggleTheme"
+      >
         <span v-if="theme === 'dark'">☀</span>
         <span v-else>☾</span>
       </button>

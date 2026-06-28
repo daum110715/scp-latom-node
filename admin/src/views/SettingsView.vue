@@ -41,7 +41,7 @@ onMounted(async () => {
           <span class="admin-card-title">Database Totals</span>
         </div>
         <div class="detail-grid">
-          <div class="detail-item" v-for="(count, table) in settings.database.tables" :key="table">
+          <div v-for="(count, table) in settings.database.tables" :key="table" class="detail-item">
             <span class="detail-label">{{ table }}</span>
             <span class="detail-value cell-mono">{{ (count as number).toLocaleString() }}</span>
           </div>
@@ -59,21 +59,40 @@ onMounted(async () => {
       </div>
 
       <!-- Crawl States -->
-      <div class="admin-card" v-if="settings.crawlStates?.length">
+      <div v-if="settings.crawlStates?.length" class="admin-card">
         <div class="admin-card-header">
           <span class="admin-card-title">Crawl States</span>
         </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr><th>Language</th><th>Status</th><th>Total Entries</th><th>Last Crawl</th><th>Error</th></tr>
+              <tr>
+                <th>Language</th>
+                <th>Status</th>
+                <th>Total Entries</th>
+                <th>Last Crawl</th>
+                <th>Error</th>
+              </tr>
             </thead>
             <tbody>
               <tr v-for="cs in settings.crawlStates" :key="cs.language">
                 <td>{{ cs.language?.toUpperCase() }}</td>
-                <td><StatusBadge :variant="cs.status === 'idle' ? 'approved' : cs.status === 'error' ? 'rejected' : 'open'" :label="cs.status" /></td>
+                <td>
+                  <StatusBadge
+                    :variant="
+                      cs.status === 'idle'
+                        ? 'approved'
+                        : cs.status === 'error'
+                          ? 'rejected'
+                          : 'open'
+                    "
+                    :label="cs.status"
+                  />
+                </td>
                 <td class="cell-mono">{{ cs.total_entries?.toLocaleString() }}</td>
-                <td class="cell-mono">{{ cs.last_crawl ? new Date(cs.last_crawl * 1000).toLocaleString() : '—' }}</td>
+                <td class="cell-mono">
+                  {{ cs.last_crawl ? new Date(cs.last_crawl * 1000).toLocaleString() : '—' }}
+                </td>
                 <td style="color: var(--color-danger)">{{ cs.error || '—' }}</td>
               </tr>
             </tbody>
@@ -102,12 +121,24 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.settings-view { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-xl); }
-.page-header h2 { margin-bottom: var(--space-xs); }
-.page-desc { color: var(--text-tertiary); font-size: var(--text-sm); }
+.settings-view {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-header h2 {
+  margin-bottom: var(--space-xs);
+}
+.page-desc {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
 
-.admin-card { margin-bottom: var(--space-md); }
+.admin-card {
+  margin-bottom: var(--space-md);
+}
 
 .cors-list {
   display: flex;

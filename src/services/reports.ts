@@ -64,9 +64,10 @@ export function submitReport(data: ReportSubmission): Promise<ApiResult<ReportSu
 /**
  * List current user's reports.
  */
-export function fetchReports(
-  params?: { page?: number; limit?: number }
-): Promise<ApiResult<ReportsListResponse>> {
+export function fetchReports(params?: {
+  page?: number
+  limit?: number
+}): Promise<ApiResult<ReportsListResponse>> {
   const searchParams = new URLSearchParams()
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.limit) searchParams.set('limit', String(params.limit))
@@ -82,7 +83,7 @@ export function fetchReports(
  */
 export function checkReports(
   lang: 'en' | 'cn',
-  scpNumber: number
+  scpNumber: number,
 ): Promise<ApiResult<ReportCheckResponse>> {
   return apiGet<ReportCheckResponse>(`/reports/check/${lang}/${scpNumber}`)
 }

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { parseScpIndexPage, SERIES_PAGES, getWikiBaseUrl, buildClassMap, applyClassMap, cleanEntryHtml } from '../parser'
+import {
+  parseScpIndexPage,
+  SERIES_PAGES,
+  getWikiBaseUrl,
+  buildClassMap,
+  applyClassMap,
+  cleanEntryHtml,
+} from '../parser'
 import { fetchPageLikeBrowser } from '../http-client'
 import type { CrawlEntry } from '../../types'
 
@@ -321,9 +328,11 @@ describe('buildClassMap', () => {
     mockedFetch.mockReset()
   })
 
-  function tagPageHtml(scps: number[], classTag: string): string {
+  function tagPageHtml(scps: number[], _classTag: string): string {
     const links = scps
-      .map((n) => `<a href="/scp-${String(n).padStart(3, '0')}">SCP-${String(n).padStart(3, '0')}</a>`)
+      .map(
+        (n) => `<a href="/scp-${String(n).padStart(3, '0')}">SCP-${String(n).padStart(3, '0')}</a>`,
+      )
       .join(' ')
     return `<div class="pages-tag-cloud">${links}</div>`
   }
@@ -349,7 +358,8 @@ describe('buildClassMap', () => {
 
   it('handles pagination across multiple pages', async () => {
     // Safe class: 2 pages
-    const page1Html = tagPageHtml([173, 999], 'safe') +
+    const page1Html =
+      tagPageHtml([173, 999], 'safe') +
       '<div class="pager"><a href="/system:page-tags/tag/safe?p=2">2</a></div>'
     const page2Html = tagPageHtml([500, 458], 'safe')
 

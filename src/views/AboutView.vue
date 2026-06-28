@@ -295,9 +295,16 @@ const classGlow: Record<string, string> = {
 }
 
 @keyframes orb-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -40px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
 }
 
 /* ═══ Hero Header ═══ */
@@ -346,7 +353,12 @@ const classGlow: Record<string, string> = {
 }
 
 .title-main {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--color-primary) 50%,
+    var(--color-accent) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -375,14 +387,30 @@ const classGlow: Record<string, string> = {
   gap: var(--space-lg);
 }
 
-.fade-up-1 { animation: fade-up 600ms var(--ease-out-expo) 300ms backwards; }
-.fade-up-2 { animation: fade-up 600ms var(--ease-out-expo) 400ms backwards; }
-.fade-up-3 { animation: fade-up 600ms var(--ease-out-expo) 500ms backwards; }
-.fade-up-4 { animation: fade-up 600ms var(--ease-out-expo) 600ms backwards; }
-.fade-up-5 { animation: fade-up 600ms var(--ease-out-expo) 700ms backwards; }
-.fade-up-6 { animation: fade-up 600ms var(--ease-out-expo) 800ms backwards; }
-.fade-up-7 { animation: fade-up 600ms var(--ease-out-expo) 900ms backwards; }
-.fade-up-8 { animation: fade-up 600ms var(--ease-out-expo) 1000ms backwards; }
+.fade-up-1 {
+  animation: fade-up 600ms var(--ease-out-expo) 300ms backwards;
+}
+.fade-up-2 {
+  animation: fade-up 600ms var(--ease-out-expo) 400ms backwards;
+}
+.fade-up-3 {
+  animation: fade-up 600ms var(--ease-out-expo) 500ms backwards;
+}
+.fade-up-4 {
+  animation: fade-up 600ms var(--ease-out-expo) 600ms backwards;
+}
+.fade-up-5 {
+  animation: fade-up 600ms var(--ease-out-expo) 700ms backwards;
+}
+.fade-up-6 {
+  animation: fade-up 600ms var(--ease-out-expo) 800ms backwards;
+}
+.fade-up-7 {
+  animation: fade-up 600ms var(--ease-out-expo) 900ms backwards;
+}
+.fade-up-8 {
+  animation: fade-up 600ms var(--ease-out-expo) 1000ms backwards;
+}
 
 .section-header {
   display: flex;
@@ -477,7 +505,9 @@ const classGlow: Record<string, string> = {
 .class-card:hover {
   transform: translateY(-4px);
   border-color: var(--border-default);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--card-glow);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px var(--card-glow);
 }
 
 .class-card:hover::after {
@@ -503,8 +533,15 @@ const classGlow: Record<string, string> = {
 }
 
 @keyframes indicator-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 .class-card:hover .class-dot {
@@ -566,11 +603,21 @@ const classGlow: Record<string, string> = {
   transition: flex 600ms var(--ease-out-expo);
 }
 
-.spectrum-segment.safe { background: var(--class-safe); }
-.spectrum-segment.euclid { background: var(--class-euclid); }
-.spectrum-segment.keter { background: var(--class-keter); }
-.spectrum-segment.thaumiel { background: var(--class-thaumiel); }
-.spectrum-segment.apollyon { background: var(--color-danger); }
+.spectrum-segment.safe {
+  background: var(--class-safe);
+}
+.spectrum-segment.euclid {
+  background: var(--class-euclid);
+}
+.spectrum-segment.keter {
+  background: var(--class-keter);
+}
+.spectrum-segment.thaumiel {
+  background: var(--class-thaumiel);
+}
+.spectrum-segment.apollyon {
+  background: var(--color-danger);
+}
 
 .spectrum-markers {
   position: relative;
@@ -695,9 +742,15 @@ const classGlow: Record<string, string> = {
   border-radius: 50%;
 }
 
-.terminal-dot.red { background: #ef4444; }
-.terminal-dot.yellow { background: #facc15; }
-.terminal-dot.green { background: #4ade80; }
+.terminal-dot.red {
+  background: #ef4444;
+}
+.terminal-dot.yellow {
+  background: #facc15;
+}
+.terminal-dot.green {
+  background: #4ade80;
+}
 
 .terminal-title {
   font-family: var(--font-mono);
@@ -754,8 +807,15 @@ const classGlow: Record<string, string> = {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--color-success); }
-  50% { opacity: 0.6; box-shadow: 0 0 16px var(--color-success); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px var(--color-success);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 16px var(--color-success);
+  }
 }
 
 /* ═══ Footer ═══ */

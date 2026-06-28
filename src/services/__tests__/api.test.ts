@@ -67,7 +67,7 @@ describe('api client', () => {
 
     it('returns normalized success result', async () => {
       mockFetch.mockResolvedValueOnce(
-        mockResponse({ success: true, user: { id: 1, codename: 'test' }, token: 'abc' })
+        mockResponse({ success: true, user: { id: 1, codename: 'test' }, token: 'abc' }),
       )
 
       const result = await apiGet('/auth/me')
@@ -78,9 +78,7 @@ describe('api client', () => {
     })
 
     it('returns normalized error result for non-success response', async () => {
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ success: false, error: 'Unauthorized' }, 401)
-      )
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: false, error: 'Unauthorized' }, 401))
 
       const result = await apiGet('/auth/me')
       expect(result.ok).toBe(false)
@@ -112,9 +110,7 @@ describe('api client', () => {
 
   describe('apiPost', () => {
     it('sends a POST request with JSON body', async () => {
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ success: true, user: {}, token: 'abc' }, 201)
-      )
+      mockFetch.mockResolvedValueOnce(mockResponse({ success: true, user: {}, token: 'abc' }, 201))
 
       await apiPost('/auth/register', { codename: 'test', password: 'pass1234' })
 

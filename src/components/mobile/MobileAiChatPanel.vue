@@ -131,9 +131,8 @@ async function sendMessage() {
       onError(error) {
         const idx = messages.value.findIndex((m) => m.id === 'streaming')
         if (idx >= 0) {
-          const content = error === 'ERR-401-CLEARANCE'
-            ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}`
-            : `Error: ${error}`
+          const content =
+            error === 'ERR-401-CLEARANCE' ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}` : `Error: ${error}`
           messages.value[idx] = {
             ...messages.value[idx],
             content,
@@ -190,13 +189,21 @@ watch(messages, () => scrollToBottom(), { deep: true })
       </div>
 
       <button class="m-new-btn" @click="newConversation">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         {{ t('ai.newConversation') }}
       </button>
 
-      <div class="m-conv-items" v-if="conversations.length > 0">
+      <div v-if="conversations.length > 0" class="m-conv-items">
         <div
           v-for="conv in conversations"
           :key="conv.id"
@@ -205,10 +212,19 @@ watch(messages, () => scrollToBottom(), { deep: true })
         >
           <div class="m-conv-info">
             <span class="m-conv-title">{{ conv.title }}</span>
-            <span class="m-conv-meta">{{ conv.messageCount }} msgs · {{ formatTime(conv.lastMessageAt) }}</span>
+            <span class="m-conv-meta"
+              >{{ conv.messageCount }} msgs · {{ formatTime(conv.lastMessageAt) }}</span
+            >
           </div>
           <button class="m-conv-delete" @click.stop="handleDelete(conv.id)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
             </svg>
@@ -225,14 +241,25 @@ watch(messages, () => scrollToBottom(), { deep: true })
     <template v-else>
       <div class="m-chat-header">
         <button class="m-back-btn" @click="backToList">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <span class="m-chat-title">{{ currentId ? (conversations.find(c => c.id === currentId)?.title ?? t('ai.title')) : t('ai.newConversation') }}</span>
+        <span class="m-chat-title">{{
+          currentId
+            ? (conversations.find((c) => c.id === currentId)?.title ?? t('ai.title'))
+            : t('ai.newConversation')
+        }}</span>
       </div>
 
-      <div class="m-messages" ref="messagesEl">
+      <div ref="messagesEl" class="m-messages">
         <div v-if="messages.length === 0" class="m-empty-chat">
           <p>{{ t('ai.title') }}</p>
         </div>
@@ -252,14 +279,26 @@ watch(messages, () => scrollToBottom(), { deep: true })
           rows="1"
           :disabled="isStreaming"
           @keydown="handleKeydown"
-          @input="(e: any) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px' }"
+          @input="
+            (e: any) => {
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px'
+            }
+          "
         />
         <button
           class="m-send-btn"
           :disabled="!inputText.trim() || isStreaming"
           @click="sendMessage"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>

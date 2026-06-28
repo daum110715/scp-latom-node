@@ -40,7 +40,16 @@ onUnmounted(() => {
       :title="t('backToTop')"
       @click="scrollToTop"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <polyline points="18 15 12 9 6 15" />
       </svg>
       <span class="back-to-top-ring"></span>
@@ -82,7 +91,9 @@ onUnmounted(() => {
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg), 0 0 20px var(--color-primary-muted);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px var(--color-primary-muted);
 }
 
 .back-to-top:hover .back-to-top-ring {

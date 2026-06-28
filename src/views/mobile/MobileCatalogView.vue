@@ -15,7 +15,14 @@ const protocol = useEntryProtocol()
 const searchQuery = ref('')
 const activeClass = ref<ObjectClass | null>(null)
 
-const objectClasses: ObjectClass[] = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
+const objectClasses: ObjectClass[] = [
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+]
 
 // SVG ring dimensions
 const ringRadius = 16
@@ -71,18 +78,42 @@ onMounted(async () => {
     <!-- Sticky Search -->
     <div class="m-search-bar">
       <div class="m-search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-        <input v-model="searchQuery" type="text" :placeholder="t('catalog.searchPlaceholder')" class="m-search-input" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          :placeholder="t('catalog.searchPlaceholder')"
+          class="m-search-input"
+        />
       </div>
     </div>
 
     <!-- Language Selector -->
     <div class="m-lang-bar">
-      <button class="m-lang-btn" :class="{ active: crawler.language === 'en' }" @click="setLanguage('en')">EN</button>
-      <button class="m-lang-btn" :class="{ active: crawler.language === 'cn' }" @click="setLanguage('cn')">CN</button>
+      <button
+        class="m-lang-btn"
+        :class="{ active: crawler.language === 'en' }"
+        @click="setLanguage('en')"
+      >
+        EN
+      </button>
+      <button
+        class="m-lang-btn"
+        :class="{ active: crawler.language === 'cn' }"
+        @click="setLanguage('cn')"
+      >
+        CN
+      </button>
       <span v-if="crawler.state" class="m-crawl-status" :class="crawler.state.status">
         {{ crawler.state.status === 'crawling' ? '⟳' : '' }}
       </span>
@@ -91,20 +122,45 @@ onMounted(async () => {
     <!-- Protocol Mode Panel -->
     <div class="m-protocol-panel">
       <!-- Scanner effect -->
-      <div class="m-scanner-line" :class="{ active: protocol.mode.value === 'auto' && !protocol.isPaused.value }" />
+      <div
+        class="m-scanner-line"
+        :class="{ active: protocol.mode.value === 'auto' && !protocol.isPaused.value }"
+      />
 
       <!-- Header row -->
       <div class="m-protocol-top">
         <div class="m-protocol-title-row">
           <span class="m-protocol-icon-wrap">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </span>
           <span class="m-protocol-label">{{ t('catalog.protocol.title') }}</span>
-          <span class="m-protocol-status" :class="protocol.mode.value === 'auto' ? (protocol.isPaused.value ? 'paused' : 'active') : 'idle'">
+          <span
+            class="m-protocol-status"
+            :class="
+              protocol.mode.value === 'auto'
+                ? protocol.isPaused.value
+                  ? 'paused'
+                  : 'active'
+                : 'idle'
+            "
+          >
             <span class="m-status-dot" />
-            {{ protocol.mode.value === 'auto' ? (protocol.isPaused.value ? t('catalog.protocol.scannerPaused') : t('catalog.protocol.scannerActive')) : 'STANDBY' }}
+            {{
+              protocol.mode.value === 'auto'
+                ? protocol.isPaused.value
+                  ? t('catalog.protocol.scannerPaused')
+                  : t('catalog.protocol.scannerActive')
+                : 'STANDBY'
+            }}
           </span>
         </div>
 
@@ -129,7 +185,11 @@ onMounted(async () => {
       </div>
 
       <p class="m-protocol-desc">
-        {{ protocol.mode.value === 'auto' ? t('catalog.protocol.autoDesc') : t('catalog.protocol.manualDesc') }}
+        {{
+          protocol.mode.value === 'auto'
+            ? t('catalog.protocol.autoDesc')
+            : t('catalog.protocol.manualDesc')
+        }}
       </p>
 
       <!-- Auto-Operation Controls -->
@@ -142,7 +202,8 @@ onMounted(async () => {
                 <svg class="m-countdown-ring" :width="40" :height="40" viewBox="0 0 40 40">
                   <circle
                     class="m-ring-bg"
-                    cx="20" cy="20"
+                    cx="20"
+                    cy="20"
                     :r="ringRadius"
                     fill="none"
                     stroke-width="2.5"
@@ -150,7 +211,8 @@ onMounted(async () => {
                   <circle
                     class="m-ring-progress"
                     :class="{ paused: protocol.isPaused.value }"
-                    cx="20" cy="20"
+                    cx="20"
+                    cy="20"
                     :r="ringRadius"
                     fill="none"
                     stroke-width="2.5"
@@ -165,8 +227,15 @@ onMounted(async () => {
                 </span>
               </div>
               <div class="m-timer-meta">
-                <span class="m-timer-status" :class="protocol.isPaused.value ? 'paused' : 'running'">
-                  {{ protocol.isPaused.value ? t('catalog.protocol.autoPaused') : t('catalog.protocol.autoActive') }}
+                <span
+                  class="m-timer-status"
+                  :class="protocol.isPaused.value ? 'paused' : 'running'"
+                >
+                  {{
+                    protocol.isPaused.value
+                      ? t('catalog.protocol.autoPaused')
+                      : t('catalog.protocol.autoActive')
+                  }}
                 </span>
               </div>
             </div>
@@ -191,17 +260,37 @@ onMounted(async () => {
           <!-- Action buttons -->
           <div class="m-auto-actions">
             <button class="m-action-btn m-pause-btn" @click="protocol.togglePause()">
-              <svg v-if="!protocol.isPaused.value" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <svg
+                v-if="!protocol.isPaused.value"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
                 <rect x="6" y="4" width="4" height="16" />
                 <rect x="14" y="4" width="4" height="16" />
               </svg>
               <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5,3 19,12 5,21" />
               </svg>
-              {{ protocol.isPaused.value ? t('catalog.protocol.resume') : t('catalog.protocol.pause') }}
+              {{
+                protocol.isPaused.value ? t('catalog.protocol.resume') : t('catalog.protocol.pause')
+              }}
             </button>
-            <button class="m-action-btn m-shuffle-btn" @click="protocol.shuffle()" :disabled="protocol.transitioning.value">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: protocol.transitioning.value }">
+            <button
+              class="m-action-btn m-shuffle-btn"
+              :disabled="protocol.transitioning.value"
+              @click="protocol.shuffle()"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                :class="{ spinning: protocol.transitioning.value }"
+              >
                 <polyline points="1 4 1 10 7 10" />
                 <polyline points="23 20 23 14 17 14" />
                 <path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" />
@@ -258,12 +347,17 @@ onMounted(async () => {
         </div>
 
         <!-- Loading Recommendations -->
-        <div v-if="protocol.loadingRecommendations.value && protocol.recommendedEntries.value.length === 0" class="m-loading">
+        <div
+          v-if="
+            protocol.loadingRecommendations.value && protocol.recommendedEntries.value.length === 0
+          "
+          class="m-loading"
+        >
           <div v-for="i in 4" :key="i" class="m-skeleton m-skeleton-card" />
         </div>
 
         <!-- Recommended Entries Grid -->
-        <div v-else class="m-entry-grid" :key="protocol.cardEntranceKey.value">
+        <div v-else :key="protocol.cardEntranceKey.value" class="m-entry-grid">
           <router-link
             v-for="(entry, idx) in protocol.recommendedEntries.value"
             :key="entry.scpNumber"
@@ -280,7 +374,9 @@ onMounted(async () => {
                 <ClassBar :object-class="entry.objectClass as ObjectClass" />
                 <span class="m-entry-id">SCP-{{ String(entry.scpNumber).padStart(3, '0') }}</span>
               </div>
-              <Badge :variant="entry.objectClass.toLowerCase() as any">{{ entry.objectClass }}</Badge>
+              <Badge :variant="entry.objectClass.toLowerCase() as any">{{
+                entry.objectClass
+              }}</Badge>
             </div>
             <h3 class="m-entry-name">{{ entry.name || `SCP-${entry.scpNumber}` }}</h3>
             <div class="m-entry-footer">
@@ -308,7 +404,9 @@ onMounted(async () => {
                 <ClassBar :object-class="entry.objectClass as ObjectClass" />
                 <span class="m-entry-id">SCP-{{ String(entry.scpNumber).padStart(3, '0') }}</span>
               </div>
-              <Badge :variant="entry.objectClass.toLowerCase() as any">{{ entry.objectClass }}</Badge>
+              <Badge :variant="entry.objectClass.toLowerCase() as any">{{
+                entry.objectClass
+              }}</Badge>
             </div>
             <h3 class="m-entry-name">{{ entry.name || `SCP-${entry.scpNumber}` }}</h3>
           </router-link>
@@ -398,7 +496,9 @@ onMounted(async () => {
   font-family: var(--font-mono);
 }
 
-.m-crawl-status.crawling { color: var(--color-accent); }
+.m-crawl-status.crawling {
+  color: var(--color-accent);
+}
 
 /* ═══ Protocol Panel ═══ */
 .m-protocol-panel {
@@ -431,9 +531,15 @@ onMounted(async () => {
 }
 
 @keyframes m-scanner-sweep {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 /* Panel top */
@@ -482,8 +588,12 @@ onMounted(async () => {
   margin-left: auto;
 }
 
-.m-protocol-status.active { color: var(--color-success); }
-.m-protocol-status.paused { color: var(--color-accent); }
+.m-protocol-status.active {
+  color: var(--color-success);
+}
+.m-protocol-status.paused {
+  color: var(--color-accent);
+}
 
 .m-status-dot {
   width: 5px;
@@ -498,8 +608,13 @@ onMounted(async () => {
 }
 
 @keyframes m-status-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Segmented toggle */
@@ -659,8 +774,12 @@ onMounted(async () => {
   letter-spacing: 0.04em;
 }
 
-.m-timer-status.running { color: var(--color-success); }
-.m-timer-status.paused { color: var(--color-accent); }
+.m-timer-status.running {
+  color: var(--color-success);
+}
+.m-timer-status.paused {
+  color: var(--color-accent);
+}
 
 /* Interval selector */
 .m-interval-group {
@@ -756,8 +875,12 @@ onMounted(async () => {
 }
 
 @keyframes m-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ═══ Filter Pills ═══ */
@@ -867,12 +990,24 @@ onMounted(async () => {
   height: 3px;
 }
 
-.m-entry-card.safe .m-card-accent { background: var(--class-safe); }
-.m-entry-card.euclid .m-card-accent { background: var(--class-euclid); }
-.m-entry-card.keter .m-card-accent { background: var(--class-keter); }
-.m-entry-card.thaumiel .m-card-accent { background: var(--class-thaumiel); }
-.m-entry-card.apollyon .m-card-accent { background: var(--class-neutralized); }
-.m-entry-card.neutralized .m-card-accent { background: var(--class-neutralized); }
+.m-entry-card.safe .m-card-accent {
+  background: var(--class-safe);
+}
+.m-entry-card.euclid .m-card-accent {
+  background: var(--class-euclid);
+}
+.m-entry-card.keter .m-card-accent {
+  background: var(--class-keter);
+}
+.m-entry-card.thaumiel .m-card-accent {
+  background: var(--class-thaumiel);
+}
+.m-entry-card.apollyon .m-card-accent {
+  background: var(--class-neutralized);
+}
+.m-entry-card.neutralized .m-card-accent {
+  background: var(--class-neutralized);
+}
 
 .m-entry-card:active {
   border-color: var(--color-primary);
@@ -931,11 +1066,18 @@ onMounted(async () => {
   animation: m-pulse 1.5s ease-in-out infinite;
 }
 
-.m-skeleton-card { height: 100px; }
+.m-skeleton-card {
+  height: 100px;
+}
 
 @keyframes m-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .m-error {

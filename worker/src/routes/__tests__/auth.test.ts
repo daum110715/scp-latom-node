@@ -23,7 +23,9 @@ async function parseJson(res: Response): Promise<ApiResponse> {
 // Mock D1 database - simple in-memory implementation
 function createMockDB() {
   const users: Map<number, any> = new Map()
+  const rateLimits: any[] = []
   let nextId = 1
+  let rateLimitId = 1
 
   return {
     prepare: (sql: string) => {
@@ -35,8 +37,29 @@ function createMockDB() {
           return stmt
         },
         first: async (): Promise<any> => {
+          const lowerSql = sql.toLowerCase()
+
+          // Rate limit COUNT queries
+          if (lowerSql.includes('count(*)') && lowerSql.includes('rate_limits')) {
+            const key = stmt._params[0]
+            const count = rateLimits.filter((r) => r.key === key).length
+            return { count }
+          }
+
+          // Rate limit oldest row (for retry-after calculation)
+          if (lowerSql.includes('select created_at from rate_limits')) {
+            const key = stmt._params[0]
+            const sorted = rateLimits
+              .filter((r) => r.key === key)
+              .sort((a, b) => a.created_at.localeCompare(b.created_at))
+            return sorted[0] || null
+          }
+
           // Handle different SQL queries
-          if (sql.includes('SELECT id FROM users WHERE codename = ?') && sql.includes('AND id != ?')) {
+          if (
+            sql.includes('SELECT id FROM users WHERE codename = ?') &&
+            sql.includes('AND id != ?')
+          ) {
             const [codename, id] = stmt._params
             for (const user of users.values()) {
               if (user.codename === codename && user.id !== id) return user
@@ -88,6 +111,30 @@ function createMockDB() {
           }
           return null
         },
+        run: async (): Promise<any> => {
+          const lowerSql = sql.toLowerCase()
+
+          // Rate limit INSERT
+          if (lowerSql.includes('insert') && lowerSql.includes('rate_limits')) {
+            const [key, action, ip, identifier] = stmt._params
+            rateLimits.push({
+              id: rateLimitId++,
+              key,
+              action,
+              ip,
+              identifier: identifier ?? null,
+              created_at: new Date().toISOString(),
+            })
+            return { meta: { changes: 1 } }
+          }
+
+          // Rate limit DELETE (cleanup)
+          if (lowerSql.includes('delete') && lowerSql.includes('rate_limits')) {
+            return { meta: { changes: 0 } }
+          }
+
+          return { meta: { changes: 0 } }
+        },
       }
       return stmt
     },
@@ -117,7 +164,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'test_agent', password: 'password123' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(201)
@@ -138,7 +185,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'ab', password: 'password123' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -154,7 +201,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'invalid-name!', password: 'password123' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -169,7 +216,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'valid_name', password: 'short' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -187,7 +234,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'taken_name', password: 'password123' }),
         },
-        env
+        env,
       )
 
       // Try to register with same codename
@@ -198,7 +245,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'taken_name', password: 'password456' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(409)
@@ -218,7 +265,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'login_agent', password: 'password123' }),
         },
-        env
+        env,
       )
 
       // Login
@@ -229,7 +276,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'login_agent', password: 'password123' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(200)
@@ -247,7 +294,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'login_agent2', password: 'password123' }),
         },
-        env
+        env,
       )
 
       const res = await app.request(
@@ -257,7 +304,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'login_agent2', password: 'wrongpassword' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(401)
@@ -273,7 +320,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'nonexistent', password: 'password123' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(401)
@@ -288,7 +335,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: 'password123' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -303,7 +350,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'agent' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -322,7 +369,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'profile_agent', password: 'password123' }),
         },
-        env
+        env,
       )
       const regJson = await parseJson(regRes)
       const token = regJson.token
@@ -333,7 +380,7 @@ describe('Auth Routes', () => {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(200)
@@ -355,7 +402,7 @@ describe('Auth Routes', () => {
           method: 'GET',
           headers: { Authorization: 'Bearer invalid.token.here' },
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(401)
@@ -373,7 +420,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'profile_user', password: 'password123' }),
         },
-        env
+        env,
       )
       const regJson = await parseJson(regRes)
       return { env, token: regJson.token, user: regJson.user }
@@ -392,7 +439,7 @@ describe('Auth Routes', () => {
           },
           body: JSON.stringify({ codename: 'new_codename' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(200)
@@ -413,7 +460,7 @@ describe('Auth Routes', () => {
           },
           body: JSON.stringify({ password: 'password123', newPassword: 'newpassword123' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(200)
@@ -433,7 +480,7 @@ describe('Auth Routes', () => {
           },
           body: JSON.stringify({ newPassword: 'newpassword123' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(400)
@@ -454,7 +501,7 @@ describe('Auth Routes', () => {
           },
           body: JSON.stringify({ password: 'wrongpassword', newPassword: 'newpassword123' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(401)
@@ -472,7 +519,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'user_one', password: 'password123' }),
         },
-        env
+        env,
       )
       const regRes2 = await app.request(
         '/api/auth/register',
@@ -481,7 +528,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'user_two', password: 'password123' }),
         },
-        env
+        env,
       )
       const regJson2 = await parseJson(regRes2)
 
@@ -496,7 +543,7 @@ describe('Auth Routes', () => {
           },
           body: JSON.stringify({ codename: 'user_one' }),
         },
-        env
+        env,
       )
       const json = await parseJson(res)
       expect(res.status).toBe(409)
@@ -512,7 +559,7 @@ describe('Auth Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codename: 'new_name' }),
         },
-        createEnv()
+        createEnv(),
       )
       const json = await parseJson(res)
       expect(res.status).toBe(401)

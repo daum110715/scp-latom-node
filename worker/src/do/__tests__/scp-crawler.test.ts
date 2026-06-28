@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ScpCrawlerDo } from '../scp-crawler'
 import * as httpClient from '../http-client'
-import type { Env, CrawlState, CrawlEntry, SyncResult } from '../../types'
+import type { Env, CrawlState, CrawlEntry } from '../../types'
 
 // ─── Mocks ──────────────────────────────────────────────────
 
@@ -9,8 +9,12 @@ function createMockStorage(initialData: Record<string, unknown> = {}) {
   const store = new Map<string, unknown>(Object.entries(initialData))
   return {
     get: vi.fn(async (key: string) => store.get(key) ?? null),
-    put: vi.fn(async (key: string, value: unknown) => { store.set(key, value) }),
-    delete: vi.fn(async (key: string) => { store.delete(key) }),
+    put: vi.fn(async (key: string, value: unknown) => {
+      store.set(key, value)
+    }),
+    delete: vi.fn(async (key: string) => {
+      store.delete(key)
+    }),
     setAlarm: vi.fn(async () => {}),
     getAlarm: vi.fn(async () => null),
   }
@@ -19,22 +23,33 @@ function createMockStorage(initialData: Record<string, unknown> = {}) {
 function createMockD1(existingState?: CrawlState, existingEntries?: CrawlEntry[]) {
   const entries = existingEntries ?? []
   const stateRow = existingState
-    ? { status: existingState.status, last_crawl: existingState.lastCrawl, total_entries: existingState.totalEntries, error: existingState.error ?? null }
+    ? {
+        status: existingState.status,
+        last_crawl: existingState.lastCrawl,
+        total_entries: existingState.totalEntries,
+        error: existingState.error ?? null,
+      }
     : null
 
   return {
     prepare: vi.fn((sql: string) => {
       const stmt = {
         _sql: sql,
-        bind: vi.fn((...args: unknown[]) => stmt),
+        bind: vi.fn((..._args: unknown[]) => stmt),
         first: vi.fn(async () => {
           if (sql.includes('COUNT(*)')) return { total: entries.length }
           if (sql.includes('crawl_state')) return stateRow
           return null
         }),
-        all: vi.fn(async () => ({ results: entries.map((e) => ({
-          scp_number: e.scpNumber, name: e.name, object_class: e.objectClass, url: e.url, series: e.series,
-        })) })),
+        all: vi.fn(async () => ({
+          results: entries.map((e) => ({
+            scp_number: e.scpNumber,
+            name: e.name,
+            object_class: e.objectClass,
+            url: e.url,
+            series: e.series,
+          })),
+        })),
         run: vi.fn(async () => ({})),
       }
       return stmt
@@ -137,8 +152,20 @@ describe('ScpCrawlerDo', () => {
 
     it('returns stored entries from D1', async () => {
       const storedEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
-        { scpNumber: 999, name: 'Tickle Monster', objectClass: 'Safe', url: 'https://scp-wiki.wikidot.com/scp-999', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'The Sculpture',
+          objectClass: 'Euclid',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
+        {
+          scpNumber: 999,
+          name: 'Tickle Monster',
+          objectClass: 'Safe',
+          url: 'https://scp-wiki.wikidot.com/scp-999',
+          series: 1,
+        },
       ]
       const storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 2 }
 
@@ -196,12 +223,15 @@ describe('ScpCrawlerDo', () => {
 
   describe('crawlDaily', () => {
     // Helper to build a mock D1 that distinguishes queryExistingEntries from other queries
-    function createSmartMockD1(existingEntries: CrawlEntry[], stateRow: { status: string; last_crawl: number; total_entries: number; error: string | null }) {
+    function createSmartMockD1(
+      existingEntries: CrawlEntry[],
+      stateRow: { status: string; last_crawl: number; total_entries: number; error: string | null },
+    ) {
       return {
         prepare: vi.fn((sql: string) => {
           const stmt = {
             _sql: sql,
-            bind: vi.fn((...args: unknown[]) => stmt),
+            bind: vi.fn((..._args: unknown[]) => stmt),
             first: vi.fn(async () => {
               if (sql.includes('COUNT(*)')) return { total: existingEntries.length }
               if (sql.includes('crawl_state')) return stateRow
@@ -210,9 +240,15 @@ describe('ScpCrawlerDo', () => {
             all: vi.fn(async () => {
               // queryExistingEntries uses LIMIT ? OFFSET ? on scp_entries
               if (sql.includes('scp_entries') && sql.includes('LIMIT')) {
-                return { results: existingEntries.map((e) => ({
-                  scp_number: e.scpNumber, name: e.name, object_class: e.objectClass, url: e.url, series: e.series,
-                })) }
+                return {
+                  results: existingEntries.map((e) => ({
+                    scp_number: e.scpNumber,
+                    name: e.name,
+                    object_class: e.objectClass,
+                    url: e.url,
+                    series: e.series,
+                  })),
+                }
               }
               return { results: [] }
             }),
@@ -226,7 +262,12 @@ describe('ScpCrawlerDo', () => {
 
     beforeEach(() => {
       // Mock fetchPageLikeBrowser to avoid real HTTP and cookie jar issues
-      vi.spyOn(httpClient, 'fetchPageLikeBrowser').mockResolvedValue({ ok: false, status: 404, html: null, error: 'mocked' })
+      vi.spyOn(httpClient, 'fetchPageLikeBrowser').mockResolvedValue({
+        ok: false,
+        status: 404,
+        html: null,
+        error: 'mocked',
+      })
       // Mock humanDelay to eliminate real delays in tests
       vi.spyOn(httpClient, 'humanDelay').mockReturnValue(0)
     })
@@ -238,7 +279,13 @@ describe('ScpCrawlerDo', () => {
     it('detects new entries and upserts them', async () => {
       // Index pages don't have "Object Class:" so parser produces 'Unknown'
       const existingEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Unknown', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'The Sculpture',
+          objectClass: 'Unknown',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
@@ -249,7 +296,8 @@ describe('ScpCrawlerDo', () => {
 
       // Return HTML with 2 entries: 1 existing + 1 new
       vi.mocked(httpClient.fetchPageLikeBrowser).mockResolvedValue({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         html: `<p><a href="/scp-173">SCP-173</a> - The Sculpture <span style="color:#bb0000">Euclid</span></p>
                <p><a href="/scp-999">SCP-999</a> - Tickle Monster <span style="color:#009900">Safe</span></p>`,
       })
@@ -265,7 +313,13 @@ describe('ScpCrawlerDo', () => {
     it('detects changed entries and upserts them', async () => {
       // Existing entry has a different name — change detection should flag it
       const existingEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'Old Name', objectClass: 'Unknown', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'Old Name',
+          objectClass: 'Unknown',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
@@ -276,7 +330,8 @@ describe('ScpCrawlerDo', () => {
 
       // Same SCP but name and class changed
       vi.mocked(httpClient.fetchPageLikeBrowser).mockResolvedValue({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         html: `<p><a href="/scp-173">SCP-173</a> - The Sculpture <span style="color:#bb0000">Euclid</span></p>`,
       })
 
@@ -289,8 +344,20 @@ describe('ScpCrawlerDo', () => {
     it('upserts only changed entries when some match and some differ', async () => {
       // Two existing entries: one will match, one will have a name change
       const existingEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Unknown', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
-        { scpNumber: 999, name: 'Old Name', objectClass: 'Unknown', url: 'https://scp-wiki.wikidot.com/scp-999', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'The Sculpture',
+          objectClass: 'Unknown',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
+        {
+          scpNumber: 999,
+          name: 'Old Name',
+          objectClass: 'Unknown',
+          url: 'https://scp-wiki.wikidot.com/scp-999',
+          series: 1,
+        },
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 2, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
@@ -301,7 +368,8 @@ describe('ScpCrawlerDo', () => {
 
       // Wiki returns both entries — SCP-173 unchanged, SCP-999 name changed
       vi.mocked(httpClient.fetchPageLikeBrowser).mockResolvedValue({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         html: `<p><a href="/scp-173">SCP-173</a> - The Sculpture</p>
                <p><a href="/scp-999">SCP-999</a> - Tickle Monster</p>`,
       })
@@ -327,7 +395,8 @@ describe('ScpCrawlerDo', () => {
       expect(state.storage.setAlarm).toHaveBeenCalled()
 
       // The alarm time should be a future timestamp
-      const alarmArg = (state.storage.setAlarm as ReturnType<typeof vi.fn>).mock.calls[0][0] as number
+      const alarmArg = (state.storage.setAlarm as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as number
       expect(alarmArg).toBeGreaterThan(Date.now())
 
       // Should be within the next 24 hours
@@ -372,26 +441,44 @@ describe('ScpCrawlerDo', () => {
     it('returns cached content when available', async () => {
       const cachedContent = '<div class="scp-content"><p>SCP-173 content</p></div>'
       const storedEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'The Sculpture',
+          objectClass: 'Euclid',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
       ]
-      const storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
+      const _storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
 
       const d1 = {
         prepare: vi.fn((sql: string) => {
           const stmt = {
             _sql: sql,
-            bind: vi.fn((...args: unknown[]) => stmt),
+            bind: vi.fn((..._args: unknown[]) => stmt),
             first: vi.fn(async () => {
               if (sql.includes('content_fetched_at')) {
-                return { name: 'The Sculpture', object_class: 'Euclid', content: cachedContent, content_fetched_at: '2025-01-01 00:00:00' }
+                return {
+                  name: 'The Sculpture',
+                  object_class: 'Euclid',
+                  content: cachedContent,
+                  content_fetched_at: '2025-01-01 00:00:00',
+                }
               }
               if (sql.includes('COUNT(*)')) return { total: 1 }
-              if (sql.includes('crawl_state')) return { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
+              if (sql.includes('crawl_state'))
+                return { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
               return null
             }),
-            all: vi.fn(async () => ({ results: storedEntries.map((e) => ({
-              scp_number: e.scpNumber, name: e.name, object_class: e.objectClass, url: e.url, series: e.series,
-            })) })),
+            all: vi.fn(async () => ({
+              results: storedEntries.map((e) => ({
+                scp_number: e.scpNumber,
+                name: e.name,
+                object_class: e.objectClass,
+                url: e.url,
+                series: e.series,
+              })),
+            })),
             run: vi.fn(async () => ({})),
           }
           return stmt
@@ -415,26 +502,44 @@ describe('ScpCrawlerDo', () => {
 
     it('returns pending status when content not yet fetched', async () => {
       const storedEntries: CrawlEntry[] = [
-        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
+        {
+          scpNumber: 173,
+          name: 'The Sculpture',
+          objectClass: 'Euclid',
+          url: 'https://scp-wiki.wikidot.com/scp-173',
+          series: 1,
+        },
       ]
-      const storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
+      const _storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
 
       const d1 = {
         prepare: vi.fn((sql: string) => {
           const stmt = {
             _sql: sql,
-            bind: vi.fn((...args: unknown[]) => stmt),
+            bind: vi.fn((..._args: unknown[]) => stmt),
             first: vi.fn(async () => {
               if (sql.includes('content_fetched_at')) {
-                return { name: 'The Sculpture', object_class: 'Euclid', content: null, content_fetched_at: null }
+                return {
+                  name: 'The Sculpture',
+                  object_class: 'Euclid',
+                  content: null,
+                  content_fetched_at: null,
+                }
               }
               if (sql.includes('COUNT(*)')) return { total: 1 }
-              if (sql.includes('crawl_state')) return { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
+              if (sql.includes('crawl_state'))
+                return { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
               return null
             }),
-            all: vi.fn(async () => ({ results: storedEntries.map((e) => ({
-              scp_number: e.scpNumber, name: e.name, object_class: e.objectClass, url: e.url, series: e.series,
-            })) })),
+            all: vi.fn(async () => ({
+              results: storedEntries.map((e) => ({
+                scp_number: e.scpNumber,
+                name: e.name,
+                object_class: e.objectClass,
+                url: e.url,
+                series: e.series,
+              })),
+            })),
             run: vi.fn(async () => ({})),
           }
           return stmt
@@ -447,7 +552,12 @@ describe('ScpCrawlerDo', () => {
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       // Mock fetchPageLikeBrowser to avoid real HTTP call
-      vi.spyOn(httpClient, 'fetchPageLikeBrowser').mockResolvedValue({ ok: false, status: 404, html: null, error: 'mocked' })
+      vi.spyOn(httpClient, 'fetchPageLikeBrowser').mockResolvedValue({
+        ok: false,
+        status: 404,
+        html: null,
+        error: 'mocked',
+      })
 
       const req = new Request('https://do.scp/en/entry/173')
       const res = await doInstance.fetch(req)

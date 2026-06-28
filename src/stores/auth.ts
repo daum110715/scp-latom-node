@@ -49,10 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Shared handler for auth endpoints that return { user, token? }.
    * Updates store state and returns success/failure.
    */
-  function handleAuthResult(
-    res: ApiResult<AuthPayload>,
-    fallbackCode: ErrorCode
-  ): boolean {
+  function handleAuthResult(res: ApiResult<AuthPayload>, fallbackCode: ErrorCode): boolean {
     if (res.ok) {
       user.value = res.data.user
       if (res.data.token) setToken(res.data.token)

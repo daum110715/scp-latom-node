@@ -16,9 +16,15 @@ onMounted(() => {
   store.fetchStats()
 })
 
-function onSearch(q: string) { store.setSearch(q) }
-function onLevelFilter(e: Event) { store.setLevelFilter((e.target as HTMLSelectElement).value) }
-function onSourceFilter(e: Event) { store.setSourceFilter((e.target as HTMLSelectElement).value) }
+function onSearch(q: string) {
+  store.setSearch(q)
+}
+function onLevelFilter(e: Event) {
+  store.setLevelFilter((e.target as HTMLSelectElement).value)
+}
+function onSourceFilter(e: Event) {
+  store.setSourceFilter((e.target as HTMLSelectElement).value)
+}
 
 async function confirmCleanup() {
   await store.cleanup(cleanupDays.value)
@@ -41,7 +47,11 @@ function truncate(s: string, len = 100) {
 
 function parseContext(ctx: string | null): Record<string, unknown> | null {
   if (!ctx) return null
-  try { return JSON.parse(ctx) } catch { return null }
+  try {
+    return JSON.parse(ctx)
+  } catch {
+    return null
+  }
 }
 </script>
 
@@ -53,14 +63,16 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
     </div>
 
     <!-- Log Stats -->
-    <div class="stats-grid" v-if="store.stats">
+    <div v-if="store.stats" class="stats-grid">
       <div class="admin-card">
         <div class="admin-card-header"><span class="admin-card-title">Total (24h)</span></div>
         <div class="admin-card-value">{{ store.stats.errorRate?.total || 0 }}</div>
       </div>
       <div class="admin-card">
         <div class="admin-card-header"><span class="admin-card-title">Errors (24h)</span></div>
-        <div class="admin-card-value" style="color: var(--color-danger)">{{ store.stats.errorRate?.errors || 0 }}</div>
+        <div class="admin-card-value" style="color: var(--color-danger)">
+          {{ store.stats.errorRate?.errors || 0 }}
+        </div>
       </div>
       <div class="admin-card">
         <div class="admin-card-header"><span class="admin-card-title">Error Rate</span></div>
@@ -69,7 +81,11 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
     </div>
 
     <div class="filter-bar">
-      <SearchInput :model-value="store.searchQuery" @update:model-value="onSearch" placeholder="Search messages..." />
+      <SearchInput
+        :model-value="store.searchQuery"
+        placeholder="Search messages..."
+        @update:model-value="onSearch"
+      />
       <select class="select" @change="onLevelFilter">
         <option value="">All Levels</option>
         <option value="error">Error</option>
@@ -87,7 +103,7 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
     </div>
 
     <div v-if="store.loading && !store.logs.length" class="loading-state">
-      <div class="skeleton" v-for="i in 15" :key="i" style="height: 40px" />
+      <div v-for="i in 15" :key="i" class="skeleton" style="height: 40px" />
     </div>
 
     <template v-else>
@@ -106,7 +122,7 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
           </thead>
           <tbody>
             <template v-for="log in store.logs" :key="log.id">
-              <tr @click="toggleExpand(log.id)" class="log-row">
+              <tr class="log-row" @click="toggleExpand(log.id)">
                 <td class="cell-mono">{{ formatTime(log.timestamp) }}</td>
                 <td><StatusBadge :variant="log.level" :label="log.level" /></td>
                 <td><StatusBadge :variant="log.source" :label="log.source" /></td>
@@ -122,21 +138,25 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
                       <span class="detail-label">Full Message</span>
                       <pre class="log-message">{{ log.message }}</pre>
                     </div>
-                    <div class="log-detail-field" v-if="log.request_id">
+                    <div v-if="log.request_id" class="log-detail-field">
                       <span class="detail-label">Request ID</span>
                       <span class="detail-value cell-mono">{{ log.request_id }}</span>
                     </div>
-                    <div class="log-detail-field" v-if="log.user_agent">
+                    <div v-if="log.user_agent" class="log-detail-field">
                       <span class="detail-label">User Agent</span>
-                      <span class="detail-value cell-mono" style="font-size: var(--text-xs)">{{ log.user_agent }}</span>
+                      <span class="detail-value cell-mono" style="font-size: var(--text-xs)">{{
+                        log.user_agent
+                      }}</span>
                     </div>
-                    <div class="log-detail-field" v-if="log.ip">
+                    <div v-if="log.ip" class="log-detail-field">
                       <span class="detail-label">IP</span>
                       <span class="detail-value cell-mono">{{ log.ip }}</span>
                     </div>
-                    <div class="log-detail-field" v-if="log.context">
+                    <div v-if="log.context" class="log-detail-field">
                       <span class="detail-label">Context</span>
-                      <pre class="log-context">{{ JSON.stringify(parseContext(log.context), null, 2) }}</pre>
+                      <pre class="log-context">{{
+                        JSON.stringify(parseContext(log.context), null, 2)
+                      }}</pre>
                     </div>
                   </div>
                 </td>
@@ -162,10 +182,20 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
 </template>
 
 <style scoped>
-.logs-view { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-xl); }
-.page-header h2 { margin-bottom: var(--space-xs); }
-.page-desc { color: var(--text-tertiary); font-size: var(--text-sm); }
+.logs-view {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-header h2 {
+  margin-bottom: var(--space-xs);
+}
+.page-desc {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
 
 .results-count {
   margin-left: auto;
@@ -201,7 +231,8 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
   gap: var(--space-xs);
 }
 
-.log-message, .log-context {
+.log-message,
+.log-context {
   background: var(--bg-elevated);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);

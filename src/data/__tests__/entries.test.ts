@@ -2,7 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { entries, siteStats } from '../entries'
 import type { ObjectClass } from '@/types'
 
-const VALID_CLASSES: ObjectClass[] = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
+const VALID_CLASSES: ObjectClass[] = [
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+]
 
 describe('entries data', () => {
   it('exports an array', () => {

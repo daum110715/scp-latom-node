@@ -55,7 +55,7 @@ function formatDate(d: string) {
     </div>
 
     <div v-if="store.loading && !store.proposals.length" class="loading-state">
-      <div class="skeleton" v-for="i in 10" :key="i" style="height: 48px" />
+      <div v-for="i in 10" :key="i" class="skeleton" style="height: 48px" />
     </div>
 
     <template v-else>
@@ -77,7 +77,9 @@ function formatDate(d: string) {
             <tr v-for="p in store.proposals" :key="p.id">
               <td class="cell-mono">{{ p.id }}</td>
               <td>
-                <router-link :to="`/proposals/${p.id}`" class="proposal-link">{{ p.title }}</router-link>
+                <router-link :to="`/proposals/${p.id}`" class="proposal-link">{{
+                  p.title
+                }}</router-link>
               </td>
               <td><StatusBadge :variant="p.category" :label="p.category" /></td>
               <td><StatusBadge :variant="p.status" :label="p.status" /></td>
@@ -90,10 +92,30 @@ function formatDate(d: string) {
               <td class="cell-mono">{{ formatDate(p.createdAt) }}</td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/proposals/${p.id}`" class="btn btn-ghost btn-sm">View</router-link>
-                  <button v-if="p.status === 'open'" class="btn btn-success btn-sm" @click="store.changeStatus(p.id, 'approved')">Approve</button>
-                  <button v-if="p.status === 'open'" class="btn btn-danger btn-sm" @click="store.changeStatus(p.id, 'rejected')">Reject</button>
-                  <button v-if="p.status !== 'open'" class="btn btn-ghost btn-sm" @click="store.changeStatus(p.id, 'open')">Reopen</button>
+                  <router-link :to="`/proposals/${p.id}`" class="btn btn-ghost btn-sm"
+                    >View</router-link
+                  >
+                  <button
+                    v-if="p.status === 'open'"
+                    class="btn btn-success btn-sm"
+                    @click="store.changeStatus(p.id, 'approved')"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    v-if="p.status === 'open'"
+                    class="btn btn-danger btn-sm"
+                    @click="store.changeStatus(p.id, 'rejected')"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    v-if="p.status !== 'open'"
+                    class="btn btn-ghost btn-sm"
+                    @click="store.changeStatus(p.id, 'open')"
+                  >
+                    Reopen
+                  </button>
                   <button class="btn btn-danger btn-sm" @click="deleteTarget = p.id">Delete</button>
                 </div>
               </td>
@@ -118,10 +140,20 @@ function formatDate(d: string) {
 </template>
 
 <style scoped>
-.proposals-view { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-xl); }
-.page-header h2 { margin-bottom: var(--space-xs); }
-.page-desc { color: var(--text-tertiary); font-size: var(--text-sm); }
+.proposals-view {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-header h2 {
+  margin-bottom: var(--space-xs);
+}
+.page-desc {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
 
 .results-count {
   margin-left: auto;
@@ -152,9 +184,15 @@ function formatDate(d: string) {
   margin-right: var(--space-xs);
 }
 
-.vote-count.for { color: var(--color-success); }
-.vote-count.against { color: var(--color-danger); }
-.vote-count.abstain { color: var(--text-tertiary); }
+.vote-count.for {
+  color: var(--color-success);
+}
+.vote-count.against {
+  color: var(--color-danger);
+}
+.vote-count.abstain {
+  color: var(--text-tertiary);
+}
 
 .action-btns {
   display: flex;

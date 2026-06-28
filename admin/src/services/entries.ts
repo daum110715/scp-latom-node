@@ -25,15 +25,17 @@ export interface AdminEntriesListResponse {
   totalPages: number
 }
 
-export function fetchAdminEntries(params: {
-  page?: number
-  limit?: number
-  q?: string
-  language?: string
-  object_class?: string
-  series?: string
-  hasContent?: string
-} = {}): Promise<ApiResult<AdminEntriesListResponse>> {
+export function fetchAdminEntries(
+  params: {
+    page?: number
+    limit?: number
+    q?: string
+    language?: string
+    object_class?: string
+    series?: string
+    hasContent?: string
+  } = {},
+): Promise<ApiResult<AdminEntriesListResponse>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))
@@ -50,7 +52,10 @@ export function fetchAdminEntry(id: number): Promise<ApiResult<{ entry: AdminEnt
   return apiGet(`/admin/entries/${id}`)
 }
 
-export function updateAdminEntry(id: number, data: { name?: string; object_class?: string }): Promise<ApiResult> {
+export function updateAdminEntry(
+  id: number,
+  data: { name?: string; object_class?: string },
+): Promise<ApiResult> {
   return apiPut(`/admin/entries/${id}`, data)
 }
 

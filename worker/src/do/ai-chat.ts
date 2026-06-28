@@ -3,7 +3,7 @@ import type { GlmMessage, GlmChatResult } from '../utils/glm-client'
 import { SCP_TOOLS } from '../tools/definitions'
 import { executeTool } from '../tools/executor'
 import { Logger } from '../utils/logger'
-import type { Env, AiMessage, AiConversationMeta } from '../types'
+import type { Env, AiMessage } from '../types'
 
 const MAX_CONTEXT_MESSAGES = 50
 const MAX_TOOL_ROUNDS = 5
@@ -18,7 +18,10 @@ export class AiChatDo {
   constructor(state: DurableObjectState, env: Env) {
     this.state = state
     this.env = env
-    this.logger = new Logger({ db: env.DB, level: env.LOG_LEVEL as any })
+    this.logger = new Logger({
+      db: env.DB,
+      level: env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error' | undefined,
+    })
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -82,7 +85,9 @@ export class AiChatDo {
 
       return this.json({ success: false, error: 'Not found' }, 404)
     } catch (err) {
-      this.logger.error('AiChatDo error', { error: err instanceof Error ? err.message : String(err) })
+      this.logger.error('AiChatDo error', {
+        error: err instanceof Error ? err.message : String(err),
+      })
       return this.json({ success: false, error: 'Internal error' }, 500)
     }
   }
@@ -112,7 +117,7 @@ export class AiChatDo {
   private async getMeta(key: string): Promise<string | null> {
     const cursor = this.state.storage.sql.exec(
       'SELECT value FROM conversation_meta WHERE key = ?',
-      key
+      key,
     )
     const rows = [...cursor]
     return rows.length > 0 ? (rows[0].value as string) : null
@@ -122,7 +127,7 @@ export class AiChatDo {
     this.state.storage.sql.exec(
       'INSERT OR REPLACE INTO conversation_meta (key, value) VALUES (?, ?)',
       key,
-      value
+      value,
     )
   }
 
@@ -139,7 +144,7 @@ export class AiChatDo {
 
   private async getMessages(): Promise<AiMessage[]> {
     const cursor = this.state.storage.sql.exec(
-      'SELECT id, role, content, created_at, token_count FROM messages ORDER BY rowid ASC'
+      'SELECT id, role, content, created_at, token_count FROM messages ORDER BY rowid ASC',
     )
     const messages: AiMessage[] = []
     for (const row of cursor) {
@@ -160,7 +165,11 @@ export class AiChatDo {
     return rows.length > 0 ? Number(rows[0].cnt) : 0
   }
 
-  private async appendMessage(role: 'system' | 'user' | 'assistant', content: string, tokenCount?: number): Promise<AiMessage> {
+  private async appendMessage(
+    role: 'system' | 'user' | 'assistant',
+    content: string,
+    tokenCount?: number,
+  ): Promise<AiMessage> {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
     this.state.storage.sql.exec(
@@ -169,14 +178,14 @@ export class AiChatDo {
       role,
       content,
       now,
-      tokenCount ?? null
+      tokenCount ?? null,
     )
     return { id, role, content, createdAt: now, tokenCount }
   }
 
   private async deleteLastAssistantMessage(): Promise<boolean> {
     const cursor = this.state.storage.sql.exec(
-      "SELECT id FROM messages WHERE role = 'assistant' ORDER BY rowid DESC LIMIT 1"
+      "SELECT id FROM messages WHERE role = 'assistant' ORDER BY rowid DESC LIMIT 1",
     )
     const rows = [...cursor]
     if (rows.length === 0) return false
@@ -206,7 +215,9 @@ export class AiChatDo {
    * Run the tool-use loop: call GLM with tools, execute any tool calls, feed results back.
    * Returns the final GLM result and whether tools failed (requiring a plain fallback).
    */
-  private async runToolLoop(glmMessages: GlmMessage[]): Promise<{ result: GlmChatResult; toolsFailed: boolean }> {
+  private async runToolLoop(
+    glmMessages: GlmMessage[],
+  ): Promise<{ result: GlmChatResult; toolsFailed: boolean }> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       let result: GlmChatResult
       try {
@@ -278,7 +289,7 @@ export class AiChatDo {
 
   private async parseBody<T>(request: Request): Promise<T | null> {
     try {
-      return await request.json() as T
+      return (await request.json()) as T
     } catch {
       return null
     }
@@ -300,7 +311,13 @@ export class AiChatDo {
       return this.json({ success: false, error: 'Message is required' }, 400)
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
-      return this.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
+      return this.json(
+        {
+          success: false,
+          error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`,
+        },
+        400,
+      )
     }
 
     // Initialize conversation meta if new
@@ -318,17 +335,26 @@ export class AiChatDo {
     const glmMessages = await this.buildGlmMessages()
     let result: GlmChatResult
     try {
-      ({ result } = await this.runToolLoop(glmMessages))
+      ;({ result } = await this.runToolLoop(glmMessages))
     } catch (err) {
-      this.logger.error('GLM API call failed', { error: err instanceof Error ? err.message : String(err) })
-      return this.json({
-        success: false,
-        error: 'AI service unavailable. Please try again later.',
-      }, 502)
+      this.logger.error('GLM API call failed', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      return this.json(
+        {
+          success: false,
+          error: 'AI service unavailable. Please try again later.',
+        },
+        502,
+      )
     }
 
     // Append assistant message
-    const assistantMsg = await this.appendMessage('assistant', result.content, result.tokenUsage.completionTokens)
+    const assistantMsg = await this.appendMessage(
+      'assistant',
+      result.content,
+      result.tokenUsage.completionTokens,
+    )
 
     // Update meta
     await this.setMeta('lastMessageAt', new Date().toISOString())
@@ -359,7 +385,13 @@ export class AiChatDo {
       return this.json({ success: false, error: 'Message is required' }, 400)
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
-      return this.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
+      return this.json(
+        {
+          success: false,
+          error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`,
+        },
+        400,
+      )
     }
 
     // Initialize conversation meta if new
@@ -460,7 +492,10 @@ export class AiChatDo {
     })
   }
 
-  private async handleUpdateMeta(body: { title?: string; systemPrompt?: string }): Promise<Response> {
+  private async handleUpdateMeta(body: {
+    title?: string
+    systemPrompt?: string
+  }): Promise<Response> {
     if (body.title !== undefined) {
       await this.setMeta('title', body.title)
     }
@@ -482,16 +517,25 @@ export class AiChatDo {
     const glmMessages = await this.buildGlmMessages()
     let result: GlmChatResult
     try {
-      ({ result } = await this.runToolLoop(glmMessages))
+      ;({ result } = await this.runToolLoop(glmMessages))
     } catch (err) {
-      this.logger.error('GLM regenerate failed', { error: err instanceof Error ? err.message : String(err) })
-      return this.json({
-        success: false,
-        error: 'AI service unavailable. Please try again later.',
-      }, 502)
+      this.logger.error('GLM regenerate failed', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      return this.json(
+        {
+          success: false,
+          error: 'AI service unavailable. Please try again later.',
+        },
+        502,
+      )
     }
 
-    const assistantMsg = await this.appendMessage('assistant', result.content, result.tokenUsage.completionTokens)
+    const assistantMsg = await this.appendMessage(
+      'assistant',
+      result.content,
+      result.tokenUsage.completionTokens,
+    )
     await this.setMeta('lastMessageAt', new Date().toISOString())
 
     return this.json({ success: true, message: assistantMsg })

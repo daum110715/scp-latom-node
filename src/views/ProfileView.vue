@@ -59,7 +59,10 @@ async function savePassword() {
     localError.value = t('auth.errors.passwordMismatch')
     return
   }
-  const ok = await auth.updateProfile({ password: currentPassword.value, newPassword: newPassword.value })
+  const ok = await auth.updateProfile({
+    password: currentPassword.value,
+    newPassword: newPassword.value,
+  })
   if (ok) {
     changingPassword.value = false
     currentPassword.value = ''
@@ -76,7 +79,7 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="profile" v-if="auth.user">
+  <div v-if="auth.user" class="profile">
     <div class="page-header">
       <h1>{{ t('auth.profile') }}</h1>
       <p class="page-desc">{{ t('auth.profileDesc') }}</p>
@@ -84,15 +87,33 @@ function handleLogout() {
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button
+        class="tab"
+        :class="{ active: activeTab === 'profile' }"
+        @click="activeTab = 'profile'"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
         {{ t('auth.profile') }}
       </button>
       <button class="tab" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         </svg>
@@ -104,7 +125,7 @@ function handleLogout() {
     <AiChatPanel v-if="activeTab === 'ai'" />
 
     <!-- Profile Content -->
-    <div class="profile-grid" v-if="activeTab === 'profile'">
+    <div v-if="activeTab === 'profile'" class="profile-grid">
       <!-- User Info Card -->
       <div class="profile-card">
         <div class="card-header">
@@ -124,14 +145,21 @@ function handleLogout() {
             <span class="info-label">{{ t('auth.role') }}</span>
             <span class="info-value">{{ auth.user.role }}</span>
           </div>
-          <div class="info-row" v-if="auth.user.created_at">
+          <div v-if="auth.user.created_at" class="info-row">
             <span class="info-label">{{ t('auth.joinedAt') }}</span>
             <span class="info-value">{{ auth.user.created_at }}</span>
           </div>
         </div>
 
         <button class="logout-btn" @click="handleLogout">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
@@ -153,8 +181,12 @@ function handleLogout() {
           <div v-if="editingCodename" class="edit-form">
             <input v-model="newCodename" type="text" spellcheck="false" />
             <div class="edit-actions">
-              <button class="save-btn" @click="saveCodename" :disabled="auth.loading">{{ t('auth.save') }}</button>
-              <button class="cancel-btn" @click="editingCodename = false">{{ t('auth.cancel') }}</button>
+              <button class="save-btn" :disabled="auth.loading" @click="saveCodename">
+                {{ t('auth.save') }}
+              </button>
+              <button class="cancel-btn" @click="editingCodename = false">
+                {{ t('auth.cancel') }}
+              </button>
             </div>
           </div>
           <div v-else class="current-value">
@@ -166,6 +198,7 @@ function handleLogout() {
         <div class="edit-card">
           <div class="edit-header">
             <h3>{{ t('auth.changePassword') }}</h3>
+            <!-- prettier-ignore -->
             <button v-if="!changingPassword" class="edit-btn" @click="changingPassword = true; localError = ''; auth.error = ''; successMsg = ''">
               {{ t('auth.edit') }}
             </button>
@@ -184,7 +217,10 @@ function handleLogout() {
               <input v-model="confirmNew" type="password" autocomplete="new-password" />
             </div>
             <div class="edit-actions">
-              <button class="save-btn" @click="savePassword" :disabled="auth.loading">{{ t('auth.save') }}</button>
+              <button class="save-btn" :disabled="auth.loading" @click="savePassword">
+                {{ t('auth.save') }}
+              </button>
+              <!-- prettier-ignore -->
               <button class="cancel-btn" @click="changingPassword = false; localError = ''">{{ t('auth.cancel') }}</button>
             </div>
           </div>
@@ -200,9 +236,7 @@ function handleLogout() {
           </div>
         </Transition>
         <Transition name="fade">
-          <div v-if="successMsg" class="success-msg">
-            <span>✓</span> {{ successMsg }}
-          </div>
+          <div v-if="successMsg" class="success-msg"><span>✓</span> {{ successMsg }}</div>
         </Transition>
       </div>
     </div>

@@ -46,7 +46,11 @@ function formatDate(d: string | null | undefined) {
       <nav class="breadcrumb">
         <router-link to="/entries">Entries</router-link>
         <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">SCP-{{ store.currentEntry ? String(store.currentEntry.scp_number).padStart(3, '0') : '...' }}</span>
+        <span class="breadcrumb-current"
+          >SCP-{{
+            store.currentEntry ? String(store.currentEntry.scp_number).padStart(3, '0') : '...'
+          }}</span
+        >
       </nav>
     </div>
 
@@ -59,7 +63,10 @@ function formatDate(d: string | null | undefined) {
         <div class="entry-header">
           <div class="entry-title-row">
             <h3>SCP-{{ String(store.currentEntry.scp_number).padStart(3, '0') }}</h3>
-            <StatusBadge :variant="store.currentEntry.object_class?.toLowerCase() || 'unknown'" :label="store.currentEntry.object_class" />
+            <StatusBadge
+              :variant="store.currentEntry.object_class?.toLowerCase() || 'unknown'"
+              :label="store.currentEntry.object_class"
+            />
             <span class="lang-badge">{{ store.currentEntry.language.toUpperCase() }}</span>
           </div>
 
@@ -72,7 +79,21 @@ function formatDate(d: string | null | undefined) {
               <div class="form-group">
                 <label class="form-label">Object Class</label>
                 <select v-model="editClass" class="select">
-                  <option v-for="cls in ['Safe','Euclid','Keter','Thaumiel','Apollyon','Neutralized','Unknown']" :key="cls" :value="cls">{{ cls }}</option>
+                  <option
+                    v-for="cls in [
+                      'Safe',
+                      'Euclid',
+                      'Keter',
+                      'Thaumiel',
+                      'Apollyon',
+                      'Neutralized',
+                      'Unknown',
+                    ]"
+                    :key="cls"
+                    :value="cls"
+                  >
+                    {{ cls }}
+                  </option>
                 </select>
               </div>
               <div class="edit-actions">
@@ -97,11 +118,17 @@ function formatDate(d: string | null | undefined) {
           </div>
           <div class="detail-item">
             <span class="detail-label">URL</span>
-            <span class="detail-value"><a :href="store.currentEntry.url" target="_blank" rel="noopener">{{ store.currentEntry.url || '—' }}</a></span>
+            <span class="detail-value"
+              ><a :href="store.currentEntry.url" target="_blank" rel="noopener">{{
+                store.currentEntry.url || '—'
+              }}</a></span
+            >
           </div>
           <div class="detail-item">
             <span class="detail-label">Content Fetched</span>
-            <span class="detail-value">{{ formatDate(store.currentEntry.content_fetched_at) }}</span>
+            <span class="detail-value">{{
+              formatDate(store.currentEntry.content_fetched_at)
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Created</span>
@@ -114,44 +141,56 @@ function formatDate(d: string | null | undefined) {
         </div>
 
         <div class="entry-actions">
-          <button class="btn btn-ghost" @click="startEdit" v-if="!editing">Edit</button>
-          <button class="btn btn-ghost" @click="refetchContent" :disabled="refetching">
+          <button v-if="!editing" class="btn btn-ghost" @click="startEdit">Edit</button>
+          <button class="btn btn-ghost" :disabled="refetching" @click="refetchContent">
             {{ refetching ? 'Refetching...' : 'Refetch Content' }}
           </button>
         </div>
       </div>
 
       <!-- Content Preview -->
-      <div class="admin-card" v-if="store.currentEntry.content">
+      <div v-if="store.currentEntry.content" class="admin-card">
         <div class="admin-card-header">
           <span class="admin-card-title">Content Preview</span>
-          <span class="cell-mono">{{ (store.currentEntry.content.length / 1024).toFixed(1) }} KB</span>
+          <span class="cell-mono"
+            >{{ (store.currentEntry.content.length / 1024).toFixed(1) }} KB</span
+          >
         </div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="scp-content content-preview" v-html="store.currentEntry.content" />
       </div>
 
-      <div class="admin-card" v-else-if="store.currentEntry.content_error">
+      <div v-else-if="store.currentEntry.content_error" class="admin-card">
         <div class="admin-card-header">
           <span class="admin-card-title">Content Error</span>
         </div>
         <p style="color: var(--color-danger)">{{ store.currentEntry.content_error }}</p>
       </div>
 
-      <div class="admin-card" v-else>
+      <div v-else class="admin-card">
         <div class="admin-card-header">
           <span class="admin-card-title">Content</span>
         </div>
-        <p style="color: var(--text-tertiary)">No content cached. Click "Refetch Content" to load.</p>
+        <p style="color: var(--text-tertiary)">
+          No content cached. Click "Refetch Content" to load.
+        </p>
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.entry-detail { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-lg); }
+.entry-detail {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-lg);
+}
 
-.entry-header { margin-bottom: var(--space-lg); }
+.entry-header {
+  margin-bottom: var(--space-lg);
+}
 
 .entry-title-row {
   display: flex;

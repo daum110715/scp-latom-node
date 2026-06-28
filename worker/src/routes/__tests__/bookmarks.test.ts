@@ -14,11 +14,13 @@ interface ApiResponse {
   bookmarked?: boolean
 }
 
-function createMockDB(data: {
-  bookmarkRows?: any[]
-  existingBookmark?: any
-  deleteChanges?: number
-} = {}) {
+function createMockDB(
+  data: {
+    bookmarkRows?: any[]
+    existingBookmark?: any
+    deleteChanges?: number
+  } = {},
+) {
   const { bookmarkRows = [], existingBookmark = null, deleteChanges = 1 } = data
 
   return {
@@ -31,7 +33,11 @@ function createMockDB(data: {
           return stmt
         },
         first: async (): Promise<any> => {
-          if (sql.includes('SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?')) {
+          if (
+            sql.includes(
+              'SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?',
+            )
+          ) {
             return existingBookmark
           }
           return null
@@ -100,14 +106,30 @@ describe('Bookmark Routes', () => {
     it('returns all bookmarks for user', async () => {
       const token = await signTestToken()
       const rows = [
-        { scp_number: 173, language: 'en', created_at: '2026-06-26', name: 'The Sculpture', object_class: 'Euclid' },
-        { scp_number: 999, language: 'en', created_at: '2026-06-25', name: 'Tickle Monster', object_class: 'Safe' },
+        {
+          scp_number: 173,
+          language: 'en',
+          created_at: '2026-06-26',
+          name: 'The Sculpture',
+          object_class: 'Euclid',
+        },
+        {
+          scp_number: 999,
+          language: 'en',
+          created_at: '2026-06-25',
+          name: 'Tickle Monster',
+          object_class: 'Safe',
+        },
       ]
       const env = createEnv({ bookmarkRows: rows })
-      const res = await app.request('/api/bookmarks', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -118,10 +140,14 @@ describe('Bookmark Routes', () => {
     it('returns empty array when no bookmarks', async () => {
       const token = await signTestToken()
       const env = createEnv({ bookmarkRows: [] })
-      const res = await app.request('/api/bookmarks', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.bookmarks).toHaveLength(0)
@@ -132,10 +158,14 @@ describe('Bookmark Routes', () => {
     it('returns bookmarked: true when bookmark exists', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingBookmark: { id: 1 } })
-      const res = await app.request('/api/bookmarks/en/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.bookmarked).toBe(true)
@@ -144,10 +174,14 @@ describe('Bookmark Routes', () => {
     it('returns bookmarked: false when bookmark does not exist', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingBookmark: null })
-      const res = await app.request('/api/bookmarks/en/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.bookmarked).toBe(false)
@@ -156,20 +190,28 @@ describe('Bookmark Routes', () => {
     it('returns 400 for invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/bookmarks/fr/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/fr/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 400 for invalid SCP number', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/bookmarks/en/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -178,10 +220,14 @@ describe('Bookmark Routes', () => {
     it('adds a bookmark', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingBookmark: null })
-      const res = await app.request('/api/bookmarks/en/173', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/173',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(201)
       expect(body.success).toBe(true)
@@ -191,10 +237,14 @@ describe('Bookmark Routes', () => {
     it('returns 409 for duplicate bookmark', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingBookmark: { id: 1 } })
-      const res = await app.request('/api/bookmarks/en/173', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/173',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(409)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('already bookmarked')
@@ -203,20 +253,28 @@ describe('Bookmark Routes', () => {
     it('returns 400 for invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/bookmarks/fr/173', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/fr/173',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 400 for invalid SCP number', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/bookmarks/en/0', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/0',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -225,10 +283,14 @@ describe('Bookmark Routes', () => {
     it('removes a bookmark', async () => {
       const token = await signTestToken()
       const env = createEnv({ deleteChanges: 1 })
-      const res = await app.request('/api/bookmarks/en/173', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/173',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -238,20 +300,28 @@ describe('Bookmark Routes', () => {
     it('returns 404 when bookmark not found', async () => {
       const token = await signTestToken()
       const env = createEnv({ deleteChanges: 0 })
-      const res = await app.request('/api/bookmarks/en/999', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/en/999',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
 
     it('returns 400 for invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/bookmarks/fr/173', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/bookmarks/fr/173',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })

@@ -22,7 +22,14 @@ const recent = computed(() => props.entries.slice(0, 4))
       <h2 class="section-title">{{ t('recent.title') }}</h2>
       <router-link to="/catalog" class="section-link">
         {{ t('recent.viewAll') }}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </router-link>
@@ -118,7 +125,9 @@ const recent = computed(() => props.entries.slice(0, 4))
 
 .entry-card:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 0 24px var(--color-primary-muted), var(--shadow-md);
+  box-shadow:
+    0 0 24px var(--color-primary-muted),
+    var(--shadow-md);
   transform: translateY(-4px);
 }
 
@@ -191,8 +200,13 @@ const recent = computed(() => props.entries.slice(0, 4))
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .empty-text {

@@ -55,10 +55,24 @@ const { t } = useI18n()
 }
 
 @keyframes glitch {
-  0%, 90%, 100% { transform: none; opacity: 1; }
-  91% { transform: skewX(2deg) translateX(2px); opacity: 0.8; }
-  92% { transform: skewX(-2deg) translateX(-2px); opacity: 0.9; }
-  93% { transform: none; opacity: 1; }
+  0%,
+  90%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+  91% {
+    transform: skewX(2deg) translateX(2px);
+    opacity: 0.8;
+  }
+  92% {
+    transform: skewX(-2deg) translateX(-2px);
+    opacity: 0.9;
+  }
+  93% {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 .m-404-badge {
@@ -86,8 +100,13 @@ const { t } = useI18n()
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .m-404 h1 {

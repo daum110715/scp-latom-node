@@ -46,8 +46,15 @@ const breadcrumbs = computed(() => {
     </div>
 
     <div class="header-right">
-      <button class="search-btn" @click="search.open" :title="t('header.searchTitle')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="search-btn" :title="t('header.searchTitle')" @click="search.open">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
@@ -55,27 +62,58 @@ const breadcrumbs = computed(() => {
         <kbd>⌘K</kbd>
       </button>
 
-      <button class="lang-btn" @click="toggleLocale" :title="t('header.langSwitch')">
+      <button class="lang-btn" :title="t('header.langSwitch')" @click="toggleLocale">
         <span class="lang-label">{{ t('header.langSwitch') }}</span>
       </button>
 
-      <button class="icon-btn" @click="toggleTheme" :title="theme === 'dark' ? t('header.lightMode') : t('header.darkMode')">
+      <button
+        class="icon-btn"
+        :title="theme === 'dark' ? t('header.lightMode') : t('header.darkMode')"
+        @click="toggleTheme"
+      >
         <Transition name="fade" mode="out-in">
-          <svg v-if="theme === 'dark'" key="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            v-if="theme === 'dark'"
+            key="sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
           </svg>
-          <svg v-else key="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            v-else
+            key="moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
         </Transition>
       </button>
 
       <!-- Auth: logged in -->
-      <router-link v-if="auth.isAuthenticated" to="/profile" class="user-btn" :title="t('auth.profile')">
+      <router-link
+        v-if="auth.isAuthenticated"
+        to="/profile"
+        class="user-btn"
+        :title="t('auth.profile')"
+      >
         <div class="user-avatar">{{ auth.user?.codename?.charAt(0).toUpperCase() }}</div>
         <span class="user-codename">{{ auth.user?.codename }}</span>
       </router-link>
@@ -289,7 +327,7 @@ kbd {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.15), transparent);
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: translateX(-100%);
   transition: transform 500ms ease;
 }

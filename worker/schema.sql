@@ -205,6 +205,20 @@ CREATE TABLE IF NOT EXISTS entry_tags (
 CREATE INDEX IF NOT EXISTS idx_entry_tags_entry ON entry_tags(scp_number, language);
 CREATE INDEX IF NOT EXISTS idx_entry_tags_tag ON entry_tags(tag_id);
 
+-- ─── Rate Limits ─────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  key        TEXT NOT NULL,
+  action     TEXT NOT NULL,
+  ip         TEXT NOT NULL,
+  identifier TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limits_key ON rate_limits(key, created_at);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup ON rate_limits(created_at);
+
 -- ─── Tag Seed Data ────────────────────────────────────────
 
 -- Categories

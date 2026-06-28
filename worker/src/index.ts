@@ -28,23 +28,29 @@ function isOriginAllowed(origin: string, allowed: string): boolean {
 }
 
 // CORS
-app.use('/api/*', cors({
-  origin: (origin, c) => {
-    if (!origin) return ''
-    const allowedList = (c.env.CORS_ORIGINS || '').split(',').map((s: string) => s.trim()).filter(Boolean)
-    const allowed = allowedList.some((pattern: string) => isOriginAllowed(origin, pattern))
-    return allowed ? origin : ''
-  },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  maxAge: 86400,
-}))
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin, c) => {
+      if (!origin) return ''
+      const allowedList = (c.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+      const allowed = allowedList.some((pattern: string) => isOriginAllowed(origin, pattern))
+      return allowed ? origin : ''
+    },
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    maxAge: 86400,
+  }),
+)
 
 // Request logging (attaches logger to context)
 app.use('/api/*', async (c, next) => {
   const middleware = requestLogger(c.env)
-  return middleware(c as any, next)
+  return middleware(c as unknown as Parameters<typeof middleware>[0], next)
 })
 
 // Health check
@@ -94,7 +100,8 @@ app.notFound((c) => {
 
 // Global error handler
 app.onError((err, c) => {
-  const logger = (c as any).get?.('logger') as Logger | undefined
+  const logger = (c as unknown as { get?: (key: string) => unknown }).get?.('logger') as
+    Logger | undefined
   if (logger) {
     logger.error('Unhandled error', { error: err })
   } else {

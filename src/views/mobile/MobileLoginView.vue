@@ -50,9 +50,7 @@ async function handleSubmit() {
       </div>
 
       <Transition name="fade">
-        <div v-if="auth.error" class="m-error">
-          <span>⚠</span> {{ auth.error }}
-        </div>
+        <div v-if="auth.error" class="m-error"><span>⚠</span> {{ auth.error }}</div>
       </Transition>
 
       <button type="submit" class="m-submit" :disabled="auth.loading">
@@ -175,7 +173,9 @@ async function handleSubmit() {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .m-auth-footer {

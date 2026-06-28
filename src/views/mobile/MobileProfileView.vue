@@ -59,7 +59,10 @@ async function savePassword() {
     localError.value = t('auth.errors.passwordMismatch')
     return
   }
-  const ok = await auth.updateProfile({ password: currentPassword.value, newPassword: newPassword.value })
+  const ok = await auth.updateProfile({
+    password: currentPassword.value,
+    newPassword: newPassword.value,
+  })
   if (ok) {
     changingPassword.value = false
     currentPassword.value = ''
@@ -76,18 +79,36 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="m-profile" v-if="auth.user">
+  <div v-if="auth.user" class="m-profile">
     <!-- Tabs -->
     <div class="m-tabs">
-      <button class="m-tab" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button
+        class="m-tab"
+        :class="{ active: activeTab === 'profile' }"
+        @click="activeTab = 'profile'"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
         {{ t('auth.profile') }}
       </button>
       <button class="m-tab" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         </svg>
@@ -100,103 +121,116 @@ function handleLogout() {
 
     <!-- Profile Content -->
     <template v-if="activeTab === 'profile'">
-    <!-- User Card -->
-    <div class="m-user-card">
-      <div class="m-user-avatar">{{ auth.user.codename.charAt(0).toUpperCase() }}</div>
-      <div class="m-user-info">
-        <h2>{{ auth.user.codename }}</h2>
-        <Badge variant="info">{{ auth.user.role }}</Badge>
+      <!-- User Card -->
+      <div class="m-user-card">
+        <div class="m-user-avatar">{{ auth.user.codename.charAt(0).toUpperCase() }}</div>
+        <div class="m-user-info">
+          <h2>{{ auth.user.codename }}</h2>
+          <Badge variant="info">{{ auth.user.role }}</Badge>
+        </div>
       </div>
-    </div>
 
-    <!-- Info -->
-    <div class="m-info-card">
-      <div class="m-info-row">
-        <span class="m-info-label">{{ t('auth.clearance') }}</span>
-        <span class="m-info-value clearance">{{ auth.user.clearance }}</span>
+      <!-- Info -->
+      <div class="m-info-card">
+        <div class="m-info-row">
+          <span class="m-info-label">{{ t('auth.clearance') }}</span>
+          <span class="m-info-value clearance">{{ auth.user.clearance }}</span>
+        </div>
+        <div class="m-info-row">
+          <span class="m-info-label">{{ t('auth.role') }}</span>
+          <span class="m-info-value">{{ auth.user.role }}</span>
+        </div>
+        <div v-if="auth.user.created_at" class="m-info-row">
+          <span class="m-info-label">{{ t('auth.joinedAt') }}</span>
+          <span class="m-info-value">{{ auth.user.created_at }}</span>
+        </div>
       </div>
-      <div class="m-info-row">
-        <span class="m-info-label">{{ t('auth.role') }}</span>
-        <span class="m-info-value">{{ auth.user.role }}</span>
-      </div>
-      <div class="m-info-row" v-if="auth.user.created_at">
-        <span class="m-info-label">{{ t('auth.joinedAt') }}</span>
-        <span class="m-info-value">{{ auth.user.created_at }}</span>
-      </div>
-    </div>
 
-    <!-- Edit Codename -->
-    <div class="m-edit-card">
-      <div class="m-edit-header">
-        <h3>{{ t('auth.editCodename') }}</h3>
-        <button v-if="!editingCodename" class="m-edit-btn" @click="startEditCodename">
+      <!-- Edit Codename -->
+      <div class="m-edit-card">
+        <div class="m-edit-header">
+          <h3>{{ t('auth.editCodename') }}</h3>
+          <button v-if="!editingCodename" class="m-edit-btn" @click="startEditCodename">
+            {{ t('auth.edit') }}
+          </button>
+        </div>
+        <div v-if="editingCodename" class="m-edit-form">
+          <input v-model="newCodename" type="text" spellcheck="false" />
+          <div class="m-edit-actions">
+            <button class="m-save-btn" :disabled="auth.loading" @click="saveCodename">
+              {{ t('auth.save') }}
+            </button>
+            <button class="m-cancel-btn" @click="editingCodename = false">
+              {{ t('auth.cancel') }}
+            </button>
+          </div>
+        </div>
+        <div v-else class="m-current-value">
+          <span class="mono">{{ auth.user.codename }}</span>
+        </div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="m-edit-card">
+        <div class="m-edit-header">
+          <h3>{{ t('auth.changePassword') }}</h3>
+          <!-- prettier-ignore -->
+          <button v-if="!changingPassword" class="m-edit-btn" @click="changingPassword = true; localError = ''; auth.error = ''; successMsg = ''">
           {{ t('auth.edit') }}
         </button>
-      </div>
-      <div v-if="editingCodename" class="m-edit-form">
-        <input v-model="newCodename" type="text" spellcheck="false" />
-        <div class="m-edit-actions">
-          <button class="m-save-btn" @click="saveCodename" :disabled="auth.loading">{{ t('auth.save') }}</button>
-          <button class="m-cancel-btn" @click="editingCodename = false">{{ t('auth.cancel') }}</button>
+        </div>
+        <div v-if="changingPassword" class="m-edit-form">
+          <div class="m-form-group">
+            <label>{{ t('auth.currentPassword') }}</label>
+            <input v-model="currentPassword" type="password" autocomplete="current-password" />
+          </div>
+          <div class="m-form-group">
+            <label>{{ t('auth.newPassword') }}</label>
+            <input v-model="newPassword" type="password" autocomplete="new-password" />
+          </div>
+          <div class="m-form-group">
+            <label>{{ t('auth.confirmPassword') }}</label>
+            <input v-model="confirmNew" type="password" autocomplete="new-password" />
+          </div>
+          <div class="m-edit-actions">
+            <button class="m-save-btn" :disabled="auth.loading" @click="savePassword">
+              {{ t('auth.save') }}
+            </button>
+            <!-- prettier-ignore -->
+            <button class="m-cancel-btn" @click="changingPassword = false; localError = ''">{{ t('auth.cancel') }}</button>
+          </div>
+        </div>
+        <div v-else class="m-current-value">
+          <span class="mono">••••••••</span>
         </div>
       </div>
-      <div v-else class="m-current-value">
-        <span class="mono">{{ auth.user.codename }}</span>
-      </div>
-    </div>
 
-    <!-- Change Password -->
-    <div class="m-edit-card">
-      <div class="m-edit-header">
-        <h3>{{ t('auth.changePassword') }}</h3>
-        <button v-if="!changingPassword" class="m-edit-btn" @click="changingPassword = true; localError = ''; auth.error = ''; successMsg = ''">
-          {{ t('auth.edit') }}
-        </button>
-      </div>
-      <div v-if="changingPassword" class="m-edit-form">
-        <div class="m-form-group">
-          <label>{{ t('auth.currentPassword') }}</label>
-          <input v-model="currentPassword" type="password" autocomplete="current-password" />
+      <!-- Status Messages -->
+      <Transition name="fade">
+        <div v-if="localError || auth.error" class="m-error">
+          <span>⚠</span> {{ localError || auth.error }}
         </div>
-        <div class="m-form-group">
-          <label>{{ t('auth.newPassword') }}</label>
-          <input v-model="newPassword" type="password" autocomplete="new-password" />
-        </div>
-        <div class="m-form-group">
-          <label>{{ t('auth.confirmPassword') }}</label>
-          <input v-model="confirmNew" type="password" autocomplete="new-password" />
-        </div>
-        <div class="m-edit-actions">
-          <button class="m-save-btn" @click="savePassword" :disabled="auth.loading">{{ t('auth.save') }}</button>
-          <button class="m-cancel-btn" @click="changingPassword = false; localError = ''">{{ t('auth.cancel') }}</button>
-        </div>
-      </div>
-      <div v-else class="m-current-value">
-        <span class="mono">••••••••</span>
-      </div>
-    </div>
+      </Transition>
+      <Transition name="fade">
+        <div v-if="successMsg" class="m-success"><span>✓</span> {{ successMsg }}</div>
+      </Transition>
 
-    <!-- Status Messages -->
-    <Transition name="fade">
-      <div v-if="localError || auth.error" class="m-error">
-        <span>⚠</span> {{ localError || auth.error }}
-      </div>
-    </Transition>
-    <Transition name="fade">
-      <div v-if="successMsg" class="m-success">
-        <span>✓</span> {{ successMsg }}
-      </div>
-    </Transition>
-
-    <!-- Logout -->
-    <button class="m-logout" @click="handleLogout">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-        <polyline points="16 17 21 12 16 7" />
-        <line x1="21" y1="12" x2="9" y2="12" />
-      </svg>
-      {{ t('auth.logout') }}
-    </button>
+      <!-- Logout -->
+      <button class="m-logout" @click="handleLogout">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        {{ t('auth.logout') }}
+      </button>
     </template>
   </div>
 </template>

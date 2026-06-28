@@ -11,7 +11,8 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const selectedIndex = ref(0)
 
 const results = computed(() => {
-  const items: Array<{ type: string; id: string; title: string; subtitle: string; route: string }> = []
+  const items: Array<{ type: string; id: string; title: string; subtitle: string; route: string }> =
+    []
   for (const e of search.filteredEntries) {
     items.push({
       type: 'entry',
@@ -33,13 +34,16 @@ const results = computed(() => {
   return items
 })
 
-watch(() => search.isOpen, async (open) => {
-  if (open) {
-    selectedIndex.value = 0
-    await nextTick()
-    inputRef.value?.focus()
-  }
-})
+watch(
+  () => search.isOpen,
+  async (open) => {
+    if (open) {
+      selectedIndex.value = 0
+      await nextTick()
+      inputRef.value?.focus()
+    }
+  },
+)
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'ArrowDown') {
@@ -78,7 +82,15 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
         <Transition name="modal">
           <div v-if="search.isOpen" class="modal" @keydown="handleKeydown">
             <div class="search-input-wrap">
-              <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="search-icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
@@ -94,9 +106,11 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
               <kbd class="esc-key">ESC</kbd>
             </div>
 
-            <div class="results" v-if="results.length > 0">
+            <div v-if="results.length > 0" class="results">
               <div class="results-header">
-                <span class="results-count">{{ t('search.results', { count: results.length }) }}</span>
+                <span class="results-count">{{
+                  t('search.results', { count: results.length })
+                }}</span>
               </div>
               <div class="results-list">
                 <button
@@ -115,14 +129,22 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
                     <span class="result-title">{{ item.title }}</span>
                     <span class="result-subtitle">{{ item.subtitle }}</span>
                   </div>
-                  <svg class="result-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="result-arrow"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </button>
               </div>
             </div>
 
-            <div class="results empty" v-else-if="search.query">
+            <div v-else-if="search.query" class="results empty">
               <div class="empty-state">
                 <span class="empty-icon">∅</span>
                 <span class="empty-text">{{ t('search.empty', { query: search.query }) }}</span>
@@ -168,7 +190,9 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), 0 0 60px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 

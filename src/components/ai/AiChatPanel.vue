@@ -3,7 +3,6 @@ import { ref, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
-  sendChatMessage,
   sendChatMessageStream,
   fetchConversations,
   fetchConversation,
@@ -132,9 +131,8 @@ async function sendMessage() {
       onError(error) {
         const idx = messages.value.findIndex((m) => m.id === 'streaming')
         if (idx >= 0) {
-          const content = error === 'ERR-401-CLEARANCE'
-            ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}`
-            : `Error: ${error}`
+          const content =
+            error === 'ERR-401-CLEARANCE' ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}` : `Error: ${error}`
           messages.value[idx] = {
             ...messages.value[idx],
             content,
@@ -165,9 +163,8 @@ async function handleRegenerate() {
   if (res.ok) {
     messages.value[idx] = res.data.message
   } else {
-    const content = res.code === 'ERR-401-CLEARANCE'
-      ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}`
-      : `Error: ${res.error}`
+    const content =
+      res.code === 'ERR-401-CLEARANCE' ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}` : `Error: ${res.error}`
     messages.value[idx] = {
       ...messages.value[idx],
       content,
@@ -215,13 +212,21 @@ watch(messages, () => scrollToBottom(), { deep: true })
     <!-- Chat Area -->
     <main class="chat-area">
       <!-- Messages -->
-      <div class="messages" ref="messagesEl">
+      <div ref="messagesEl" class="messages">
         <div v-if="loadingMessages" class="loading">
           <div class="spinner" />
         </div>
 
         <div v-else-if="messages.length === 0" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            opacity="0.3"
+          >
             <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="2" />
@@ -248,7 +253,14 @@ watch(messages, () => scrollToBottom(), { deep: true })
           :disabled="isStreaming"
           @click="handleRegenerate"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
@@ -259,14 +271,22 @@ watch(messages, () => scrollToBottom(), { deep: true })
           rows="1"
           :disabled="isStreaming"
           @keydown="handleKeydown"
-          @input="(e: any) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }"
+          @input="
+            (e: any) => {
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+            }
+          "
         />
-        <button
-          class="send-btn"
-          :disabled="!inputText.trim() || isStreaming"
-          @click="sendMessage"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="send-btn" :disabled="!inputText.trim() || isStreaming" @click="sendMessage">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
@@ -344,7 +364,9 @@ watch(messages, () => scrollToBottom(), { deep: true })
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .input-bar {

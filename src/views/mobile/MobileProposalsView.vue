@@ -52,7 +52,9 @@ async function castVote(proposalId: number, vote: 'for' | 'against' | 'abstain')
   const ok = await store.vote(proposalId, vote)
   if (ok) {
     voteMessage.value = t('proposals.vote.success')
-    setTimeout(() => { voteMessage.value = '' }, 3000)
+    setTimeout(() => {
+      voteMessage.value = ''
+    }, 3000)
   }
 }
 
@@ -103,7 +105,9 @@ onMounted(() => {
         />
       </div>
 
-      <p class="m-daily-info">{{ t('proposals.dailyLimit', { max: store.dailyLimit, used: store.dailyUsed }) }}</p>
+      <p class="m-daily-info">
+        {{ t('proposals.dailyLimit', { max: store.dailyLimit, used: store.dailyUsed }) }}
+      </p>
 
       <p v-if="store.dailyUsed >= store.dailyLimit" class="m-form-error">
         {{ t('proposals.dailyLimitReached', { max: store.dailyLimit }) }}
@@ -112,7 +116,12 @@ onMounted(() => {
       <div class="m-form-actions">
         <button
           class="m-submit-btn"
-          :disabled="store.creating || store.dailyUsed >= store.dailyLimit || formTitle.trim().length < 5 || formContent.trim().length < 20"
+          :disabled="
+            store.creating ||
+            store.dailyUsed >= store.dailyLimit ||
+            formTitle.trim().length < 5 ||
+            formContent.trim().length < 20
+          "
           @click="submitProposal"
         >
           {{ store.creating ? '...' : t('proposals.submit') }}
@@ -150,13 +159,17 @@ onMounted(() => {
           <Badge :variant="(categoryVariant[p.category] as any) || 'safe'">
             {{ t(`proposals.categories.${p.category}`) || p.category }}
           </Badge>
-          <span class="m-proposal-status" :class="p.status">{{ t(`proposals.status.${p.status}`) }}</span>
+          <span class="m-proposal-status" :class="p.status">{{
+            t(`proposals.status.${p.status}`)
+          }}</span>
         </div>
 
         <h3 class="m-proposal-title">{{ p.title }}</h3>
         <p class="m-proposal-author">{{ t('proposals.by', { author: p.authorCodename }) }}</p>
 
-        <p class="m-proposal-preview">{{ p.content.slice(0, 150) }}{{ p.content.length > 150 ? '...' : '' }}</p>
+        <p class="m-proposal-preview">
+          {{ p.content.slice(0, 150) }}{{ p.content.length > 150 ? '...' : '' }}
+        </p>
 
         <button class="m-view-btn" @click="viewDetail(p.id)">{{ t('proposals.view') }}</button>
 
@@ -212,7 +225,10 @@ onMounted(() => {
   width: 100%;
 }
 
-.m-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.m-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ─── Form ─── */
 
@@ -224,7 +240,9 @@ onMounted(() => {
   margin-bottom: var(--space-lg);
 }
 
-.m-form-group { margin-bottom: var(--space-md); }
+.m-form-group {
+  margin-bottom: var(--space-md);
+}
 
 .m-form-label {
   display: block;
@@ -267,7 +285,9 @@ onMounted(() => {
   margin-bottom: var(--space-md);
 }
 
-.m-form-actions { margin-top: var(--space-md); }
+.m-form-actions {
+  margin-top: var(--space-md);
+}
 
 .m-form-error {
   margin-top: var(--space-md);
@@ -316,9 +336,15 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
-.m-proposal-status.open { color: var(--color-accent); }
-.m-proposal-status.approved { color: var(--color-success); }
-.m-proposal-status.rejected { color: var(--color-danger); }
+.m-proposal-status.open {
+  color: var(--color-accent);
+}
+.m-proposal-status.approved {
+  color: var(--color-success);
+}
+.m-proposal-status.rejected {
+  color: var(--color-danger);
+}
 
 .m-proposal-title {
   font-size: var(--text-base);
@@ -375,9 +401,15 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.m-vc.for { color: var(--color-success); }
-.m-vc.against { color: var(--color-danger); }
-.m-vc.abstain { color: var(--text-tertiary); }
+.m-vc.for {
+  color: var(--color-success);
+}
+.m-vc.against {
+  color: var(--color-danger);
+}
+.m-vc.abstain {
+  color: var(--text-tertiary);
+}
 
 .m-voted {
   font-size: var(--text-xs);
@@ -403,12 +435,27 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
-.m-vote-btn.for { color: var(--color-success); }
-.m-vote-btn.for:hover { background: var(--color-success); color: var(--text-inverse); }
-.m-vote-btn.against { color: var(--color-danger); }
-.m-vote-btn.against:hover { background: var(--color-danger); color: var(--text-inverse); }
-.m-vote-btn.abstain { color: var(--text-tertiary); }
-.m-vote-btn.abstain:hover { background: var(--text-tertiary); color: var(--text-inverse); }
+.m-vote-btn.for {
+  color: var(--color-success);
+}
+.m-vote-btn.for:hover {
+  background: var(--color-success);
+  color: var(--text-inverse);
+}
+.m-vote-btn.against {
+  color: var(--color-danger);
+}
+.m-vote-btn.against:hover {
+  background: var(--color-danger);
+  color: var(--text-inverse);
+}
+.m-vote-btn.abstain {
+  color: var(--text-tertiary);
+}
+.m-vote-btn.abstain:hover {
+  background: var(--text-tertiary);
+  color: var(--text-inverse);
+}
 
 /* ─── States ─── */
 
@@ -424,26 +471,39 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.m-skeleton-card { height: 140px; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.m-skeleton-card {
+  height: 140px;
 }
 
-.m-error, .m-empty {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.m-error,
+.m-empty {
   text-align: center;
   padding: var(--space-3xl) var(--space-lg);
 }
 
-.m-error-icon, .m-empty-icon {
+.m-error-icon,
+.m-empty-icon {
   font-size: 2.5rem;
   display: block;
   margin-bottom: var(--space-md);
 }
 
-.m-error-icon { color: var(--color-danger); }
-.m-empty-icon { color: var(--text-tertiary); }
+.m-error-icon {
+  color: var(--color-danger);
+}
+.m-empty-icon {
+  color: var(--text-tertiary);
+}
 
 .m-retry-btn {
   margin-top: var(--space-md);

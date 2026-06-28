@@ -48,7 +48,7 @@ describe('useAuthStore', () => {
 
   describe('isAuthenticated', () => {
     it('is true when both token and user are set', () => {
-      const store = useAuthStore()
+      useAuthStore()
       // Simulate a successful login result
       mockApiPost.mockResolvedValueOnce({
         ok: true,
@@ -147,7 +147,9 @@ describe('useAuthStore', () => {
 
     it('manages loading state', async () => {
       let resolvePromise: (value: any) => void
-      const pending = new Promise((resolve) => { resolvePromise = resolve })
+      const pending = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
       mockApiPost.mockReturnValueOnce(pending as any)
 
       const store = useAuthStore()
@@ -286,10 +288,7 @@ describe('useAuthStore', () => {
       store.token = 'valid-token'
       await store.updateProfile({ codename: 'newname' })
 
-      expect(mockApiPut).toHaveBeenCalledWith(
-        '/auth/profile',
-        { codename: 'newname' }
-      )
+      expect(mockApiPut).toHaveBeenCalledWith('/auth/profile', { codename: 'newname' })
     })
   })
 })

@@ -24,13 +24,15 @@ export interface AdminProposalsListResponse {
   totalPages: number
 }
 
-export function fetchAdminProposals(params: {
-  page?: number
-  limit?: number
-  status?: string
-  category?: string
-  userId?: string
-} = {}): Promise<ApiResult<AdminProposalsListResponse>> {
+export function fetchAdminProposals(
+  params: {
+    page?: number
+    limit?: number
+    status?: string
+    category?: string
+    userId?: string
+  } = {},
+): Promise<ApiResult<AdminProposalsListResponse>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))

@@ -26,7 +26,7 @@ async function handleLogin() {
         <p class="login-subtitle">Level 5 clearance required</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="login-form">
+      <form class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label class="form-label">CODENAME</label>
           <input

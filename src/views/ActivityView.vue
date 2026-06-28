@@ -69,18 +69,26 @@ onMounted(() => {
     <template v-if="activity.activeTab === 'bookmarks'">
       <!-- Loading -->
       <div v-if="activity.bookmarkLoading && activity.bookmarks.length === 0" class="loading-state">
-        <div class="skeleton" v-for="i in 6" :key="i" />
+        <div v-for="i in 6" :key="i" class="skeleton" />
       </div>
 
       <!-- Error -->
-      <div v-else-if="activity.bookmarkError && activity.bookmarks.length === 0" class="error-state">
+      <div
+        v-else-if="activity.bookmarkError && activity.bookmarks.length === 0"
+        class="error-state"
+      >
         <span class="error-icon">⚠</span>
         <p>{{ activity.bookmarkError }}</p>
-        <button class="retry-btn" @click="activity.loadBookmarks()">{{ t('activity.retry') }}</button>
+        <button class="retry-btn" @click="activity.loadBookmarks()">
+          {{ t('activity.retry') }}
+        </button>
       </div>
 
       <!-- Empty -->
-      <div v-else-if="activity.bookmarks.length === 0 && !activity.bookmarkLoading" class="empty-state">
+      <div
+        v-else-if="activity.bookmarks.length === 0 && !activity.bookmarkLoading"
+        class="empty-state"
+      >
         <span class="empty-icon">★</span>
         <p>{{ t('bookmarks.empty') }}</p>
         <p class="empty-hint">{{ t('bookmarks.emptyHint') }}</p>
@@ -88,7 +96,11 @@ onMounted(() => {
 
       <!-- Bookmark List -->
       <div v-else class="entry-list">
-        <div v-for="entry in activity.bookmarks" :key="`${entry.language}:${entry.scpNumber}`" class="entry-row">
+        <div
+          v-for="entry in activity.bookmarks"
+          :key="`${entry.language}:${entry.scpNumber}`"
+          class="entry-row"
+        >
           <router-link :to="`/entry/${entry.language}/${entry.scpNumber}`" class="entry-link">
             <div class="entry-left">
               <div class="entry-id-wrap">
@@ -105,7 +117,11 @@ onMounted(() => {
               </p>
             </div>
           </router-link>
-          <button class="delete-btn" @click="handleRemoveBookmark(entry.language, entry.scpNumber)" :title="t('bookmarks.remove')">
+          <button
+            class="delete-btn"
+            :title="t('bookmarks.remove')"
+            @click="handleRemoveBookmark(entry.language, entry.scpNumber)"
+          >
             ✕
           </button>
         </div>
@@ -117,19 +133,37 @@ onMounted(() => {
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="lang-filters">
-          <button class="lang-btn" :class="{ active: activity.langFilter === null }" @click="setLanguage(null)">
+          <button
+            class="lang-btn"
+            :class="{ active: activity.langFilter === null }"
+            @click="setLanguage(null)"
+          >
             {{ t('history.all') }}
           </button>
-          <button class="lang-btn" :class="{ active: activity.langFilter === 'en' }" @click="setLanguage('en')">
+          <button
+            class="lang-btn"
+            :class="{ active: activity.langFilter === 'en' }"
+            @click="setLanguage('en')"
+          >
             EN
           </button>
-          <button class="lang-btn" :class="{ active: activity.langFilter === 'cn' }" @click="setLanguage('cn')">
+          <button
+            class="lang-btn"
+            :class="{ active: activity.langFilter === 'cn' }"
+            @click="setLanguage('cn')"
+          >
             CN
           </button>
         </div>
         <div class="toolbar-right">
-          <span class="results-count">{{ t('history.entries', { count: activity.historyTotal }) }}</span>
-          <button v-if="activity.hasHistoryEntries" class="clear-btn" @click="showClearConfirm = true">
+          <span class="results-count">{{
+            t('history.entries', { count: activity.historyTotal })
+          }}</span>
+          <button
+            v-if="activity.hasHistoryEntries"
+            class="clear-btn"
+            @click="showClearConfirm = true"
+          >
             {{ t('history.clearAll') }}
           </button>
         </div>
@@ -144,14 +178,16 @@ onMounted(() => {
 
       <!-- Loading -->
       <div v-if="activity.historyLoading && !activity.hasHistoryEntries" class="loading-state">
-        <div class="skeleton" v-for="i in 8" :key="i" />
+        <div v-for="i in 8" :key="i" class="skeleton" />
       </div>
 
       <!-- Error -->
       <div v-else-if="activity.historyError && !activity.hasHistoryEntries" class="error-state">
         <span class="error-icon">⚠</span>
         <p>{{ activity.historyError }}</p>
-        <button class="retry-btn" @click="activity.fetchHistoryList()">{{ t('activity.retry') }}</button>
+        <button class="retry-btn" @click="activity.fetchHistoryList()">
+          {{ t('activity.retry') }}
+        </button>
       </div>
 
       <!-- Empty -->
@@ -176,19 +212,41 @@ onMounted(() => {
                   <Badge :variant="entry.object_class.toLowerCase() as any">
                     {{ entry.object_class }}
                   </Badge>
-                  <span class="entry-time">{{ t('history.visited') }} {{ formatTime(entry.visited_at) }}</span>
+                  <span class="entry-time"
+                    >{{ t('history.visited') }} {{ formatTime(entry.visited_at) }}</span
+                  >
                 </p>
               </div>
             </router-link>
-            <button class="delete-btn" @click="handleDeleteHistory(entry.id)" :title="t('history.delete')">✕</button>
+            <button
+              class="delete-btn"
+              :title="t('history.delete')"
+              @click="handleDeleteHistory(entry.id)"
+            >
+              ✕
+            </button>
           </div>
         </div>
 
         <!-- Pagination -->
         <div v-if="activity.historyTotalPages > 1" class="pagination">
-          <button class="page-btn" :disabled="activity.historyPage <= 1" @click="activity.setHistoryPage(activity.historyPage - 1)">← Prev</button>
-          <span class="page-info">Page {{ activity.historyPage }} of {{ activity.historyTotalPages }}</span>
-          <button class="page-btn" :disabled="activity.historyPage >= activity.historyTotalPages" @click="activity.setHistoryPage(activity.historyPage + 1)">Next →</button>
+          <button
+            class="page-btn"
+            :disabled="activity.historyPage <= 1"
+            @click="activity.setHistoryPage(activity.historyPage - 1)"
+          >
+            ← Prev
+          </button>
+          <span class="page-info"
+            >Page {{ activity.historyPage }} of {{ activity.historyTotalPages }}</span
+          >
+          <button
+            class="page-btn"
+            :disabled="activity.historyPage >= activity.historyTotalPages"
+            @click="activity.setHistoryPage(activity.historyPage + 1)"
+          >
+            Next →
+          </button>
         </div>
       </template>
     </template>
@@ -495,8 +553,13 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .error-state {

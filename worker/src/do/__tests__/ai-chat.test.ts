@@ -11,7 +11,7 @@ vi.mock('../../utils/glm-client', () => ({
 
 import { glmChat, glmChatStream } from '../../utils/glm-client'
 const mockGlmChat = vi.mocked(glmChat)
-const mockGlmChatStream = vi.mocked(glmChatStream)
+const _mockGlmChatStream = vi.mocked(glmChatStream)
 
 function createMockSqlStorage() {
   const tables: Record<string, Record<string, unknown>[]> = {
@@ -29,7 +29,10 @@ function createMockSqlStorage() {
       }
 
       // INSERT OR REPLACE INTO conversation_meta
-      if (normalized.startsWith('insert or replace into conversation_meta') || normalized.startsWith('insert into conversation_meta')) {
+      if (
+        normalized.startsWith('insert or replace into conversation_meta') ||
+        normalized.startsWith('insert into conversation_meta')
+      ) {
         const [key, value] = params
         const existing = tables.conversation_meta.findIndex((r: any) => r.key === key)
         if (existing >= 0) {
@@ -112,7 +115,15 @@ function createMockStorage() {
 
 function createMockEnv(overrides?: Partial<Env>): Env {
   return {
-    DB: { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: vi.fn(async () => null), all: vi.fn(async () => ({ results: [] })), run: vi.fn(async () => ({})) })) })) } as unknown as D1Database,
+    DB: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => null),
+          all: vi.fn(async () => ({ results: [] })),
+          run: vi.fn(async () => ({})),
+        })),
+      })),
+    } as unknown as D1Database,
     JWT_SECRET: 'test',
     CORS_ORIGINS: '*',
     SCP_EN_CRAWLER: {} as DurableObjectNamespace,
@@ -184,7 +195,7 @@ describe('AiChatDo', () => {
       })
 
       const res = await doInstance.fetch(req)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
 
       expect(data.success).toBe(true)
       expect(data.message.role).toBe('assistant')
@@ -255,7 +266,7 @@ describe('AiChatDo', () => {
 
       const res = await doInstance.fetch(req)
       expect(res.status).toBe(502)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(false)
       expect(data.error).toContain('unavailable')
     })
@@ -273,21 +284,23 @@ describe('AiChatDo', () => {
       const doInstance = new AiChatDo(state, env)
 
       // Send a message first
-      await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hello',
-          userId: 1,
-          systemPrompt: 'SAGE',
-          isNew: true,
-          conversationId: 'test-id',
+      await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: 'Hello',
+            userId: 1,
+            systemPrompt: 'SAGE',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       // Get messages
       const res = await doInstance.fetch(new Request('https://do.ai/messages'))
-      const data = await res.json() as any
+      const data = (await res.json()) as any
 
       expect(data.success).toBe(true)
       expect(data.messages).toHaveLength(2)
@@ -309,21 +322,23 @@ describe('AiChatDo', () => {
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
 
-      await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hello',
-          userId: 1,
-          systemPrompt: 'SAGE',
-          title: 'My Chat',
-          isNew: true,
-          conversationId: 'test-id',
+      await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: 'Hello',
+            userId: 1,
+            systemPrompt: 'SAGE',
+            title: 'My Chat',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       const res = await doInstance.fetch(new Request('https://do.ai/meta'))
-      const data = await res.json() as any
+      const data = (await res.json()) as any
 
       expect(data.success).toBe(true)
       expect(data.meta.title).toBe('My Chat')
@@ -344,32 +359,36 @@ describe('AiChatDo', () => {
       const doInstance = new AiChatDo(state, env)
 
       // Create conversation
-      await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hello',
-          userId: 1,
-          systemPrompt: 'Old prompt',
-          title: 'Old title',
-          isNew: true,
-          conversationId: 'test-id',
+      await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: 'Hello',
+            userId: 1,
+            systemPrompt: 'Old prompt',
+            title: 'Old title',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       // Update meta
-      const res = await doInstance.fetch(new Request('https://do.ai/meta', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New title', systemPrompt: 'New prompt' }),
-      }))
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/meta', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New title', systemPrompt: 'New prompt' }),
+        }),
+      )
 
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
 
       // Verify update
       const metaRes = await doInstance.fetch(new Request('https://do.ai/meta'))
-      const metaData = await metaRes.json() as any
+      const metaData = (await metaRes.json()) as any
       expect(metaData.meta.title).toBe('New title')
       expect(metaData.meta.systemPrompt).toBe('New prompt')
     })
@@ -387,17 +406,19 @@ describe('AiChatDo', () => {
       const doInstance = new AiChatDo(state, env)
 
       // Create conversation
-      await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hello',
-          userId: 1,
-          systemPrompt: 'SAGE',
-          isNew: true,
-          conversationId: 'test-id',
+      await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: 'Hello',
+            userId: 1,
+            systemPrompt: 'SAGE',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       // Change mock response for regenerate
       mockGlmChat.mockResolvedValueOnce({
@@ -406,11 +427,13 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const res = await doInstance.fetch(new Request('https://do.ai/regenerate', {
-        method: 'POST',
-      }))
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/regenerate', {
+          method: 'POST',
+        }),
+      )
 
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
       expect(data.message.content).toBe('Regenerated response')
       expect(data.message.role).toBe('assistant')
@@ -420,12 +443,14 @@ describe('AiChatDo', () => {
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
 
-      const res = await doInstance.fetch(new Request('https://do.ai/regenerate', {
-        method: 'POST',
-      }))
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/regenerate', {
+          method: 'POST',
+        }),
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(false)
     })
   })
@@ -435,11 +460,13 @@ describe('AiChatDo', () => {
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
 
-      const res = await doInstance.fetch(new Request('https://do.ai/', {
-        method: 'DELETE',
-      }))
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/', {
+          method: 'DELETE',
+        }),
+      )
 
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.success).toBe(true)
     })
   })
@@ -450,20 +477,22 @@ describe('AiChatDo', () => {
       const doInstance = new AiChatDo(state, env)
       const longMessage = 'x'.repeat(4001)
 
-      const res = await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: longMessage,
-          userId: 1,
-          systemPrompt: 'SAGE',
-          isNew: true,
-          conversationId: 'test-id',
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: longMessage,
+            userId: 1,
+            systemPrompt: 'SAGE',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('maximum length')
     })
 
@@ -471,14 +500,16 @@ describe('AiChatDo', () => {
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
 
-      const res = await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: 'not valid json',
-      }))
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: 'not valid json',
+        }),
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('Invalid JSON')
     })
 
@@ -486,20 +517,22 @@ describe('AiChatDo', () => {
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
 
-      const res = await doInstance.fetch(new Request('https://do.ai/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: '',
-          userId: 1,
-          systemPrompt: 'SAGE',
-          isNew: true,
-          conversationId: 'test-id',
+      const res = await doInstance.fetch(
+        new Request('https://do.ai/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: '',
+            userId: 1,
+            systemPrompt: 'SAGE',
+            isNew: true,
+            conversationId: 'test-id',
+          }),
         }),
-      }))
+      )
 
       expect(res.status).toBe(400)
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).toContain('required')
     })
   })

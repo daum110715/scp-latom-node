@@ -25,16 +25,22 @@ describe('Badge', () => {
     expect(wrapper.classes()).toContain('safe')
   })
 
-  it.each(['safe', 'euclid', 'keter', 'thaumiel', 'apollyon', 'neutralized', 'info', 'danger'] as const)(
-    'applies "%s" variant class',
-    (variant) => {
-      const wrapper = mount(Badge, {
-        props: { variant },
-        slots: { default: 'Test' },
-      })
-      expect(wrapper.classes()).toContain(variant)
-    }
-  )
+  it.each([
+    'safe',
+    'euclid',
+    'keter',
+    'thaumiel',
+    'apollyon',
+    'neutralized',
+    'info',
+    'danger',
+  ] as const)('applies "%s" variant class', (variant) => {
+    const wrapper = mount(Badge, {
+      props: { variant },
+      slots: { default: 'Test' },
+    })
+    expect(wrapper.classes()).toContain(variant)
+  })
 
   it('renders as a span element', () => {
     const wrapper = mount(Badge)

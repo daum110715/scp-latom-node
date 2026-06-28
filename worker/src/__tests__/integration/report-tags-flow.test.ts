@@ -6,7 +6,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import app from '../../index'
-import { createIntegrationDB, createIntegrationEnv, parseJson, signUserToken, signAdminToken } from './helpers'
+import {
+  createIntegrationDB,
+  createIntegrationEnv,
+  parseJson,
+  signUserToken,
+  signAdminToken,
+} from './helpers'
 
 describe('Reports & Tags Integration', () => {
   let db: ReturnType<typeof createIntegrationDB>
@@ -29,39 +35,51 @@ describe('Reports & Tags Integration', () => {
       const { env, token } = await setupUser()
 
       // Submit report
-      const submitRes = await app.request('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const submitRes = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'There is a typo in the containment procedures.',
+          }),
         },
-        body: JSON.stringify({
-          scpNumber: 173,
-          language: 'en',
-          reportType: 'content_error',
-          description: 'There is a typo in the containment procedures.',
-        }),
-      }, env)
+        env,
+      )
       const submitBody = await parseJson(submitRes)
       expect(submitRes.status).toBe(201)
       expect(submitBody.success).toBe(true)
       expect(submitBody.report.reportType).toBe('content_error')
 
       // Check reports for entry
-      const checkRes = await app.request('/api/reports/check/en/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const checkRes = await app.request(
+        '/api/reports/check/en/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const checkBody = await parseJson(checkRes)
       expect(checkBody.hasReports).toBe(true)
       expect(checkBody.count).toBe(1)
       expect(checkBody.maxReports).toBe(3)
 
       // List reports
-      const listRes = await app.request('/api/reports', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const listRes = await app.request(
+        '/api/reports',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const listBody = await parseJson(listRes)
       expect(listBody.reports).toHaveLength(1)
     })
@@ -72,7 +90,30 @@ describe('Reports & Tags Integration', () => {
       // Submit 3 reports (the max)
       const types = ['content_error', 'display_issue', 'special_handling'] as const
       for (const reportType of types) {
-        const res = await app.request('/api/reports', {
+        const res = await app.request(
+          '/api/reports',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              scpNumber: 173,
+              language: 'en',
+              reportType,
+              description: `Report type: ${reportType} with enough description text.`,
+            }),
+          },
+          env,
+        )
+        expect(res.status).toBe(201)
+      }
+
+      // Fourth should be rejected
+      const res = await app.request(
+        '/api/reports',
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -81,27 +122,12 @@ describe('Reports & Tags Integration', () => {
           body: JSON.stringify({
             scpNumber: 173,
             language: 'en',
-            reportType,
-            description: `Report type: ${reportType} with enough description text.`,
+            reportType: 'other',
+            description: 'This should be rejected due to per-entry limit.',
           }),
-        }, env)
-        expect(res.status).toBe(201)
-      }
-
-      // Fourth should be rejected
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          scpNumber: 173,
-          language: 'en',
-          reportType: 'other',
-          description: 'This should be rejected due to per-entry limit.',
-        }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(429)
     })
 
@@ -109,34 +135,42 @@ describe('Reports & Tags Integration', () => {
       const { env, token } = await setupUser()
 
       // First report
-      await app.request('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'First report with enough description.',
+          }),
         },
-        body: JSON.stringify({
-          scpNumber: 173,
-          language: 'en',
-          reportType: 'content_error',
-          description: 'First report with enough description.',
-        }),
-      }, env)
+        env,
+      )
 
       // Same type again
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Duplicate report type attempt.',
+          }),
         },
-        body: JSON.stringify({
-          scpNumber: 173,
-          language: 'en',
-          reportType: 'content_error',
-          description: 'Duplicate report type attempt.',
-        }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(409)
     })
   })
@@ -225,32 +259,44 @@ describe('Reports & Tags Integration', () => {
       const { env, token } = await setupAdmin()
 
       // Create
-      const createRes = await app.request('/api/admin/tags/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const createRes = await app.request(
+        '/api/admin/tags/categories',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ id: 'test-cat', name: '测试', name_en: 'Test' }),
         },
-        body: JSON.stringify({ id: 'test-cat', name: '测试', name_en: 'Test' }),
-      }, env)
+        env,
+      )
       expect(createRes.status).toBe(201)
 
       // Update
-      const updateRes = await app.request('/api/admin/tags/categories/test-cat', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const updateRes = await app.request(
+        '/api/admin/tags/categories/test-cat',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name: 'Updated' }),
         },
-        body: JSON.stringify({ name: 'Updated' }),
-      }, env)
+        env,
+      )
       expect(updateRes.status).toBe(200)
 
       // Delete
-      const deleteRes = await app.request('/api/admin/tags/categories/test-cat', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const deleteRes = await app.request(
+        '/api/admin/tags/categories/test-cat',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(deleteRes.status).toBe(200)
     })
 
@@ -261,21 +307,34 @@ describe('Reports & Tags Integration', () => {
       await db._seedTagCategory('test-cat', 'Test', 'Test')
 
       // Create tag
-      const createRes = await app.request('/api/admin/tags', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const createRes = await app.request(
+        '/api/admin/tags',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            id: 'test-tag',
+            category_id: 'test-cat',
+            name: 'Test Tag',
+            name_zh: '测试标签',
+          }),
         },
-        body: JSON.stringify({ id: 'test-tag', category_id: 'test-cat', name: 'Test Tag', name_zh: '测试标签' }),
-      }, env)
+        env,
+      )
       expect(createRes.status).toBe(201)
 
       // Delete tag
-      const deleteRes = await app.request('/api/admin/tags/test-tag', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const deleteRes = await app.request(
+        '/api/admin/tags/test-tag',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(deleteRes.status).toBe(200)
     })
 
@@ -288,14 +347,18 @@ describe('Reports & Tags Integration', () => {
       db._seedTag('euclid', 'object-class', 'Euclid', 'Euclid')
 
       // Assign tags
-      const res = await app.request('/api/admin/tags/entry/173', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/admin/tags/entry/173',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ tag_ids: ['safe', 'euclid'], language: 'en' }),
         },
-        body: JSON.stringify({ tag_ids: ['safe', 'euclid'], language: 'en' }),
-      }, env)
+        env,
+      )
       const body = await parseJson(res)
       expect(res.status).toBe(200)
       expect(body.added).toBe(2)
@@ -312,10 +375,14 @@ describe('Reports & Tags Integration', () => {
       db._seedTagCategory('object-class', 'Object Class', 'Object Class')
       db._seedTag('safe', 'object-class', 'Safe', '安全')
 
-      const res = await app.request('/api/admin/tags/stats', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/tags/stats',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await parseJson(res)
       expect(res.status).toBe(200)
       expect(body.stats.totalCategories).toBeDefined()

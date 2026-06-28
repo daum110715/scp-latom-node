@@ -59,7 +59,7 @@ const classVariant = (c: string) => {
     Secret: 'thaumiel',
     'Top Secret': 'apollyon',
   }
-  return (map[c] || 'default') as any
+  return (map[c] || 'default') as 'default' | 'safe' | 'euclid' | 'keter' | 'thaumiel' | 'apollyon'
 }
 
 function openDoc(doc: Document) {
@@ -78,8 +78,8 @@ function renderMarkdown(md: string): string {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>')
-    .replace(/^\- (.*$)/gm, '<li>$1</li>')
+    .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+    .replace(/^- (.*$)/gm, '<li>$1</li>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/^/, '<p>')
     .replace(/$/, '</p>')
@@ -138,7 +138,9 @@ function renderMarkdown(md: string): string {
       >
         <div class="m-doc-accent"></div>
         <div class="m-doc-top">
-          <Badge :variant="classVariant(doc.classification)">{{ t(`classification.${doc.classification}`) }}</Badge>
+          <Badge :variant="classVariant(doc.classification)">{{
+            t(`classification.${doc.classification}`)
+          }}</Badge>
           <span class="m-doc-type">
             <span class="m-type-icon">{{ typeIcon[doc.type] }}</span>
             {{ t(`documents.types.${doc.type}`) }}
@@ -164,7 +166,14 @@ function renderMarkdown(md: string): string {
         <div v-if="activeDoc" class="m-doc-overlay">
           <div class="m-doc-modal-header">
             <button class="m-doc-close" @click="closeDoc">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
@@ -180,11 +189,17 @@ function renderMarkdown(md: string): string {
           </div>
           <div class="m-doc-modal-body">
             <h2 class="m-doc-modal-title">{{ t(`docs.${activeDoc.id}.title`) }}</h2>
-            <div class="m-doc-modal-content" v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"></div>
+            <!-- eslint-disable vue/no-v-html -->
+            <div
+              class="m-doc-modal-content"
+              v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"
+            ></div>
             <div class="m-doc-modal-footer">
               <div class="m-footer-row">
                 <span class="m-footer-label">{{ t('documents.meta.classification') }}</span>
-                <span class="m-footer-value">{{ t(`classification.${activeDoc.classification}`) }}</span>
+                <span class="m-footer-value">{{
+                  t(`classification.${activeDoc.classification}`)
+                }}</span>
               </div>
               <div class="m-footer-row">
                 <span class="m-footer-label">{{ t('documents.meta.lastUpdated') }}</span>
@@ -242,19 +257,40 @@ function renderMarkdown(md: string): string {
 }
 
 @keyframes m-orb-float {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(15px, -25px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(15px, -25px);
+  }
 }
 
 /* ═══ Animations ═══ */
-.fade-up-1 { animation: fade-up 500ms var(--ease-out-expo) 200ms backwards; }
-.fade-up-2 { animation: fade-up 500ms var(--ease-out-expo) 300ms backwards; }
-.fade-up-3 { animation: fade-up 500ms var(--ease-out-expo) 400ms backwards; }
-.fade-up-4 { animation: fade-up 500ms var(--ease-out-expo) 500ms backwards; }
-.fade-up-5 { animation: fade-up 500ms var(--ease-out-expo) 600ms backwards; }
-.fade-up-6 { animation: fade-up 500ms var(--ease-out-expo) 700ms backwards; }
-.fade-up-7 { animation: fade-up 500ms var(--ease-out-expo) 800ms backwards; }
-.fade-up-8 { animation: fade-up 500ms var(--ease-out-expo) 900ms backwards; }
+.fade-up-1 {
+  animation: fade-up 500ms var(--ease-out-expo) 200ms backwards;
+}
+.fade-up-2 {
+  animation: fade-up 500ms var(--ease-out-expo) 300ms backwards;
+}
+.fade-up-3 {
+  animation: fade-up 500ms var(--ease-out-expo) 400ms backwards;
+}
+.fade-up-4 {
+  animation: fade-up 500ms var(--ease-out-expo) 500ms backwards;
+}
+.fade-up-5 {
+  animation: fade-up 500ms var(--ease-out-expo) 600ms backwards;
+}
+.fade-up-6 {
+  animation: fade-up 500ms var(--ease-out-expo) 700ms backwards;
+}
+.fade-up-7 {
+  animation: fade-up 500ms var(--ease-out-expo) 800ms backwards;
+}
+.fade-up-8 {
+  animation: fade-up 500ms var(--ease-out-expo) 900ms backwards;
+}
 
 /* ═══ Hero ═══ */
 .m-docs-hero {
@@ -284,7 +320,12 @@ function renderMarkdown(md: string): string {
 }
 
 .m-title-main {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--color-primary) 50%,
+    var(--color-accent) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

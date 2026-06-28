@@ -10,7 +10,12 @@ const TEST_SECRET = 'test-admin-dashboard-secret'
 function createMockDB() {
   const responses: Record<string, any> = {
     users: { count: 150 },
-    entriesByLanguage: { results: [{ language: 'en', count: 7999 }, { language: 'cn', count: 5200 }] },
+    entriesByLanguage: {
+      results: [
+        { language: 'en', count: 7999 },
+        { language: 'cn', count: 5200 },
+      ],
+    },
     entriesByClass: { results: [{ object_class: 'Safe', count: 2500 }] },
     proposalsByStatus: { results: [{ status: 'open', count: 10 }] },
     newUsers: { count: 3 },
@@ -21,7 +26,17 @@ function createMockDB() {
   }
 
   let callIndex = 0
-  const callOrder = ['users', 'entriesByLanguage', 'entriesByClass', 'proposalsByStatus', 'newUsers', 'newProposals', 'newVotes', 'errors', 'errorRate']
+  const callOrder = [
+    'users',
+    'entriesByLanguage',
+    'entriesByClass',
+    'proposalsByStatus',
+    'newUsers',
+    'newProposals',
+    'newVotes',
+    'errors',
+    'errorRate',
+  ]
 
   return {
     prepare: (sql: string) => {
@@ -88,10 +103,14 @@ describe('Admin Dashboard Routes', () => {
 
     it('returns stats for admin users', async () => {
       const token = await signAdminToken()
-      const res = await app.request('/api/admin/stats', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, createEnv())
+      const res = await app.request(
+        '/api/admin/stats',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        createEnv(),
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)

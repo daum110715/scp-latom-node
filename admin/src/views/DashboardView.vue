@@ -16,7 +16,7 @@ onMounted(() => dashboard.fetchStats())
     </div>
 
     <div v-if="dashboard.loading && !dashboard.stats" class="loading-state">
-      <div class="skeleton" v-for="i in 4" :key="i" style="height: 120px" />
+      <div v-for="i in 4" :key="i" class="skeleton" style="height: 120px" />
     </div>
 
     <div v-else-if="dashboard.error" class="error-state">
@@ -28,11 +28,7 @@ onMounted(() => dashboard.fetchStats())
     <template v-else-if="dashboard.stats">
       <!-- Stats Cards -->
       <div class="stats-grid">
-        <StatsCard
-          label="Total Personnel"
-          :value="dashboard.stats.totalUsers"
-          icon="◉"
-        />
+        <StatsCard label="Total Personnel" :value="dashboard.stats.totalUsers" icon="◉" />
         <StatsCard
           label="Total Entries"
           :value="(dashboard.stats.entriesByLanguage || []).reduce((s, e) => s + e.count, 0)"
@@ -40,7 +36,9 @@ onMounted(() => dashboard.fetchStats())
         />
         <StatsCard
           label="Open Proposals"
-          :value="(dashboard.stats.proposalsByStatus || []).find(p => p.status === 'open')?.count || 0"
+          :value="
+            (dashboard.stats.proposalsByStatus || []).find((p) => p.status === 'open')?.count || 0
+          "
           icon="◇"
         />
         <StatsCard
@@ -59,19 +57,27 @@ onMounted(() => dashboard.fetchStats())
           <div class="activity-list">
             <div class="activity-item">
               <span class="activity-label">New users today</span>
-              <span class="activity-value">{{ dashboard.stats.recentActivity?.newUsersToday || 0 }}</span>
+              <span class="activity-value">{{
+                dashboard.stats.recentActivity?.newUsersToday || 0
+              }}</span>
             </div>
             <div class="activity-item">
               <span class="activity-label">New proposals today</span>
-              <span class="activity-value">{{ dashboard.stats.recentActivity?.newProposalsToday || 0 }}</span>
+              <span class="activity-value">{{
+                dashboard.stats.recentActivity?.newProposalsToday || 0
+              }}</span>
             </div>
             <div class="activity-item">
               <span class="activity-label">Votes today</span>
-              <span class="activity-value">{{ dashboard.stats.recentActivity?.newVotesToday || 0 }}</span>
+              <span class="activity-value">{{
+                dashboard.stats.recentActivity?.newVotesToday || 0
+              }}</span>
             </div>
             <div class="activity-item">
               <span class="activity-label">Error rate (7d)</span>
-              <span class="activity-value">{{ dashboard.stats.logErrorRate?.rate?.toFixed(1) || 0 }}%</span>
+              <span class="activity-value"
+                >{{ dashboard.stats.logErrorRate?.rate?.toFixed(1) || 0 }}%</span
+              >
             </div>
           </div>
         </div>
@@ -81,7 +87,11 @@ onMounted(() => dashboard.fetchStats())
             <span class="admin-card-title">Entries by Language</span>
           </div>
           <div class="activity-list">
-            <div v-for="entry in (dashboard.stats.entriesByLanguage || [])" :key="entry.language" class="activity-item">
+            <div
+              v-for="entry in dashboard.stats.entriesByLanguage || []"
+              :key="entry.language"
+              class="activity-item"
+            >
               <span class="activity-label">{{ entry.language.toUpperCase() }}</span>
               <span class="activity-value">{{ entry.count.toLocaleString() }}</span>
             </div>
@@ -93,12 +103,18 @@ onMounted(() => dashboard.fetchStats())
             <span class="admin-card-title">Proposals by Status</span>
           </div>
           <div class="activity-list">
-            <div v-for="p in (dashboard.stats.proposalsByStatus || [])" :key="p.status" class="activity-item">
+            <div
+              v-for="p in dashboard.stats.proposalsByStatus || []"
+              :key="p.status"
+              class="activity-item"
+            >
               <span class="badge" :class="`badge-${p.status}`">{{ p.status }}</span>
               <span class="activity-value">{{ p.count }}</span>
             </div>
             <div v-if="!(dashboard.stats.proposalsByStatus || []).length" class="activity-item">
-              <span class="activity-label" style="color: var(--text-tertiary)">No proposals yet</span>
+              <span class="activity-label" style="color: var(--text-tertiary)"
+                >No proposals yet</span
+              >
             </div>
           </div>
         </div>

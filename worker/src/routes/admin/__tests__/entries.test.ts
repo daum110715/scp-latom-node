@@ -22,11 +22,13 @@ const mockEntry = {
   updated_at: '2026-06-26',
 }
 
-function createMockDB(data: {
-  entries?: any[]
-  entry?: any
-  countResult?: { total: number }
-} = {}) {
+function createMockDB(
+  data: {
+    entries?: any[]
+    entry?: any
+    countResult?: { total: number }
+  } = {},
+) {
   const { entries = [], entry = null, countResult } = data
 
   return {
@@ -41,7 +43,8 @@ function createMockDB(data: {
         first: async (): Promise<any> => {
           if (sql.includes('COUNT(*)')) return countResult ?? { total: entries.length }
           if (sql.includes('SELECT * FROM scp_entries WHERE id = ?')) return entry
-          if (sql.includes('SELECT id FROM scp_entries WHERE id = ?')) return entry ? { id: entry.id } : null
+          if (sql.includes('SELECT id FROM scp_entries WHERE id = ?'))
+            return entry ? { id: entry.id } : null
           if (sql.includes('SELECT id, scp_number, language FROM scp_entries')) return entry
           return null
         },
@@ -63,10 +66,26 @@ function createMockDo(statusData?: any, crawlData?: any) {
       fetch: async (url: string, init?: RequestInit) => {
         const path = new URL(url).pathname
         if (path.includes('/status')) {
-          return new Response(JSON.stringify(statusData ?? { success: true, state: { status: 'idle', lastCrawl: Date.now(), totalEntries: 100 } }))
+          return new Response(
+            JSON.stringify(
+              statusData ?? {
+                success: true,
+                state: { status: 'idle', lastCrawl: Date.now(), totalEntries: 100 },
+              },
+            ),
+          )
         }
         if (path.includes('/crawl') && init?.method === 'POST') {
-          return new Response(JSON.stringify(crawlData ?? { success: true, language: 'en', message: 'Crawl triggered', state: { status: 'crawling' } }))
+          return new Response(
+            JSON.stringify(
+              crawlData ?? {
+                success: true,
+                language: 'en',
+                message: 'Crawl triggered',
+                state: { status: 'crawling' },
+              },
+            ),
+          )
         }
         return new Response(JSON.stringify({ success: true }))
       },
@@ -74,9 +93,19 @@ function createMockDo(statusData?: any, crawlData?: any) {
   }
 }
 
-function createEnv(dbOverrides?: Parameters<typeof createMockDB>[0], opts?: { doThrows?: boolean }): Env {
+function createEnv(
+  dbOverrides?: Parameters<typeof createMockDB>[0],
+  opts?: { doThrows?: boolean },
+): Env {
   const doFactory = opts?.doThrows
-    ? { idFromName: () => 'id' as any, get: () => ({ fetch: async () => { throw new Error('DO unavailable') } }) }
+    ? {
+        idFromName: () => 'id' as any,
+        get: () => ({
+          fetch: async () => {
+            throw new Error('DO unavailable')
+          },
+        }),
+      }
     : createMockDo()
 
   return {
@@ -120,10 +149,14 @@ describe('Admin Entry Routes', () => {
     it('returns paginated entries', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [mockEntry], countResult: { total: 1 } })
-      const res = await app.request('/api/admin/entries', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -133,30 +166,42 @@ describe('Admin Entry Routes', () => {
     it('supports search by number', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?q=173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?q=173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports language filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?language=en', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?language=en',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports object class filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?object_class=Keter', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?object_class=Keter',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
   })
@@ -165,10 +210,14 @@ describe('Admin Entry Routes', () => {
     it('returns entry detail', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.entry.scp_number).toBe(173)
@@ -177,20 +226,28 @@ describe('Admin Entry Routes', () => {
     it('returns 400 for invalid ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/entries/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: null })
-      const res = await app.request('/api/admin/entries/999', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/999',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -199,33 +256,45 @@ describe('Admin Entry Routes', () => {
     it('updates entry name', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: 'Updated Name' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: 'Updated Name' }),
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('rejects invalid object class', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ object_class: 'Invalid' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ object_class: 'Invalid' }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects when no fields provided', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({}),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -234,10 +303,14 @@ describe('Admin Entry Routes', () => {
     it('deletes an entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('deleted')
@@ -246,10 +319,14 @@ describe('Admin Entry Routes', () => {
     it('returns 404 for nonexistent entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: null })
-      const res = await app.request('/api/admin/entries/999', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/999',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -258,10 +335,14 @@ describe('Admin Entry Routes', () => {
     it('triggers refetch', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: { id: 1, scp_number: 173, language: 'en' } })
-      const res = await app.request('/api/admin/entries/1/refetch', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1/refetch',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('re-fetch triggered')
@@ -269,11 +350,18 @@ describe('Admin Entry Routes', () => {
 
     it('still succeeds when DO fetch fails', async () => {
       const token = await signAdminToken()
-      const env = createEnv({ entry: { id: 1, scp_number: 173, language: 'en' } }, { doThrows: true })
-      const res = await app.request('/api/admin/entries/1/refetch', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const env = createEnv(
+        { entry: { id: 1, scp_number: 173, language: 'en' } },
+        { doThrows: true },
+      )
+      const res = await app.request(
+        '/api/admin/entries/1/refetch',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('re-fetch triggered')
@@ -282,10 +370,14 @@ describe('Admin Entry Routes', () => {
     it('returns 404 for nonexistent entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: null })
-      const res = await app.request('/api/admin/entries/999/refetch', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/999/refetch',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -294,22 +386,30 @@ describe('Admin Entry Routes', () => {
     it('updates object class to a valid value', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: mockEntry })
-      const res = await app.request('/api/admin/entries/1', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ object_class: 'Keter' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/1',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ object_class: 'Keter' }),
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('returns 404 for nonexistent entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entry: null })
-      const res = await app.request('/api/admin/entries/999', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: 'Updated' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/999',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: 'Updated' }),
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -318,50 +418,70 @@ describe('Admin Entry Routes', () => {
     it('supports series filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?series=2', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?series=2',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports hasContent=true filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?hasContent=true', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?hasContent=true',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports hasContent=false filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?hasContent=false', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?hasContent=false',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports search by name', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?q=Sculpture', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?q=Sculpture',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores invalid language filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ entries: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/entries?language=xx', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries?language=xx',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
   })
@@ -370,10 +490,14 @@ describe('Admin Entry Routes', () => {
     it('triggers crawl for English', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/entries/crawl/en', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/crawl/en',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -382,20 +506,28 @@ describe('Admin Entry Routes', () => {
     it('triggers crawl for Chinese', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/entries/crawl/cn', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/crawl/cn',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('rejects invalid language', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/entries/crawl/xx', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/crawl/xx',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<any>()
       expect(body.error).toContain('Invalid language')
@@ -412,10 +544,14 @@ describe('Admin Entry Routes', () => {
     it('returns crawl status for both languages', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/entries/crawl/status', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/entries/crawl/status',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)

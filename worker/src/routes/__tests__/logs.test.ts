@@ -49,7 +49,7 @@ describe('POST /api/logs', () => {
         }),
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.status).toBe(200)
@@ -70,7 +70,7 @@ describe('POST /api/logs', () => {
         body: JSON.stringify({}),
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.status).toBe(400)
@@ -90,7 +90,7 @@ describe('POST /api/logs', () => {
         body: JSON.stringify({ logs: [] }),
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.status).toBe(400)
@@ -107,7 +107,7 @@ describe('POST /api/logs', () => {
         body: 'not json',
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.status).toBe(400)
@@ -129,7 +129,7 @@ describe('POST /api/logs', () => {
         body: JSON.stringify({ logs }),
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.status).toBe(400)
@@ -153,7 +153,7 @@ describe('POST /api/logs', () => {
         }),
       }),
       undefined,
-      env
+      env,
     )
 
     const data = await res.json<{ received: number; persisted: number }>()
@@ -178,7 +178,7 @@ describe('POST /api/logs', () => {
         }),
       }),
       undefined,
-      env
+      env,
     )
 
     const data = await res.json<{ received: number; persisted: number }>()
@@ -202,7 +202,7 @@ describe('POST /api/logs', () => {
         }),
       }),
       undefined,
-      env
+      env,
     )
 
     const data = await res.json<{ received: number; persisted: number }>()

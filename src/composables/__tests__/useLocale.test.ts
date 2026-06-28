@@ -26,7 +26,7 @@ function mountWithLocale(initialLocale = 'en') {
         return () => ''
       },
     }),
-    { global: { plugins: [i18n] } }
+    { global: { plugins: [i18n] } },
   )
 
   return { wrapper, composable: composable!, i18n }

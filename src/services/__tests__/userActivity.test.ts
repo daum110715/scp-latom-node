@@ -76,9 +76,17 @@ describe('UserActivity Service', () => {
 
     it('recordHistory calls POST /history', async () => {
       mockApiPost.mockResolvedValueOnce({ ok: true, data: { success: true } } as any)
-      await recordHistory({ language: 'en', scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid' })
+      await recordHistory({
+        language: 'en',
+        scpNumber: 173,
+        name: 'The Sculpture',
+        objectClass: 'Euclid',
+      })
       expect(mockApiPost).toHaveBeenCalledWith('/history', {
-        language: 'en', scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid',
+        language: 'en',
+        scpNumber: 173,
+        name: 'The Sculpture',
+        objectClass: 'Euclid',
       })
     })
 

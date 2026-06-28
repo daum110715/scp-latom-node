@@ -37,14 +37,17 @@ const canSubmit = computed(() => {
   return description.value.trim().length >= 10 && !submitting.value && remainingSlots.value > 0
 })
 
-watch(() => props.open, (open) => {
-  if (open) {
-    reportType.value = 'content_error'
-    description.value = ''
-    error.value = ''
-    success.value = false
-  }
-})
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      reportType.value = 'content_error'
+      description.value = ''
+      error.value = ''
+      success.value = false
+    }
+  },
+)
 
 function close() {
   if (!submitting.value) {
@@ -96,8 +99,15 @@ function handleOverlayClick(e: MouseEvent) {
           <div class="report-header">
             <h3 class="report-title">{{ t('entry.report') }}</h3>
             <span class="report-scp-id">{{ scpId }}</span>
-            <button class="report-close" @click="close" :disabled="submitting">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="report-close" :disabled="submitting" @click="close">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -106,7 +116,14 @@ function handleOverlayClick(e: MouseEvent) {
 
           <!-- Success State -->
           <div v-if="success" class="report-success">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
@@ -162,14 +179,10 @@ function handleOverlayClick(e: MouseEvent) {
 
             <!-- Footer -->
             <div class="report-footer">
-              <button class="report-cancel" @click="close" :disabled="submitting">
+              <button class="report-cancel" :disabled="submitting" @click="close">
                 {{ t('auth.cancel') }}
               </button>
-              <button
-                class="report-submit"
-                :disabled="!canSubmit"
-                @click="handleSubmit"
-              >
+              <button class="report-submit" :disabled="!canSubmit" @click="handleSubmit">
                 <span v-if="submitting" class="report-spinner" />
                 {{ submitting ? t('entry.reportSubmitting') : t('entry.reportSubmit') }}
               </button>
@@ -429,7 +442,9 @@ function handleOverlayClick(e: MouseEvent) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fade-enter-active,

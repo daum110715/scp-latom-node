@@ -26,21 +26,32 @@ interface ParserConfig {
 // ─── English Configuration ──────────────────────────────────
 
 const EN_KNOWN_CLASSES = [
-  'Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon',
-  'Neutralized', 'Decommissioned', 'Uncontained', 'Esoteric', 'Pending', 'Explained',
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+  'Decommissioned',
+  'Uncontained',
+  'Esoteric',
+  'Pending',
+  'Explained',
 ] as const
 
 const EN_CONFIG: ParserConfig = {
   // Matches: <a href="/scp-173">SCP-173</a>
   // The SCP index page has: <a href="/scp-002">SCP-002</a> - The &quot;Living&quot; Room
   // Link text is just the number; name follows after </a>
-  linkPattern: /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z\-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
+  linkPattern:
+    /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
 
   // Index pages don't have Object Class info — only individual pages do
-  classPattern: /Object\s+Class\s*:\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
+  classPattern:
+    /Object\s+Class\s*:\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
 
   // Matches name inside link: "SCP-173 - The Sculpture"
-  nameFromLinkPattern: /^SCP-\d+[A-Za-z\-]*\s*[-–—:]\s*(.+)$/i,
+  nameFromLinkPattern: /^SCP-\d+[A-Za-z-]*\s*[-–—:]\s*(.+)$/i,
 
   // Matches name AFTER link: " - The &quot;Living&quot; Room" (stops at < or end)
   nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*<|$)/i,
@@ -52,39 +63,54 @@ const EN_CONFIG: ParserConfig = {
 // ─── Chinese Configuration ──────────────────────────────────
 
 const CN_KNOWN_CLASSES = [
-  'Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon',
-  'Neutralized', 'Decommissioned', 'Uncontained', 'Esoteric', 'Pending', 'Explained',
-  '已解除', '无效化', '未收容', '待分级', '已解释',
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+  'Decommissioned',
+  'Uncontained',
+  'Esoteric',
+  'Pending',
+  'Explained',
+  '已解除',
+  '无效化',
+  '未收容',
+  '待分级',
+  '已解释',
 ] as const
 
 const CN_CLASS_MAP: Record<string, string> = {
-  'safe': 'Safe',
-  'euclid': 'Euclid',
-  'keter': 'Keter',
-  'thaumiel': 'Thaumiel',
-  'apollyon': 'Apollyon',
-  'neutralized': 'Neutralized',
-  'decommissioned': 'Decommissioned',
-  'uncontained': 'Uncontained',
-  'esoteric': 'Esoteric',
-  'pending': 'Pending',
-  'explained': 'Explained',
-  '已解除': 'Neutralized',
-  '无效化': 'Neutralized',
-  '未收容': 'Uncontained',
-  '待分级': 'Pending',
-  '已解释': 'Explained',
+  safe: 'Safe',
+  euclid: 'Euclid',
+  keter: 'Keter',
+  thaumiel: 'Thaumiel',
+  apollyon: 'Apollyon',
+  neutralized: 'Neutralized',
+  decommissioned: 'Decommissioned',
+  uncontained: 'Uncontained',
+  esoteric: 'Esoteric',
+  pending: 'Pending',
+  explained: 'Explained',
+  已解除: 'Neutralized',
+  无效化: 'Neutralized',
+  未收容: 'Uncontained',
+  待分级: 'Pending',
+  已解释: 'Explained',
 }
 
 const CN_CONFIG: ParserConfig = {
   // Same link pattern — wikidot uses same HTML structure for CN
-  linkPattern: /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z\-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
+  linkPattern:
+    /<a\b[^>]*?\bhref="(?:https?:\/\/[^"]*?)?\/(scp-\d+[a-z-]*)"[^>]*?>([\s\S]*?)<\/a>/gi,
 
   // Index pages don't have Object Class info
-  classPattern: /等级[：:]\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|已解除|无效化|未收容|待分级|已解释|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
+  classPattern:
+    /等级[：:]\s*(?:<\/?\w[^>]*>)*\s*(Safe|Euclid|Keter|Thaumiel|Apollyon|Neutralized|已解除|无效化|未收容|待分级|已解释|Decommissioned|Uncontained|Esoteric|Pending|Explained)/gi,
 
   // Matches name inside link
-  nameFromLinkPattern: /^SCP-\d+[A-Za-z\-]*\s*[-–—:]\s*(.+)$/i,
+  nameFromLinkPattern: /^SCP-\d+[A-Za-z-]*\s*[-–—:]\s*(.+)$/i,
 
   // Matches name AFTER link, stops at < or end
   nameAfterLinkPattern: /^\s*[-–—:]\s*(.+?)(?:\s*<|$)/i,
@@ -243,7 +269,7 @@ export function parseScpIndexPage(html: string, options: ParserOptions): ParseRe
       // Link text is just the number — try text after the link
       const afterLink = html.slice(
         matchIndex + fullMatch.length,
-        matchIndex + fullMatch.length + 300
+        matchIndex + fullMatch.length + 300,
       )
       const nameAfterLink = afterLink.match(config.nameAfterLinkPattern)
       if (nameAfterLink) {
@@ -270,22 +296,20 @@ export function parseScpIndexPage(html: string, options: ParserOptions): ParseRe
  * List of known SCP index page slugs for each series.
  */
 export const SERIES_PAGES = [
-  'scp-series',      // Series 1: 001-999
-  'scp-series-2',    // Series 2: 1000-1999
-  'scp-series-3',    // Series 3: 2000-2999
-  'scp-series-4',    // Series 4: 3000-3999
-  'scp-series-5',    // Series 5: 4000-4999
-  'scp-series-6',    // Series 6: 5000-5999
-  'scp-series-7',    // Series 7: 6000-6999
-  'scp-series-8',    // Series 8: 7000-7999
+  'scp-series', // Series 1: 001-999
+  'scp-series-2', // Series 2: 1000-1999
+  'scp-series-3', // Series 3: 2000-2999
+  'scp-series-4', // Series 4: 3000-3999
+  'scp-series-5', // Series 5: 4000-4999
+  'scp-series-6', // Series 6: 5000-5999
+  'scp-series-7', // Series 7: 6000-6999
+  'scp-series-8', // Series 8: 7000-7999
 ] as const
 
 // ─── Object Class Map ───────────────────────────────────────
 
 /** Containment classes to fetch from wiki tag pages */
-const OBJECT_CLASSES = [
-  'safe', 'euclid', 'keter', 'thaumiel', 'apollyon', 'neutralized',
-] as const
+const OBJECT_CLASSES = ['safe', 'euclid', 'keter', 'thaumiel', 'apollyon', 'neutralized'] as const
 
 /** Map of tag slug → normalized class name */
 const TAG_CLASS_MAP: Record<string, string> = {
@@ -356,9 +380,7 @@ export interface BuildClassMapOptions {
  *
  * Errors are non-fatal — partial results are returned.
  */
-export async function buildClassMap(
-  options: BuildClassMapOptions,
-): Promise<Map<number, string>> {
+export async function buildClassMap(options: BuildClassMapOptions): Promise<Map<number, string>> {
   const { language, fetcher, timeoutMs = CLASS_MAP_FETCH_TIMEOUT_MS } = options
   const baseUrl = getWikiBaseUrl(language)
   const classMap = new Map<number, string>()
@@ -369,7 +391,10 @@ export async function buildClassMap(
     try {
       // Fetch first page to detect pagination
       const firstPage = await fetchPageLikeBrowser(tagUrl, {
-        baseUrl, language, fetcher, timeoutMs,
+        baseUrl,
+        language,
+        fetcher,
+        timeoutMs,
       })
 
       if (!firstPage.ok || !firstPage.html) continue
@@ -388,7 +413,10 @@ export async function buildClassMap(
         await new Promise((r) => setTimeout(r, humanDelay(CLASS_MAP_CRAWL_DELAY_MS)))
 
         const page = await fetchPageLikeBrowser(`${tagUrl}/p/${p}`, {
-          baseUrl, language, fetcher, timeoutMs,
+          baseUrl,
+          language,
+          fetcher,
+          timeoutMs,
         })
 
         if (!page.ok || !page.html) continue
@@ -450,9 +478,7 @@ export function extractObjectClassFromEntryPage(
  * Get the base URL for a wiki language.
  */
 export function getWikiBaseUrl(language: 'en' | 'cn'): string {
-  return language === 'cn'
-    ? 'https://scp-wiki-cn.wikidot.com'
-    : 'https://scp-wiki.wikidot.com'
+  return language === 'cn' ? 'https://scp-wiki-cn.wikidot.com' : 'https://scp-wiki.wikidot.com'
 }
 
 // ─── Entry Page HTML Cleaning ───────────────────────────────
@@ -470,7 +496,7 @@ const REMOVE_CLASSES = [
   'credits',
   'pager',
   'scp-image-block',
-  'collapsible-block-link',   // collapse toggle links (content kept)
+  'collapsible-block-link', // collapse toggle links (content kept)
   'yui-navset',
   'wiesel',
   'page-info',
@@ -486,10 +512,7 @@ const REMOVE_CLASSES = [
 function buildRemoveClassPattern(): RegExp {
   const classAlternation = REMOVE_CLASSES.join('|')
   // Match opening tags with class= containing any of the remove classes
-  return new RegExp(
-    `<\\w+[^>]*?\\bclass="[^"]*(?:${classAlternation})[^"]*"[^>]*>`,
-    'gi'
-  )
+  return new RegExp(`<\\w+[^>]*?\\bclass="[^"]*(?:${classAlternation})[^"]*"[^>]*>`, 'gi')
 }
 
 /**
@@ -549,11 +572,11 @@ function extractPageContent(html: string): string | null {
 function extractFooterSections(html: string): string {
   const sections: string[] = []
   // Match opening tags with licensebox or credits classes
-  const openPattern = /<(div|span|section|aside)[^>]*?\bclass="[^"]*(?:licensebox|credits)[^"]*"[^>]*/gi
+  const openPattern =
+    /<(div|span|section|aside)[^>]*?\bclass="[^"]*(?:licensebox|credits)[^"]*"[^>]*/gi
   let match: RegExpExecArray | null
 
   while ((match = openPattern.exec(html)) !== null) {
-    const fullOpen = match[0]
     const tag = match[1].toLowerCase()
     const startIdx = match.index
 
@@ -617,7 +640,11 @@ function extractFooterSections(html: string): string {
  * 7. Convert Wikidot SCP entry links to in-platform links
  * 8. Wrap in .scp-content container
  */
-export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | 'cn' = 'en'): string {
+export function cleanEntryHtml(
+  html: string,
+  baseUrl: string,
+  language: 'en' | 'cn' = 'en',
+): string {
   // 1. Extract page content
   let content = extractPageContent(html)
   if (!content) {
@@ -637,11 +664,17 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
   // 4. Remove elements with known non-content classes
   //    We do this by matching opening+content+closing tags for divs/spans with those classes.
   //    This is a best-effort regex approach (no DOM parser in Workers).
-  const removePattern = buildRemoveClassPattern()
+  const _removePattern = buildRemoveClassPattern()
   // Remove self-closing or simple elements with those classes
-  content = content.replace(/<\w+[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*\/>/gi, '')
+  content = content.replace(
+    /<\w+[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*\/>/gi,
+    '',
+  )
   // Remove block-level elements with those classes (greedy removal up to next matching close tag)
-  content = content.replace(/<(?:div|span|section|aside|nav)[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*>[\s\S]*?<\/(?:div|span|section|aside|nav)>/gi, '')
+  content = content.replace(
+    /<(?:div|span|section|aside|nav)[^>]*?\bclass="[^"]*(?:page-rate-widget-box|edit-info|page-tags|comment_thread|comments-box|page-options-bottom|footer-wikiwalk-nav|licensebox|credits|pager|creditRate|rate-box-with-credit-button|page-info|buttons)[^"]*"[^>]*>[\s\S]*?<\/(?:div|span|section|aside|nav)>/gi,
+    '',
+  )
 
   // 5. Remove on* event handler attributes
   content = content.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
@@ -651,11 +684,15 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
 
   // 7. Neutralize dangerous URL protocols in href/src/action attributes
   //    Prevents javascript:, data:, and vbscript: XSS vectors
-  content = content.replace(/\b(href|src|action)\s*=\s*(?:"(javascript|data|vbscript):[^"]*"|'(javascript|data|vbscript):[^']*')/gi,
-    (_match, attr) => `${attr}=""`)
+  content = content.replace(
+    /\b(href|src|action)\s*=\s*(?:"(javascript|data|vbscript):[^"]*"|'(javascript|data|vbscript):[^']*')/gi,
+    (_match, attr) => `${attr}=""`,
+  )
   // Also handle unquoted values (rare but possible in malformed HTML)
-  content = content.replace(/\b(href|src|action)\s*=\s*((?:javascript|data|vbscript):[^\s>]+)/gi,
-    (_match, attr) => `${attr}=""`)
+  content = content.replace(
+    /\b(href|src|action)\s*=\s*((?:javascript|data|vbscript):[^\s>]+)/gi,
+    (_match, attr) => `${attr}=""`,
+  )
 
   // 8. Convert relative URLs to absolute
   content = content.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)

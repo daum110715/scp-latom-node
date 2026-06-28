@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
-import type { JwtPayload, Env } from '../types'
+import type { JwtPayload } from '../types'
 
 const ALG = 'HS256'
 const EXPIRY = '24h'

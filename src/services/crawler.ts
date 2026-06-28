@@ -88,9 +88,7 @@ export function fetchCrawlerOverallStatus(): Promise<ApiResult<CrawlerOverallSta
 /**
  * Get crawl status for a specific language.
  */
-export function fetchCrawlerStatus(
-  lang: 'en' | 'cn'
-): Promise<ApiResult<CrawlerStatusResponse>> {
+export function fetchCrawlerStatus(lang: 'en' | 'cn'): Promise<ApiResult<CrawlerStatusResponse>> {
   return apiGet<CrawlerStatusResponse>(`/crawler/${lang}/status`)
 }
 
@@ -99,7 +97,7 @@ export function fetchCrawlerStatus(
  */
 export function fetchCrawlerEntries(
   lang: 'en' | 'cn',
-  params?: CrawlerEntriesParams
+  params?: CrawlerEntriesParams,
 ): Promise<ApiResult<CrawlerEntriesResponse>> {
   const searchParams = new URLSearchParams()
   if (params?.class) searchParams.set('class', params.class)
@@ -118,7 +116,7 @@ export function fetchCrawlerEntries(
  */
 export function fetchCrawlerSeries(
   lang: 'en' | 'cn',
-  series: number
+  series: number,
 ): Promise<ApiResult<CrawlerSeriesResponse>> {
   return apiGet<CrawlerSeriesResponse>(`/crawler/${lang}/series/${series}`)
 }
@@ -132,7 +130,7 @@ export function fetchCrawlerSeries(
  */
 export function fetchEntryContent(
   lang: 'en' | 'cn',
-  scpNumber: number
+  scpNumber: number,
 ): Promise<ApiResult<EntryContentResponse>> {
   return apiGet<EntryContentResponse>(`/crawler/${lang}/entry/${scpNumber}`)
 }

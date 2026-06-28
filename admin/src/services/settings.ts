@@ -7,7 +7,7 @@ export interface AdminSettings {
   }
   cors: string[]
   logLevel: string
-  crawlStates: any[]
+  crawlStates: unknown[]
   totals: {
     users: number
     entries: number

@@ -20,12 +20,8 @@ const visiblePages = computed(() => {
 </script>
 
 <template>
-  <div class="pagination" v-if="totalPages > 1">
-    <button
-      class="pagination-btn"
-      :disabled="page <= 1"
-      @click="emit('pageChange', page - 1)"
-    >
+  <div v-if="totalPages > 1" class="pagination">
+    <button class="pagination-btn" :disabled="page <= 1" @click="emit('pageChange', page - 1)">
       ←
     </button>
     <button

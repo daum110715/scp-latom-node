@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
 import { fetchEntryTags, TAG_CATEGORY_LABELS, type TagInfo } from '@/services/tags'
@@ -15,7 +15,6 @@ import type { ObjectClass } from '@/types'
 
 const { t } = useI18n()
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 const activityStore = useUserActivityStore()
 
@@ -48,9 +47,12 @@ function collapseFooterDetails() {
   })
 }
 
-watch(() => data.value?.content, (content) => {
-  if (content) collapseFooterDetails()
-})
+watch(
+  () => data.value?.content,
+  (content) => {
+    if (content) collapseFooterDetails()
+  },
+)
 
 async function loadContent() {
   loading.value = true
@@ -188,7 +190,14 @@ onUnmounted(() => {
   <div class="entry-view">
     <!-- Back Link -->
     <router-link to="/catalog" class="back-link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline points="15 18 9 12 15 6" />
       </svg>
       {{ t('entry.back') }}
@@ -202,9 +211,14 @@ onUnmounted(() => {
         <div class="skeleton skeleton-subtitle" />
       </div>
       <div class="skeleton-body">
-        <div v-for="i in 8" :key="i" class="skeleton skeleton-line" :style="{ width: `${60 + Math.random() * 40}%` }" />
+        <div
+          v-for="i in 8"
+          :key="i"
+          class="skeleton skeleton-line"
+          :style="{ width: `${60 + Math.random() * 40}%` }"
+        />
       </div>
-      <p class="loading-hint" v-if="data?.status === 'pending' || data?.status === 'fetching'">
+      <p v-if="data?.status === 'pending' || data?.status === 'fetching'" class="loading-hint">
         Fetching content from the SCP wiki…
       </p>
     </div>
@@ -216,7 +230,13 @@ onUnmounted(() => {
       <p class="error-message">{{ error }}</p>
       <div class="error-actions">
         <button class="retry-btn" @click="retry">Retry</button>
-        <a v-if="data?.status !== 'error'" :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`" target="_blank" rel="noopener noreferrer" class="external-link">
+        <a
+          v-if="data?.status !== 'error'"
+          :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="external-link"
+        >
           View on Wiki ↗
         </a>
       </div>
@@ -226,7 +246,11 @@ onUnmounted(() => {
     <template v-else-if="data">
       <div class="entry-header">
         <div class="entry-meta">
-          <ClassBar v-if="data.objectClass" :object-class="data.objectClass as ObjectClass" :show-label="true" />
+          <ClassBar
+            v-if="data.objectClass"
+            :object-class="data.objectClass as ObjectClass"
+            :show-label="true"
+          />
           <Badge v-if="data.objectClass" :variant="data.objectClass.toLowerCase() as any">
             {{ data.objectClass }}
           </Badge>
@@ -237,7 +261,14 @@ onUnmounted(() => {
               :title="t('entry.download')"
               @click="handleDownload"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -251,8 +282,17 @@ onUnmounted(() => {
               :title="bookmarked ? t('bookmarks.remove') : t('bookmarks.add')"
               @click="toggleBookmark"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" :fill="bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                :fill="bookmarked ? 'currentColor' : 'none'"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                />
               </svg>
             </button>
             <button
@@ -261,8 +301,17 @@ onUnmounted(() => {
               :title="t('entry.report')"
               @click="reportOpen = true"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                />
                 <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
@@ -295,15 +344,25 @@ onUnmounted(() => {
 
       <!-- Tags -->
       <div v-if="tags.length > 0" class="entry-tags">
-        <div v-for="category in Object.keys(TAG_CATEGORY_LABELS)" :key="category" class="tag-group" v-show="tags.some(t => t.categoryId === category)">
+        <div
+          v-for="category in Object.keys(TAG_CATEGORY_LABELS)"
+          v-show="tags.some((t) => t.categoryId === category)"
+          :key="category"
+          class="tag-group"
+        >
           <span class="tag-group-label" :style="{ color: TAG_CATEGORY_LABELS[category]?.color }">
-            {{ lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en }}
+            {{
+              lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en
+            }}
           </span>
           <span
-            v-for="tag in tags.filter(t => t.categoryId === category)"
+            v-for="tag in tags.filter((t) => t.categoryId === category)"
             :key="tag.id"
             class="tag-chip"
-            :style="{ borderColor: TAG_CATEGORY_LABELS[category]?.color, color: TAG_CATEGORY_LABELS[category]?.color }"
+            :style="{
+              borderColor: TAG_CATEGORY_LABELS[category]?.color,
+              color: TAG_CATEGORY_LABELS[category]?.color,
+            }"
           >
             {{ lang === 'cn' ? tag.nameZh : tag.name }}
           </span>
@@ -313,7 +372,8 @@ onUnmounted(() => {
         <span class="tag-skeleton" /><span class="tag-skeleton" /><span class="tag-skeleton" />
       </div>
 
-      <div class="entry-body" v-if="data.content" v-html="data.content" />
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div v-if="data.content" class="entry-body" v-html="data.content" />
 
       <ReportDialog
         :open="reportOpen"
@@ -555,8 +615,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ─── Error ─── */

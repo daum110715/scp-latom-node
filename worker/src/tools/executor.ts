@@ -27,7 +27,7 @@ interface ListByClassArgs {
 export async function executeTool(
   db: D1Database,
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<string> {
   try {
     switch (name) {
@@ -59,7 +59,7 @@ async function searchEntries(db: D1Database, args: SearchArgs): Promise<string> 
        FROM scp_entries
        WHERE language = ? AND name LIKE ?
        ORDER BY scp_number ASC
-       LIMIT ?`
+       LIMIT ?`,
     )
     .bind(language, `%${query}%`, cappedLimit)
     .all<{ scp_number: number; name: string; object_class: string }>()
@@ -86,7 +86,7 @@ async function getEntry(db: D1Database, args: GetEntryArgs): Promise<string> {
     .prepare(
       `SELECT scp_number, name, object_class, content
        FROM scp_entries
-       WHERE scp_number = ? AND language = ?`
+       WHERE scp_number = ? AND language = ?`,
     )
     .bind(scp_number, language)
     .first<{ scp_number: number; name: string; object_class: string; content: string | null }>()
@@ -123,13 +123,16 @@ async function listByClass(db: D1Database, args: ListByClassArgs): Promise<strin
        FROM scp_entries
        WHERE language = ? AND object_class = ?
        ORDER BY scp_number ASC
-       LIMIT ?`
+       LIMIT ?`,
     )
     .bind(language, object_class, cappedLimit)
     .all<{ scp_number: number; name: string; object_class: string }>()
 
   if (!rows.results.length) {
-    return JSON.stringify({ entries: [], message: `No ${object_class} entries found in ${language}.` })
+    return JSON.stringify({
+      entries: [],
+      message: `No ${object_class} entries found in ${language}.`,
+    })
   }
 
   return JSON.stringify({

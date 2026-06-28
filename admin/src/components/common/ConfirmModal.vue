@@ -27,7 +27,7 @@ const emit = defineEmits<{
             :disabled="loading"
             @click="emit('confirm')"
           >
-            {{ loading ? 'Processing...' : (confirmLabel || 'Confirm') }}
+            {{ loading ? 'Processing...' : confirmLabel || 'Confirm' }}
           </button>
         </div>
       </div>

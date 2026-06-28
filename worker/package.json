@@ -10,7 +10,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "ci": "npm run typecheck && npm run test",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{ts,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,json}\"",
+    "ci": "npm run typecheck && npm run lint && npm run test",
     "db:create": "wrangler d1 create scp-latom-node",
     "db:schema": "wrangler d1 execute scp-latom-node --file=schema.sql",
     "db:schema:local": "wrangler d1 execute scp-latom-node --local --file=schema.sql"
@@ -21,7 +25,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250620.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.1",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.62.0",
     "vitest": "^4.1.9",
     "wrangler": "^4.86.0"
   }

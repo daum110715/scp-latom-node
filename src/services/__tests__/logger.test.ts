@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { logger, setLogLevel, getLogLevel, clearLogBuffer, startLogFlusher, stopLogFlusher } from '../logger'
+import {
+  logger,
+  setLogLevel,
+  getLogLevel,
+  clearLogBuffer,
+  startLogFlusher,
+  stopLogFlusher,
+} from '../logger'
 
 // Mock global fetch
 const mockFetch = vi.fn()

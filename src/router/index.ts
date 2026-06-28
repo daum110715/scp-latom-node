@@ -4,21 +4,6 @@ import { useAuthStore } from '@/stores/auth'
 import { logger } from '@/services/logger'
 import DeviceView from '@/components/DeviceView.vue'
 
-function deviceRoute(
-  name: string,
-  desktop: () => Promise<any>,
-  mobile: () => Promise<any>,
-  meta: Record<string, any> = {}
-): RouteRecordRaw {
-  return {
-    path: meta.path || '/',
-    name,
-    component: DeviceView,
-    props: { desktop, mobile },
-    meta: { titleKey: meta.titleKey, ...meta },
-  }
-}
-
 const routes: RouteRecordRaw[] = [
   {
     path: '/',

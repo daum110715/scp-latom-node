@@ -4,7 +4,15 @@ import type { Env, AdminEntry } from '../../types'
 
 const entries = new Hono<{ Bindings: Env }>()
 
-const VALID_CLASSES = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized', 'Unknown'] as const
+const VALID_CLASSES = [
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+  'Unknown',
+] as const
 
 // GET /api/admin/entries
 // List entries with search/filter/pagination
@@ -35,7 +43,7 @@ entries.get('/', async (c) => {
     where += ' AND language = ?'
     params.push(language)
   }
-  if (objectClass && VALID_CLASSES.includes(objectClass as typeof VALID_CLASSES[number])) {
+  if (objectClass && VALID_CLASSES.includes(objectClass as (typeof VALID_CLASSES)[number])) {
     where += ' AND object_class = ?'
     params.push(objectClass)
   }
@@ -52,9 +60,9 @@ entries.get('/', async (c) => {
     where += ' AND content IS NULL'
   }
 
-  const countRow = await c.env.DB.prepare(
-    `SELECT COUNT(*) as total FROM scp_entries ${where}`
-  ).bind(...params).first<{ total: number }>()
+  const countRow = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM scp_entries ${where}`)
+    .bind(...params)
+    .first<{ total: number }>()
   const total = countRow?.total ?? 0
 
   const rows = await c.env.DB.prepare(
@@ -63,8 +71,10 @@ entries.get('/', async (c) => {
             content_fetched_at, content_error, created_at, updated_at
      FROM scp_entries ${where}
      ORDER BY scp_number ASC, language ASC
-     LIMIT ? OFFSET ?`
-  ).bind(...params, limit, offset).all()
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(...params, limit, offset)
+    .all()
 
   return c.json({
     success: true,
@@ -82,9 +92,9 @@ entries.get('/:id', async (c) => {
   const id = parseInt(c.req.param('id'), 10)
   if (isNaN(id)) return c.json({ success: false, error: 'Invalid entry ID' }, 400)
 
-  const entry = await c.env.DB.prepare(
-    'SELECT * FROM scp_entries WHERE id = ?'
-  ).bind(id).first<AdminEntry>()
+  const entry = await c.env.DB.prepare('SELECT * FROM scp_entries WHERE id = ?')
+    .bind(id)
+    .first<AdminEntry>()
 
   if (!entry) return c.json({ success: false, error: 'Entry not found' }, 404)
 
@@ -104,24 +114,33 @@ entries.put('/:id', async (c) => {
   const entry = await c.env.DB.prepare('SELECT id FROM scp_entries WHERE id = ?').bind(id).first()
   if (!entry) return c.json({ success: false, error: 'Entry not found' }, 404)
 
-  if (objectClass && !VALID_CLASSES.includes(objectClass as typeof VALID_CLASSES[number])) {
-    return c.json({ success: false, error: `Invalid object class. Use: ${VALID_CLASSES.join(', ')}` }, 400)
+  if (objectClass && !VALID_CLASSES.includes(objectClass as (typeof VALID_CLASSES)[number])) {
+    return c.json(
+      { success: false, error: `Invalid object class. Use: ${VALID_CLASSES.join(', ')}` },
+      400,
+    )
   }
 
   const sets: string[] = []
   const params: unknown[] = []
 
-  if (name !== undefined) { sets.push('name = ?'); params.push(name) }
-  if (objectClass !== undefined) { sets.push('object_class = ?'); params.push(objectClass) }
+  if (name !== undefined) {
+    sets.push('name = ?')
+    params.push(name)
+  }
+  if (objectClass !== undefined) {
+    sets.push('object_class = ?')
+    params.push(objectClass)
+  }
 
   if (sets.length === 0) return c.json({ success: false, error: 'No fields to update' }, 400)
 
   sets.push("updated_at = datetime('now')")
   params.push(id)
 
-  await c.env.DB.prepare(
-    `UPDATE scp_entries SET ${sets.join(', ')} WHERE id = ?`
-  ).bind(...params).run()
+  await c.env.DB.prepare(`UPDATE scp_entries SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...params)
+    .run()
 
   const updated = await c.env.DB.prepare('SELECT * FROM scp_entries WHERE id = ?').bind(id).first()
   return c.json({ success: true, entry: updated })
@@ -149,15 +168,19 @@ entries.post('/:id/refetch', async (c) => {
   if (isNaN(id)) return c.json({ success: false, error: 'Invalid entry ID' }, 400)
 
   const entry = await c.env.DB.prepare(
-    'SELECT id, scp_number, language FROM scp_entries WHERE id = ?'
-  ).bind(id).first<{ id: number; scp_number: number; language: string }>()
+    'SELECT id, scp_number, language FROM scp_entries WHERE id = ?',
+  )
+    .bind(id)
+    .first<{ id: number; scp_number: number; language: string }>()
 
   if (!entry) return c.json({ success: false, error: 'Entry not found' }, 404)
 
   // Clear cached content
   await c.env.DB.prepare(
-    "UPDATE scp_entries SET content = NULL, content_fetched_at = NULL, content_error = NULL, updated_at = datetime('now') WHERE id = ?"
-  ).bind(id).run()
+    "UPDATE scp_entries SET content = NULL, content_fetched_at = NULL, content_error = NULL, updated_at = datetime('now') WHERE id = ?",
+  )
+    .bind(id)
+    .run()
 
   // Trigger re-fetch via Durable Object
   const ns = entry.language === 'en' ? c.env.SCP_EN_CRAWLER : c.env.SCP_CN_CRAWLER
@@ -166,9 +189,16 @@ entries.post('/:id/refetch', async (c) => {
 
   try {
     await stub.fetch(`https://do.scp/${entry.language}/entry/${entry.scp_number}`)
-    logger.info('Entry content refetch triggered', { entryId: id, scpNumber: entry.scp_number, language: entry.language })
+    logger.info('Entry content refetch triggered', {
+      entryId: id,
+      scpNumber: entry.scp_number,
+      language: entry.language,
+    })
   } catch (err) {
-    logger.error('Failed to trigger refetch', { entryId: id, error: err instanceof Error ? err.message : String(err) })
+    logger.error('Failed to trigger refetch', {
+      entryId: id,
+      error: err instanceof Error ? err.message : String(err),
+    })
   }
 
   return c.json({ success: true, message: 'Content cleared and re-fetch triggered' })

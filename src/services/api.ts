@@ -14,7 +14,14 @@ function buildHeaders(token?: string): Record<string, string> {
 }
 
 /** Log a non-OK response using the same thresholds as `request`. */
-function logResponse(method: string, path: string, status: number, error: string, duration: number, requestId: string | null): void {
+function logResponse(
+  method: string,
+  path: string,
+  status: number,
+  error: string,
+  duration: number,
+  requestId: string | null,
+): void {
   if (status >= 500) {
     logger.error(`API ${method} ${path} → ${status}`, { status, error, duration })
   } else if (status >= 400) {
@@ -46,7 +53,7 @@ async function requestStream(
   method: string,
   path: string,
   body?: unknown,
-  token?: string
+  token?: string,
 ): Promise<StreamResult> {
   const headers = buildHeaders(token)
   const start = Date.now()
@@ -75,8 +82,15 @@ async function requestStream(
     return { ok: true, response: res }
   } catch (e) {
     const duration = Date.now() - start
-    logger.error(`API ${method} ${path} network error`, { error: e instanceof Error ? e.message : String(e), duration })
-    return { ok: false, error: e instanceof Error ? e.message : resolveErrorMessage(ErrorCode.NETWORK), code: ErrorCode.NETWORK }
+    logger.error(`API ${method} ${path} network error`, {
+      error: e instanceof Error ? e.message : String(e),
+      duration,
+    })
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : resolveErrorMessage(ErrorCode.NETWORK),
+      code: ErrorCode.NETWORK,
+    }
   }
 }
 
@@ -84,7 +98,7 @@ async function request<T = unknown>(
   method: string,
   path: string,
   body?: unknown,
-  token?: string
+  token?: string,
 ): Promise<ApiResult<T>> {
   const headers = buildHeaders(token)
   const start = Date.now()
@@ -109,7 +123,10 @@ async function request<T = unknown>(
     return result
   } catch (e) {
     const duration = Date.now() - start
-    logger.error(`API ${method} ${path} network error`, { error: e instanceof Error ? e.message : String(e), duration })
+    logger.error(`API ${method} ${path} network error`, {
+      error: e instanceof Error ? e.message : String(e),
+      duration,
+    })
     return networkError(e instanceof Error ? e.message : undefined)
   }
 }

@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+.wrangler
+*.sql
+*.md
+package-lock.json

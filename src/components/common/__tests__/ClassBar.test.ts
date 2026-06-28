@@ -3,7 +3,14 @@ import { mount } from '@vue/test-utils'
 import ClassBar from '../ClassBar.vue'
 import type { ObjectClass } from '@/types'
 
-const ALL_CLASSES: ObjectClass[] = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
+const ALL_CLASSES: ObjectClass[] = [
+  'Safe',
+  'Euclid',
+  'Keter',
+  'Thaumiel',
+  'Apollyon',
+  'Neutralized',
+]
 
 describe('ClassBar', () => {
   it.each(ALL_CLASSES)('renders indicator for %s class', (objectClass) => {

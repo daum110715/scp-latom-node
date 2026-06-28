@@ -7,13 +7,15 @@ import type { Env, JwtPayload } from '../../../types'
 
 const TEST_SECRET = 'test-admin-logs-secret'
 
-function createMockDB(data: {
-  logRows?: any[]
-  log?: any
-  countResult?: { total: number }
-  stats?: { byLevel: any[]; bySource: any[]; byCategory: any[]; errorRate: any }
-  deleteCount?: { count: number }
-} = {}) {
+function createMockDB(
+  data: {
+    logRows?: any[]
+    log?: any
+    countResult?: { total: number }
+    stats?: { byLevel: any[]; bySource: any[]; byCategory: any[]; errorRate: any }
+    deleteCount?: { count: number }
+  } = {},
+) {
   const { logRows = [], log = null, countResult, stats, deleteCount } = data
 
   return {
@@ -26,9 +28,11 @@ function createMockDB(data: {
           return stmt
         },
         first: async (): Promise<any> => {
-          if (sql.includes('COUNT(*)') && sql.includes('WHERE timestamp <')) return deleteCount ?? { count: 0 }
+          if (sql.includes('COUNT(*)') && sql.includes('WHERE timestamp <'))
+            return deleteCount ?? { count: 0 }
           if (sql.includes('COUNT(*)')) return countResult ?? { total: logRows.length }
-          if (sql.includes('SUM(CASE WHEN level')) return stats?.errorRate ?? { total: 0, errors: 0 }
+          if (sql.includes('SUM(CASE WHEN level'))
+            return stats?.errorRate ?? { total: 0, errors: 0 }
           if (sql.includes('SELECT * FROM system_logs WHERE id')) return log
           return null
         },
@@ -87,11 +91,18 @@ describe('Admin Log Routes', () => {
   describe('GET /api/admin/logs', () => {
     it('returns paginated logs', async () => {
       const token = await signAdminToken()
-      const env = createEnv({ logRows: [{ id: 1, level: 'error', message: 'Test error' }], countResult: { total: 1 } })
-      const res = await app.request('/api/admin/logs', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const env = createEnv({
+        logRows: [{ id: 1, level: 'error', message: 'Test error' }],
+        countResult: { total: 1 },
+      })
+      const res = await app.request(
+        '/api/admin/logs',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -101,140 +112,196 @@ describe('Admin Log Routes', () => {
     it('supports level filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?level=error', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?level=error',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports source filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?source=client', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?source=client',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports search query', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?q=error', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?q=error',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports category filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?category=auth', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?category=auth',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports userId filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?userId=1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?userId=1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores non-numeric userId', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?userId=abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?userId=abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports from date filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?from=2026-01-01', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?from=2026-01-01',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports to date filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?to=2026-12-31', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?to=2026-12-31',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports from and to date range', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?from=2026-01-01&to=2026-06-30', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?from=2026-01-01&to=2026-06-30',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports sort by level', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?sort=level', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?sort=level',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports ascending order', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?order=asc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?order=asc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('defaults to timestamp sort descending', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores invalid level filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?level=invalid', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?level=invalid',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores invalid source filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ logRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/logs?source=invalid', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs?source=invalid',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
   })
@@ -250,10 +317,14 @@ describe('Admin Log Routes', () => {
           errorRate: { total: 100, errors: 10 },
         },
       })
-      const res = await app.request('/api/admin/logs/stats', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs/stats',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.stats.byLevel).toBeDefined()
@@ -265,10 +336,14 @@ describe('Admin Log Routes', () => {
     it('returns a single log entry', async () => {
       const token = await signAdminToken()
       const env = createEnv({ log: { id: 1, level: 'error', message: 'Test' } })
-      const res = await app.request('/api/admin/logs/1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs/1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.log.id).toBe(1)
@@ -277,20 +352,28 @@ describe('Admin Log Routes', () => {
     it('returns 400 for invalid ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/logs/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent log', async () => {
       const token = await signAdminToken()
       const env = createEnv({ log: null })
-      const res = await app.request('/api/admin/logs/999', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs/999',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -299,10 +382,14 @@ describe('Admin Log Routes', () => {
     it('deletes old logs', async () => {
       const token = await signAdminToken()
       const env = createEnv({ deleteCount: { count: 50 } })
-      const res = await app.request('/api/admin/logs/cleanup?days=30', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/logs/cleanup?days=30',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.deleted).toBe(50)

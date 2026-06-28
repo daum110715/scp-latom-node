@@ -16,11 +16,13 @@ interface ApiResponse {
   totalPages?: number
 }
 
-function createMockDB(data: {
-  historyRows?: any[]
-  countResult?: { total: number }
-  existingEntry?: any
-} = {}) {
+function createMockDB(
+  data: {
+    historyRows?: any[]
+    countResult?: { total: number }
+    existingEntry?: any
+  } = {},
+) {
   const { historyRows = [], countResult, existingEntry } = data
 
   return {
@@ -88,11 +90,15 @@ describe('History Routes', () => {
     })
 
     it('returns 401 without token on POST /', async () => {
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: 'en', scpNumber: 173 }),
-      }, createEnv())
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: 'en', scpNumber: 173 }),
+        },
+        createEnv(),
+      )
       expect(res.status).toBe(401)
     })
 
@@ -106,14 +112,34 @@ describe('History Routes', () => {
     it('returns paginated history entries', async () => {
       const token = await signTestToken()
       const rows = [
-        { id: 1, user_id: 1, language: 'en', scp_number: 173, name: 'The Sculpture', object_class: 'Euclid', visited_at: '2026-06-26T00:00:00' },
-        { id: 2, user_id: 1, language: 'en', scp_number: 999, name: 'Tickle Monster', object_class: 'Safe', visited_at: '2026-06-25T00:00:00' },
+        {
+          id: 1,
+          user_id: 1,
+          language: 'en',
+          scp_number: 173,
+          name: 'The Sculpture',
+          object_class: 'Euclid',
+          visited_at: '2026-06-26T00:00:00',
+        },
+        {
+          id: 2,
+          user_id: 1,
+          language: 'en',
+          scp_number: 999,
+          name: 'Tickle Monster',
+          object_class: 'Safe',
+          visited_at: '2026-06-25T00:00:00',
+        },
       ]
       const env = createEnv({ historyRows: rows, countResult: { total: 2 } })
-      const res = await app.request('/api/history', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -125,10 +151,14 @@ describe('History Routes', () => {
     it('supports pagination parameters', async () => {
       const token = await signTestToken()
       const env = createEnv({ historyRows: [], countResult: { total: 100 } })
-      const res = await app.request('/api/history?page=2&limit=10', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history?page=2&limit=10',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.page).toBe(2)
@@ -139,10 +169,14 @@ describe('History Routes', () => {
     it('supports language filter', async () => {
       const token = await signTestToken()
       const env = createEnv({ historyRows: [], countResult: { total: 0 } })
-      const res = await app.request('/api/history?lang=cn', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history?lang=cn',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
       const body = await res.json<ApiResponse>()
       expect(body.success).toBe(true)
@@ -153,11 +187,20 @@ describe('History Routes', () => {
     it('records a history entry', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ language: 'en', scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid' }),
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            language: 'en',
+            scpNumber: 173,
+            name: 'The Sculpture',
+            objectClass: 'Euclid',
+          }),
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -166,11 +209,15 @@ describe('History Routes', () => {
     it('rejects invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ language: 'fr', scpNumber: 173 }),
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ language: 'fr', scpNumber: 173 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<ApiResponse>()
       expect(body.success).toBe(false)
@@ -180,22 +227,30 @@ describe('History Routes', () => {
     it('rejects missing language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173 }),
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ scpNumber: 173 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects invalid scpNumber', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ language: 'en', scpNumber: 0 }),
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ language: 'en', scpNumber: 0 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('positive integer')
@@ -204,11 +259,15 @@ describe('History Routes', () => {
     it('rejects missing scpNumber', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ language: 'en' }),
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ language: 'en' }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -217,10 +276,14 @@ describe('History Routes', () => {
     it('deletes a history entry', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingEntry: { id: 1 } })
-      const res = await app.request('/api/history/1', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history/1',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -229,10 +292,14 @@ describe('History Routes', () => {
     it('returns 400 for invalid id', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history/abc', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history/abc',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('Invalid id')
@@ -241,10 +308,14 @@ describe('History Routes', () => {
     it('returns 404 when entry not found', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingEntry: null })
-      const res = await app.request('/api/history/999', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history/999',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -253,10 +324,14 @@ describe('History Routes', () => {
     it('clears all history', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/history', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/history',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)

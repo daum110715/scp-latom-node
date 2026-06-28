@@ -13,9 +13,7 @@ const LANG_KEY = 'scp-crawler-lang'
 export const useCrawlerStore = defineStore('crawler', () => {
   // ─── State ──────────────────────────────────────────────
 
-  const language = ref<'en' | 'cn'>(
-    (localStorage.getItem(LANG_KEY) as 'en' | 'cn') || 'en'
-  )
+  const language = ref<'en' | 'cn'>((localStorage.getItem(LANG_KEY) as 'en' | 'cn') || 'en')
   const entries = ref<CrawlEntry[]>([])
   const state = ref<CrawlState | null>(null)
   const loading = ref(false)

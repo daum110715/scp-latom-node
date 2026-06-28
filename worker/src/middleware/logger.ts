@@ -29,9 +29,10 @@ export function requestLogger(env: Env) {
     const method = c.req.method
     const path = c.req.path
     const userAgent = c.req.header('user-agent') ?? undefined
-    const ip = c.req.header('cf-connecting-ip')
-      ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
-      ?? undefined
+    const ip =
+      c.req.header('cf-connecting-ip') ??
+      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
+      undefined
 
     // Create request-scoped logger and attach to context
     const reqLogger = baseLogger.child({

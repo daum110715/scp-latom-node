@@ -19,11 +19,13 @@ function fromHex(hex: string): Uint8Array {
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<ArrayBuffer> {
   const enc = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, [
+    'deriveBits',
+  ])
   return crypto.subtle.deriveBits(
     { name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
-    HASH_LEN * 8
+    HASH_LEN * 8,
   )
 }
 

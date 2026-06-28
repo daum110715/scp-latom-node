@@ -93,7 +93,9 @@ function shouldLog(level: LogLevel): boolean {
 
 function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
   // Console output — always for warn/error, level-filtered for debug/info
-  const consoleFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.debug
+  const consoleFn =
+    // eslint-disable-next-line no-console
+    level === 'error' ? console.error : level === 'warn' ? console.warn : console.debug
   if (level === 'warn' || level === 'error' || shouldLog(level)) {
     if (context) {
       consoleFn(`[${level.toUpperCase()}] ${message}`, context)
@@ -182,7 +184,6 @@ export function startLogFlusher(): void {
   window.addEventListener('beforeunload', () => {
     if (buffer.length > 0) {
       // Use sendBeacon for reliable delivery during unload
-      const token = localStorage.getItem('scp-auth-token')
       const blob = new Blob([JSON.stringify({ logs: buffer })], { type: 'application/json' })
       navigator.sendBeacon(`${API_URL}/logs`, blob)
       buffer = []

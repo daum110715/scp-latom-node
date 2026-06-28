@@ -19,14 +19,22 @@ const mockProposal = {
   author_codename: 'test_agent',
 }
 
-function createMockDB(data: {
-  proposals?: any[]
-  proposal?: any
-  countResult?: { total: number }
-  voteCounts?: { vfor: number; against: number; abstain: number }
-  voters?: any[]
-} = {}) {
-  const { proposals = [], proposal = null, countResult, voteCounts = { vfor: 0, against: 0, abstain: 0 }, voters = [] } = data
+function createMockDB(
+  data: {
+    proposals?: any[]
+    proposal?: any
+    countResult?: { total: number }
+    voteCounts?: { vfor: number; against: number; abstain: number }
+    voters?: any[]
+  } = {},
+) {
+  const {
+    proposals = [],
+    proposal = null,
+    countResult,
+    voteCounts = { vfor: 0, against: 0, abstain: 0 },
+    voters = [],
+  } = data
 
   return {
     prepare: (sql: string) => {
@@ -41,7 +49,8 @@ function createMockDB(data: {
           if (sql.includes('COUNT(*)')) return countResult ?? { total: proposals.length }
           if (sql.includes('SUM(CASE WHEN vote')) return voteCounts
           if (sql.includes('WHERE p.id = ?')) return proposal
-          if (sql.includes('SELECT id FROM proposals WHERE id = ?')) return proposal ? { id: proposal.id } : null
+          if (sql.includes('SELECT id FROM proposals WHERE id = ?'))
+            return proposal ? { id: proposal.id } : null
           return null
         },
         all: async (): Promise<{ results: any[] }> => {
@@ -98,10 +107,14 @@ describe('Admin Proposal Routes', () => {
     it('returns paginated proposals', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [mockProposal], countResult: { total: 1 } })
-      const res = await app.request('/api/admin/proposals', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -111,50 +124,70 @@ describe('Admin Proposal Routes', () => {
     it('supports status filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/proposals?status=approved', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals?status=approved',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports category filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/proposals?category=research', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals?category=research',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports userId filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/proposals?userId=1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals?userId=1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores invalid category filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/proposals?category=invalid', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals?category=invalid',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('ignores non-numeric userId filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposals: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/proposals?userId=abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals?userId=abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
@@ -173,10 +206,14 @@ describe('Admin Proposal Routes', () => {
         voteCounts: { vfor: 5, against: 2, abstain: 1 },
         voters: [{ vote: 'for', created_at: '2026-06-26', codename: 'voter1' }],
       })
-      const res = await app.request('/api/admin/proposals/1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.proposal.voters).toHaveLength(1)
@@ -185,20 +222,28 @@ describe('Admin Proposal Routes', () => {
     it('returns 400 for invalid ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/proposals/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent proposal', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: null })
-      const res = await app.request('/api/admin/proposals/999', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/999',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -207,11 +252,15 @@ describe('Admin Proposal Routes', () => {
     it('updates proposal status to approved', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: mockProposal })
-      const res = await app.request('/api/admin/proposals/1/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'approved' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1/status',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: 'approved' }),
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('approved')
@@ -220,11 +269,15 @@ describe('Admin Proposal Routes', () => {
     it('updates proposal status to rejected', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: mockProposal })
-      const res = await app.request('/api/admin/proposals/1/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'rejected' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1/status',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: 'rejected' }),
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('rejected')
@@ -233,33 +286,45 @@ describe('Admin Proposal Routes', () => {
     it('rejects invalid status', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/proposals/1/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'invalid' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1/status',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: 'invalid' }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects empty status', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/proposals/1/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: '' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1/status',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: '' }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent proposal', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: null })
-      const res = await app.request('/api/admin/proposals/999/status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'approved' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/999/status',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: 'approved' }),
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -268,10 +333,14 @@ describe('Admin Proposal Routes', () => {
     it('deletes a proposal', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: mockProposal })
-      const res = await app.request('/api/admin/proposals/1', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/1',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('deleted')
@@ -280,10 +349,14 @@ describe('Admin Proposal Routes', () => {
     it('returns 404 for nonexistent proposal', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: null })
-      const res = await app.request('/api/admin/proposals/999', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/proposals/999',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })

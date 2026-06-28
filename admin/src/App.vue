@@ -8,7 +8,10 @@ import { computed } from 'vue'
 const auth = useAuthStore()
 const route = useRoute()
 
-const showShell = computed(() => auth.isAuthenticated && auth.isAdmin && route.name !== 'login' && route.name !== 'unauthorized')
+const showShell = computed(
+  () =>
+    auth.isAuthenticated && auth.isAdmin && route.name !== 'login' && route.name !== 'unauthorized',
+)
 </script>
 
 <template>

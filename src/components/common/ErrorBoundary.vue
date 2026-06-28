@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ErrorCode } from '@/services/errors'
 import { logger } from '@/services/logger'
 
-const props = withDefaults(defineProps<{
-  fallbackCode?: ErrorCode
-}>(), {
-  fallbackCode: ErrorCode.RENDER_CRASH,
-})
+const props = withDefaults(
+  defineProps<{
+    fallbackCode?: ErrorCode
+  }>(),
+  {
+    fallbackCode: ErrorCode.RENDER_CRASH,
+  },
+)
 
 const { t } = useI18n()
 const route = useRoute()
-const router = useRouter()
 
 const hasError = ref(false)
 const errorCode = ref<ErrorCode>(props.fallbackCode)
@@ -29,12 +31,15 @@ onErrorCaptured((err: Error) => {
   return false
 })
 
-watch(() => route.fullPath, () => {
-  if (hasError.value) {
-    hasError.value = false
-    errorMessage.value = ''
-  }
-})
+watch(
+  () => route.fullPath,
+  () => {
+    if (hasError.value) {
+      hasError.value = false
+      errorMessage.value = ''
+    }
+  },
+)
 
 function handleRetry() {
   hasError.value = false
@@ -133,27 +138,68 @@ function handleRetry() {
 }
 
 @keyframes glitch {
-  0%, 85%, 100% { transform: none; opacity: 1; }
-  86% { transform: skewX(4deg) translateX(3px); opacity: 0.85; }
-  87% { transform: skewX(-3deg) translateX(-2px); opacity: 0.9; }
-  88% { transform: skewX(2deg) translateX(1px); opacity: 0.95; }
-  89% { transform: none; opacity: 1; }
+  0%,
+  85%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+  86% {
+    transform: skewX(4deg) translateX(3px);
+    opacity: 0.85;
+  }
+  87% {
+    transform: skewX(-3deg) translateX(-2px);
+    opacity: 0.9;
+  }
+  88% {
+    transform: skewX(2deg) translateX(1px);
+    opacity: 0.95;
+  }
+  89% {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 @keyframes glitch-1 {
-  0%, 85%, 100% { transform: translate(0); }
-  86% { transform: translate(-4px, -2px); }
-  87% { transform: translate(3px, 1px); }
-  88% { transform: translate(-1px, -1px); }
-  89% { transform: translate(0); }
+  0%,
+  85%,
+  100% {
+    transform: translate(0);
+  }
+  86% {
+    transform: translate(-4px, -2px);
+  }
+  87% {
+    transform: translate(3px, 1px);
+  }
+  88% {
+    transform: translate(-1px, -1px);
+  }
+  89% {
+    transform: translate(0);
+  }
 }
 
 @keyframes glitch-2 {
-  0%, 85%, 100% { transform: translate(0); }
-  86% { transform: translate(3px, 2px); }
-  87% { transform: translate(-2px, -1px); }
-  88% { transform: translate(1px, 1px); }
-  89% { transform: translate(0); }
+  0%,
+  85%,
+  100% {
+    transform: translate(0);
+  }
+  86% {
+    transform: translate(3px, 2px);
+  }
+  87% {
+    transform: translate(-2px, -1px);
+  }
+  88% {
+    transform: translate(1px, 1px);
+  }
+  89% {
+    transform: translate(0);
+  }
 }
 
 .scanline {
@@ -175,8 +221,12 @@ function handleRetry() {
 }
 
 @keyframes scanline-move {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
 }
 
 .error-content {
@@ -209,8 +259,15 @@ function handleRetry() {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--color-danger); }
-  50% { opacity: 0.4; box-shadow: 0 0 8px var(--color-danger); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px var(--color-danger);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 8px var(--color-danger);
+  }
 }
 
 .error-content h1 {
@@ -277,7 +334,7 @@ function handleRetry() {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transform: translateX(-100%);
   transition: transform 600ms ease;
 }

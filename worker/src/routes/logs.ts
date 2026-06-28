@@ -56,14 +56,15 @@ logs.post('/', async (c) => {
   }
 
   const userAgent = c.req.header('user-agent') ?? undefined
-  const ip = c.req.header('cf-connecting-ip')
-    ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? undefined
+  const ip =
+    c.req.header('cf-connecting-ip') ??
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
+    undefined
 
   let persisted = 0
 
   for (const entry of body.logs) {
-    const level = entry.level as typeof VALID_LEVELS[number]
+    const level = entry.level as (typeof VALID_LEVELS)[number]
     if (!VALID_LEVELS.includes(level)) continue
     if (typeof entry.message !== 'string' || entry.message.length === 0) continue
     if (entry.message.length > 2000) continue // cap message length

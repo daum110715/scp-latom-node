@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchAdminLogs, fetchLogStats, cleanupLogs, type AdminLogEntry, type LogStats } from '@/services/logs'
+import {
+  fetchAdminLogs,
+  fetchLogStats,
+  cleanupLogs,
+  type AdminLogEntry,
+  type LogStats,
+} from '@/services/logs'
 
 export const useLogsStore = defineStore('logs', () => {
   const logs = ref<AdminLogEntry[]>([])
@@ -76,9 +82,25 @@ export const useLogsStore = defineStore('logs', () => {
   }
 
   return {
-    logs, total, page, limit, totalPages, loading, error,
-    levelFilter, sourceFilter, categoryFilter, searchQuery, stats,
-    fetchLogs, fetchStats, cleanup,
-    setPage, setLevelFilter, setSourceFilter, setCategoryFilter, setSearch,
+    logs,
+    total,
+    page,
+    limit,
+    totalPages,
+    loading,
+    error,
+    levelFilter,
+    sourceFilter,
+    categoryFilter,
+    searchQuery,
+    stats,
+    fetchLogs,
+    fetchStats,
+    cleanup,
+    setPage,
+    setLevelFilter,
+    setSourceFilter,
+    setCategoryFilter,
+    setSearch,
   }
 })

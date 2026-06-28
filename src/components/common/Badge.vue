@@ -1,6 +1,15 @@
 <script setup lang="ts">
 defineProps<{
-  variant?: 'default' | 'safe' | 'euclid' | 'keter' | 'thaumiel' | 'apollyon' | 'neutralized' | 'info' | 'danger'
+  variant?:
+    | 'default'
+    | 'safe'
+    | 'euclid'
+    | 'keter'
+    | 'thaumiel'
+    | 'apollyon'
+    | 'neutralized'
+    | 'info'
+    | 'danger'
 }>()
 </script>
 
@@ -31,7 +40,7 @@ defineProps<{
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   transform: translateX(-100%);
   transition: transform 600ms ease;
 }

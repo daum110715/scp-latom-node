@@ -6,7 +6,7 @@ import type { EntryContentResponse } from './crawler'
 export function downloadEntry(
   scpNumber: number,
   lang: 'en' | 'cn',
-  data: EntryContentResponse
+  data: EntryContentResponse,
 ): void {
   const scpId = `SCP-${String(scpNumber).padStart(3, '0')}`
   const title = data.name ? `${scpId} — ${data.name}` : scpId
@@ -140,7 +140,7 @@ function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#039;',
   }
-  return text.replace(/[&<>"']/g, c => map[c])
+  return text.replace(/[&<>"']/g, (c) => map[c])
 }
 
 /**

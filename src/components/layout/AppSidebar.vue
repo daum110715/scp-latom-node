@@ -25,7 +25,10 @@ const navItems = [
         :key="item.path"
         :to="item.path"
         class="nav-item"
-        :class="{ active: route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path)) }"
+        :class="{
+          active:
+            route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path)),
+        }"
         :title="collapsed ? t(item.labelKey) : undefined"
         :style="{ animationDelay: `${index * 50 + 200}ms` }"
       >
@@ -55,8 +58,8 @@ const navItems = [
 
     <button
       class="collapse-btn"
-      @click="toggle"
       :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+      @click="toggle"
     >
       <svg
         width="16"
@@ -80,7 +83,9 @@ const navItems = [
       :key="item.path"
       :to="item.path"
       class="mobile-nav-item"
-      :class="{ active: route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path)) }"
+      :class="{
+        active: route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path)),
+      }"
     >
       <span class="mobile-nav-icon">{{ item.icon }}</span>
       <span class="mobile-nav-label">{{ t(item.labelKey) }}</span>
@@ -256,7 +261,8 @@ const navItems = [
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 4px var(--color-success);
   }
   50% {

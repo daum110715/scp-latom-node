@@ -51,7 +51,11 @@ export const useProposalsStore = defineStore('proposals', () => {
     }
   }
 
-  async function submitProposal(data: { title: string; content: string; category: string }): Promise<boolean> {
+  async function submitProposal(data: {
+    title: string
+    content: string
+    category: string
+  }): Promise<boolean> {
     creating.value = true
     error.value = ''
     const res = await createProposal(data)
@@ -66,7 +70,10 @@ export const useProposalsStore = defineStore('proposals', () => {
     return false
   }
 
-  async function vote(proposalId: number, voteType: 'for' | 'against' | 'abstain'): Promise<boolean> {
+  async function vote(
+    proposalId: number,
+    voteType: 'for' | 'against' | 'abstain',
+  ): Promise<boolean> {
     error.value = ''
     const res = await voteProposal(proposalId, voteType)
 

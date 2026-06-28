@@ -20,11 +20,15 @@ describe('Auth Flow Integration', () => {
       const env = createIntegrationEnv(db)
 
       // Step 1: Register
-      const regRes = await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'integration_agent', password: 'securepass123' }),
-      }, env)
+      const regRes = await app.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'integration_agent', password: 'securepass123' }),
+        },
+        env,
+      )
       const regBody = await parseJson(regRes)
       expect(regRes.status).toBe(201)
       expect(regBody.success).toBe(true)
@@ -36,21 +40,29 @@ describe('Auth Flow Integration', () => {
       const token = regBody.token
 
       // Step 2: Access protected route with token
-      const meRes = await app.request('/api/auth/me', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const meRes = await app.request(
+        '/api/auth/me',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const meBody = await parseJson(meRes)
       expect(meRes.status).toBe(200)
       expect(meBody.success).toBe(true)
       expect(meBody.user.codename).toBe('integration_agent')
 
       // Step 3: Login with same credentials
-      const loginRes = await app.request('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'integration_agent', password: 'securepass123' }),
-      }, env)
+      const loginRes = await app.request(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'integration_agent', password: 'securepass123' }),
+        },
+        env,
+      )
       const loginBody = await parseJson(loginRes)
       expect(loginRes.status).toBe(200)
       expect(loginBody.success).toBe(true)
@@ -61,18 +73,26 @@ describe('Auth Flow Integration', () => {
       const env = createIntegrationEnv(db)
 
       // Register first user
-      await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'taken_name', password: 'password123' }),
-      }, env)
+      await app.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'taken_name', password: 'password123' }),
+        },
+        env,
+      )
 
       // Try same codename
-      const res = await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'taken_name', password: 'password456' }),
-      }, env)
+      const res = await app.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'taken_name', password: 'password456' }),
+        },
+        env,
+      )
       const body = await parseJson(res)
       expect(res.status).toBe(409)
       expect(body.error).toContain('already taken')
@@ -82,18 +102,26 @@ describe('Auth Flow Integration', () => {
       const env = createIntegrationEnv(db)
 
       // Register
-      await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'test_agent', password: 'password123' }),
-      }, env)
+      await app.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'test_agent', password: 'password123' }),
+        },
+        env,
+      )
 
       // Login with wrong password
-      const res = await app.request('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'test_agent', password: 'wrongpassword' }),
-      }, env)
+      const res = await app.request(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'test_agent', password: 'wrongpassword' }),
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
   })
@@ -101,11 +129,15 @@ describe('Auth Flow Integration', () => {
   describe('Profile Update Flow', () => {
     async function setupAuthenticatedUser() {
       const env = createIntegrationEnv(db)
-      const regRes = await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'profile_user', password: 'password123' }),
-      }, env)
+      const regRes = await app.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'profile_user', password: 'password123' }),
+        },
+        env,
+      )
       const regBody = await parseJson(regRes)
       return { env, token: regBody.token }
     }
@@ -113,14 +145,18 @@ describe('Auth Flow Integration', () => {
     it('updates codename', async () => {
       const { env, token } = await setupAuthenticatedUser()
 
-      const res = await app.request('/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        '/api/auth/profile',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ codename: 'new_codename' }),
         },
-        body: JSON.stringify({ codename: 'new_codename' }),
-      }, env)
+        env,
+      )
       const body = await parseJson(res)
       expect(res.status).toBe(200)
       expect(body.user.codename).toBe('new_codename')
@@ -130,33 +166,45 @@ describe('Auth Flow Integration', () => {
       const { env, token } = await setupAuthenticatedUser()
 
       // Change password
-      const updateRes = await app.request('/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const updateRes = await app.request(
+        '/api/auth/profile',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ password: 'password123', newPassword: 'newpassword456' }),
         },
-        body: JSON.stringify({ password: 'password123', newPassword: 'newpassword456' }),
-      }, env)
+        env,
+      )
       expect(updateRes.status).toBe(200)
 
       // Login with new password
-      const loginRes = await app.request('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'profile_user', password: 'newpassword456' }),
-      }, env)
+      const loginRes = await app.request(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'profile_user', password: 'newpassword456' }),
+        },
+        env,
+      )
       expect(loginRes.status).toBe(200)
     })
 
     it('rejects profile update without authentication', async () => {
       const env = createIntegrationEnv(db)
 
-      const res = await app.request('/api/auth/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codename: 'new_name' }),
-      }, env)
+      const res = await app.request(
+        '/api/auth/profile',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codename: 'new_name' }),
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
   })
@@ -166,29 +214,41 @@ describe('Auth Flow Integration', () => {
       // We can't easily create an expired token in this test,
       // but we can test that an invalid token is rejected
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/auth/me', {
-        method: 'GET',
-        headers: { Authorization: 'Bearer invalid.token.here' },
-      }, env)
+      const res = await app.request(
+        '/api/auth/me',
+        {
+          method: 'GET',
+          headers: { Authorization: 'Bearer invalid.token.here' },
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
 
     it('rejects missing Bearer prefix', async () => {
       const env = createIntegrationEnv(db)
       const token = await signUserToken(1)
-      const res = await app.request('/api/auth/me', {
-        method: 'GET',
-        headers: { Authorization: token }, // Missing "Bearer "
-      }, env)
+      const res = await app.request(
+        '/api/auth/me',
+        {
+          method: 'GET',
+          headers: { Authorization: token }, // Missing "Bearer "
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
 
     it('rejects empty Authorization header', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/auth/me', {
-        method: 'GET',
-        headers: { Authorization: '' },
-      }, env)
+      const res = await app.request(
+        '/api/auth/me',
+        {
+          method: 'GET',
+          headers: { Authorization: '' },
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
   })
@@ -214,11 +274,15 @@ describe('Auth Flow Integration', () => {
 
     it('protects proposal creation', async () => {
       const env = createIntegrationEnv(db)
-      const res = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Test', content: 'Content here' }),
-      }, env)
+      const res = await app.request(
+        '/api/proposals',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Test', content: 'Content here' }),
+        },
+        env,
+      )
       expect(res.status).toBe(401)
     })
 

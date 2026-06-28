@@ -16,15 +16,24 @@ const mockUser = {
   updated_at: '2026-06-26T00:00:00',
 }
 
-function createMockDB(data: {
-  users?: any[]
-  user?: any
-  countResult?: { total: number }
-  activityCounts?: { history: number; bookmarks: number; proposals: number; votes: number }
-  historyRows?: any[]
-  bookmarkRows?: any[]
-} = {}) {
-  const { users = [], user = null, countResult, activityCounts, historyRows = [], bookmarkRows = [] } = data
+function createMockDB(
+  data: {
+    users?: any[]
+    user?: any
+    countResult?: { total: number }
+    activityCounts?: { history: number; bookmarks: number; proposals: number; votes: number }
+    historyRows?: any[]
+    bookmarkRows?: any[]
+  } = {},
+) {
+  const {
+    users = [],
+    user = null,
+    countResult,
+    activityCounts,
+    historyRows = [],
+    bookmarkRows = [],
+  } = data
 
   return {
     prepare: (sql: string) => {
@@ -51,7 +60,11 @@ function createMockDB(data: {
           if (sql.includes('COUNT(*)') && sql.includes('proposal_votes')) {
             return { count: activityCounts?.votes ?? 0 }
           }
-          if (sql.includes('SELECT id, codename, role, clearance, created_at, updated_at FROM users WHERE id = ?')) {
+          if (
+            sql.includes(
+              'SELECT id, codename, role, clearance, created_at, updated_at FROM users WHERE id = ?',
+            )
+          ) {
             return user
           }
           if (sql.includes('SELECT id, role FROM users WHERE id = ?')) {
@@ -113,11 +126,18 @@ describe('Admin User Routes', () => {
     })
 
     it('returns 403 for non-admin users', async () => {
-      const token = await signToken({ sub: 2, codename: 'user', role: 'personnel', clearance: 1 }, TEST_SECRET)
-      const res = await app.request('/api/admin/users', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, createEnv())
+      const token = await signToken(
+        { sub: 2, codename: 'user', role: 'personnel', clearance: 1 },
+        TEST_SECRET,
+      )
+      const res = await app.request(
+        '/api/admin/users',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        createEnv(),
+      )
       expect(res.status).toBe(403)
     })
   })
@@ -126,10 +146,14 @@ describe('Admin User Routes', () => {
     it('returns paginated user list', async () => {
       const token = await signAdminToken()
       const env = createEnv({ users: [mockUser], countResult: { total: 1 } })
-      const res = await app.request('/api/admin/users', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -140,20 +164,28 @@ describe('Admin User Routes', () => {
     it('supports search query', async () => {
       const token = await signAdminToken()
       const env = createEnv({ users: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/users?q=test', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users?q=test',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('supports role filter', async () => {
       const token = await signAdminToken()
       const env = createEnv({ users: [], countResult: { total: 0 } })
-      const res = await app.request('/api/admin/users?role=admin', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users?role=admin',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
   })
@@ -161,11 +193,18 @@ describe('Admin User Routes', () => {
   describe('GET /api/admin/users/:id', () => {
     it('returns user detail with activity counts', async () => {
       const token = await signAdminToken()
-      const env = createEnv({ user: mockUser, activityCounts: { history: 42, bookmarks: 5, proposals: 3, votes: 10 } })
-      const res = await app.request('/api/admin/users/1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const env = createEnv({
+        user: mockUser,
+        activityCounts: { history: 42, bookmarks: 5, proposals: 3, votes: 10 },
+      })
+      const res = await app.request(
+        '/api/admin/users/1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -176,20 +215,28 @@ describe('Admin User Routes', () => {
     it('returns 400 for invalid ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: null })
-      const res = await app.request('/api/admin/users/999', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/999',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -198,11 +245,15 @@ describe('Admin User Routes', () => {
     it('updates user role', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser })
-      const res = await app.request('/api/admin/users/1/role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: 'researcher' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/role',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ role: 'researcher' }),
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -212,11 +263,15 @@ describe('Admin User Routes', () => {
     it('rejects invalid role', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/1/role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: '' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/role',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ role: '' }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -225,11 +280,15 @@ describe('Admin User Routes', () => {
     it('updates clearance level', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser })
-      const res = await app.request('/api/admin/users/1/clearance', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clearance: 3 }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/clearance',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clearance: 3 }),
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('3')
@@ -238,11 +297,15 @@ describe('Admin User Routes', () => {
     it('rejects clearance out of range', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/1/clearance', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clearance: 6 }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/clearance',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clearance: 6 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -251,10 +314,14 @@ describe('Admin User Routes', () => {
     it('bans a non-admin user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: { ...mockUser, role: 'personnel' } })
-      const res = await app.request('/api/admin/users/1/ban', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/ban',
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('banned')
@@ -263,10 +330,14 @@ describe('Admin User Routes', () => {
     it('rejects banning admin users', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: { ...mockUser, role: 'admin' } })
-      const res = await app.request('/api/admin/users/1/ban', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/ban',
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<any>()
       expect(body.error).toContain('admin')
@@ -277,10 +348,14 @@ describe('Admin User Routes', () => {
     it('unbans a user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser })
-      const res = await app.request('/api/admin/users/1/unban', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/unban',
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('unbanned')
@@ -291,10 +366,14 @@ describe('Admin User Routes', () => {
     it('deletes a non-admin user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: { ...mockUser, role: 'personnel' } })
-      const res = await app.request('/api/admin/users/1', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('deleted')
@@ -303,20 +382,28 @@ describe('Admin User Routes', () => {
     it('rejects deleting admin users', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: { ...mockUser, role: 'admin' } })
-      const res = await app.request('/api/admin/users/1', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: null })
-      const res = await app.request('/api/admin/users/999', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/999',
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -331,10 +418,14 @@ describe('Admin User Routes', () => {
           { id: 2, user_id: 1, scp_number: 682, language: 'en', visited_at: '2026-06-25' },
         ],
       })
-      const res = await app.request('/api/admin/users/1/history', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/history',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -344,20 +435,28 @@ describe('Admin User Routes', () => {
     it('returns 400 for invalid user ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/abc/history', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/abc/history',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns empty history for user with no visits', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser, historyRows: [] })
-      const res = await app.request('/api/admin/users/1/history', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/history',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.history).toHaveLength(0)
@@ -370,13 +469,24 @@ describe('Admin User Routes', () => {
       const env = createEnv({
         user: mockUser,
         bookmarkRows: [
-          { id: 1, user_id: 1, scp_number: 173, language: 'en', name: 'The Sculpture', object_class: 'Euclid' },
+          {
+            id: 1,
+            user_id: 1,
+            scp_number: 173,
+            language: 'en',
+            name: 'The Sculpture',
+            object_class: 'Euclid',
+          },
         ],
       })
-      const res = await app.request('/api/admin/users/1/bookmarks', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/bookmarks',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -386,10 +496,14 @@ describe('Admin User Routes', () => {
     it('returns 400 for invalid user ID', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/abc/bookmarks', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/abc/bookmarks',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })
@@ -399,11 +513,15 @@ describe('Admin User Routes', () => {
       const token = await signAdminToken()
       const env = createEnv()
       const longRole = 'a'.repeat(33)
-      const res = await app.request('/api/admin/users/1/role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: longRole }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/role',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ role: longRole }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<any>()
       expect(body.error).toContain('32')
@@ -413,22 +531,30 @@ describe('Admin User Routes', () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser })
       const maxRole = 'a'.repeat(32)
-      const res = await app.request('/api/admin/users/1/role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: maxRole }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/role',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ role: maxRole }),
+        },
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
     it('returns 404 for nonexistent user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: null })
-      const res = await app.request('/api/admin/users/999/role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: 'researcher' }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/999/role',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ role: 'researcher' }),
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -437,33 +563,45 @@ describe('Admin User Routes', () => {
     it('rejects non-integer clearance', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/1/clearance', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clearance: 2.5 }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/clearance',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clearance: 2.5 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects negative clearance', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const res = await app.request('/api/admin/users/1/clearance', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clearance: -1 }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/1/clearance',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clearance: -1 }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 for nonexistent user', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: null })
-      const res = await app.request('/api/admin/users/999/clearance', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clearance: 3 }),
-      }, env)
+      const res = await app.request(
+        '/api/admin/users/999/clearance',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clearance: 3 }),
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })

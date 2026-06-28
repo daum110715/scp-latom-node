@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, nextTick } from 'vue'
+import { defineComponent } from 'vue'
 import { useDevice } from '../useDevice'
 
 function mountWithDevice() {
@@ -11,7 +11,7 @@ function mountWithDevice() {
         composable = useDevice()
         return () => ''
       },
-    })
+    }),
   )
   return { wrapper, composable: composable! }
 }

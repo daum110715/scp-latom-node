@@ -36,9 +36,10 @@ export function createIntegrationDB() {
     entry_tags: [],
     crawl_state: [],
     ai_conversations: [],
+    rate_limits: [],
   }
 
-  let nextId: Record<string, number> = {}
+  const nextId: Record<string, number> = {}
   for (const table of Object.keys(tables)) {
     nextId[table] = 1
   }
@@ -73,7 +74,11 @@ export function createIntegrationDB() {
     return null
   }
 
-  function parseWhere(sql: string, params: unknown[], paramOffset = 0): (row: StoredRow) => boolean {
+  function parseWhere(
+    sql: string,
+    params: unknown[],
+    paramOffset = 0,
+  ): (row: StoredRow) => boolean {
     const whereMatch = sql.match(/WHERE\s+(.+?)(?:\s+ORDER|\s+LIMIT|\s+GROUP|\s*$)/i)
     if (!whereMatch) return () => true
 
@@ -124,7 +129,7 @@ export function createIntegrationDB() {
           if (String(row[col]) > String(val)) return false
         } else if (inMatch) {
           const col = inMatch[1]
-          const placeholders = inMatch[2].split(',').map(s => s.trim())
+          const placeholders = inMatch[2].split(',').map((s) => s.trim())
           const values: unknown[] = []
           for (const p of placeholders) {
             if (p === '?') values.push(params[paramIndex++])
@@ -169,7 +174,7 @@ export function createIntegrationDB() {
 
             const colMatch = sql.match(/INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)
             if (colMatch) {
-              const cols = colMatch[1].split(',').map(s => s.trim())
+              const cols = colMatch[1].split(',').map((s) => s.trim())
               for (let i = 0; i < cols.length; i++) {
                 if (i < stmt._params.length) {
                   row[cols[i]] = stmt._params[i]
@@ -204,7 +209,7 @@ export function createIntegrationDB() {
                 const filter = parseWhere(sql, stmt._params, setParamCount)
                 for (const row of tables[table]) {
                   if (filter(row)) {
-                    const sets = setClause.split(',').map(s => s.trim())
+                    const sets = setClause.split(',').map((s) => s.trim())
                     let setParamIdx = 0
                     for (const set of sets) {
                       if (set.includes('?')) {
@@ -257,7 +262,18 @@ export function createIntegrationDB() {
           const filter = parseWhere(sql, stmt._params)
           let rows = tables[table].filter(filter)
           if (table === 'browsing_history' || table === 'bookmarks') {
-            console.log('[DEBUG ALL]', table, 'total:', tables[table].length, 'filtered:', rows.length, 'params:', stmt._params, 'sql:', sql.substring(0, 60))
+            console.log(
+              '[DEBUG ALL]',
+              table,
+              'total:',
+              tables[table].length,
+              'filtered:',
+              rows.length,
+              'params:',
+              stmt._params,
+              'sql:',
+              sql.substring(0, 60),
+            )
           }
 
           // ORDER BY
@@ -278,9 +294,7 @@ export function createIntegrationDB() {
           if (limitMatch) {
             const limitIdx = sql.substring(0, sql.indexOf('LIMIT')).split('?').length - 1
             const limit = stmt._params[limitIdx] as number
-            const offset = offsetMatch
-              ? (stmt._params[limitIdx + 1] as number) || 0
-              : 0
+            const offset = offsetMatch ? (stmt._params[limitIdx + 1] as number) || 0 : 0
             rows = rows.slice(offset, offset + limit)
           }
 
@@ -295,8 +309,10 @@ export function createIntegrationDB() {
             if (table) {
               const colMatch = sql.match(/INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)
               if (colMatch) {
-                const cols = colMatch[1].split(',').map(s => s.trim())
-                const valuesMatch = sql.match(/VALUES\s*\(([\s\S]+)\)\s*(?:ON\s+CONFLICT|RETURNING|$)/i)
+                const cols = colMatch[1].split(',').map((s) => s.trim())
+                const valuesMatch = sql.match(
+                  /VALUES\s*\(([\s\S]+)\)\s*(?:ON\s+CONFLICT|RETURNING|$)/i,
+                )
                 let paramIdx = 0
                 const colParamMap: Record<string, unknown> = {}
                 if (valuesMatch) {
@@ -323,19 +339,33 @@ export function createIntegrationDB() {
                       colParamMap[cols[i]] = new Date().toISOString()
                     }
                   }
-                  console.log('[DEBUG] values:', JSON.stringify(values), 'colParamMap:', JSON.stringify(colParamMap), 'params:', stmt._params.length)
+                  console.log(
+                    '[DEBUG] values:',
+                    JSON.stringify(values),
+                    'colParamMap:',
+                    JSON.stringify(colParamMap),
+                    'params:',
+                    stmt._params.length,
+                  )
                 }
                 const conflictMatch = sql.match(/ON\s+CONFLICT\s*\(([^)]+)\)/i)
                 if (conflictMatch) {
-                  const conflictCols = conflictMatch[1].split(',').map(s => s.trim())
-                  const existing = tables[table].find(r => {
-                    return conflictCols.every(col => r[col] == colParamMap[col])
+                  const conflictCols = conflictMatch[1].split(',').map((s) => s.trim())
+                  const existing = tables[table].find((r) => {
+                    return conflictCols.every((col) => r[col] == colParamMap[col])
                   })
-                  console.log('[DEBUG] conflictCols:', conflictCols, 'existing:', !!existing, 'tableRows:', tables[table].length)
+                  console.log(
+                    '[DEBUG] conflictCols:',
+                    conflictCols,
+                    'existing:',
+                    !!existing,
+                    'tableRows:',
+                    tables[table].length,
+                  )
                   if (existing) {
                     const setMatch = sql.match(/DO\s+UPDATE\s+SET\s+(.+?)$/i)
                     if (setMatch) {
-                      const sets = setMatch[1].split(',').map(s => s.trim())
+                      const sets = setMatch[1].split(',').map((s) => s.trim())
                       for (const set of sets) {
                         if (set.includes('excluded.')) {
                           const colMatch2 = set.match(/(\w+)\s*=\s*excluded\.(\w+)/)
@@ -360,13 +390,18 @@ export function createIntegrationDB() {
           }
 
           // INSERT without RETURNING
-          if (normalizedSql.includes('insert') && !normalizedSql.includes('returning') && !normalizedSql.includes('or ignore') && !normalizedSql.includes('on conflict')) {
+          if (
+            normalizedSql.includes('insert') &&
+            !normalizedSql.includes('returning') &&
+            !normalizedSql.includes('or ignore') &&
+            !normalizedSql.includes('on conflict')
+          ) {
             const table = matchTable(sql)
             if (table) {
               const row: StoredRow = { id: getNextId(table) }
               const colMatch = sql.match(/INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)
               if (colMatch) {
-                const cols = colMatch[1].split(',').map(s => s.trim())
+                const cols = colMatch[1].split(',').map((s) => s.trim())
                 let paramIdx = 0
                 for (let i = 0; i < cols.length; i++) {
                   if (paramIdx < stmt._params.length) {
@@ -386,13 +421,13 @@ export function createIntegrationDB() {
             if (table) {
               const colMatch = sql.match(/INSERT\s+OR\s+IGNORE\s+INTO\s+\w+\s*\(([^)]+)\)/i)
               if (colMatch) {
-                const cols = colMatch[1].split(',').map(s => s.trim())
+                const cols = colMatch[1].split(',').map((s) => s.trim())
                 const row: StoredRow = { id: getNextId(table) }
                 for (let i = 0; i < cols.length; i++) {
                   if (i < stmt._params.length) row[cols[i]] = stmt._params[i]
                 }
-                const existing = tables[table].find(r =>
-                  cols.every((col, i) => r[col] == (stmt._params[i]))
+                const existing = tables[table].find((r) =>
+                  cols.every((col, i) => r[col] == stmt._params[i]),
                 )
                 if (!existing) {
                   tables[table].push(row)
@@ -413,7 +448,7 @@ export function createIntegrationDB() {
                 if (filter(row)) {
                   const setMatch = sql.match(/SET\s+(.+?)\s+WHERE/i)
                   if (setMatch) {
-                    const sets = setMatch[1].split(',').map(s => s.trim())
+                    const sets = setMatch[1].split(',').map((s) => s.trim())
                     let setParamIdx = 0
                     for (const set of sets) {
                       if (set.includes('?')) {
@@ -443,7 +478,7 @@ export function createIntegrationDB() {
             if (table) {
               const filter = parseWhere(sql, stmt._params)
               const before = tables[table].length
-              tables[table] = tables[table].filter(row => !filter(row))
+              tables[table] = tables[table].filter((row) => !filter(row))
               const changes = before - tables[table].length
               return { meta: { changes } }
             }
@@ -486,12 +521,29 @@ export function createIntegrationDB() {
       return row
     },
     _seedTagCategory: (id: string, name: string, nameEn: string) => {
-      const row: StoredRow = { id, name, name_en: nameEn, description: '', sort_order: 0, created_at: new Date().toISOString() }
+      const row: StoredRow = {
+        id,
+        name,
+        name_en: nameEn,
+        description: '',
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+      }
       tables.tag_categories.push(row)
       return row
     },
     _seedTag: (id: string, categoryId: string, name: string, nameZh: string) => {
-      const row: StoredRow = { id, category_id: categoryId, name, name_zh: nameZh, description: '', ai_keywords: '[]', sort_order: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+      const row: StoredRow = {
+        id,
+        category_id: categoryId,
+        name,
+        name_zh: nameZh,
+        description: '',
+        ai_keywords: '[]',
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
       tables.tags.push(row)
       return row
     },
@@ -520,10 +572,21 @@ export function createIntegrationEnv(db: IntegrationDB, overrides?: Partial<Env>
         fetch: async (url: string) => {
           const path = new URL(url).pathname
           if (path.includes('/status')) {
-            return new Response(JSON.stringify({ status: 'idle', lastCrawl: Date.now(), totalEntries: 7999 }))
+            return new Response(
+              JSON.stringify({ status: 'idle', lastCrawl: Date.now(), totalEntries: 7999 }),
+            )
           }
           if (path.includes('/entries')) {
-            return new Response(JSON.stringify({ entries: [], total: 0, page: 1, limit: 50, totalPages: 0, state: { status: 'idle', lastCrawl: 0, totalEntries: 0 } }))
+            return new Response(
+              JSON.stringify({
+                entries: [],
+                total: 0,
+                page: 1,
+                limit: 50,
+                totalPages: 0,
+                state: { status: 'idle', lastCrawl: 0, totalEntries: 0 },
+              }),
+            )
           }
           return new Response(JSON.stringify({ success: true }))
         },
@@ -544,7 +607,20 @@ export function createIntegrationEnv(db: IntegrationDB, overrides?: Partial<Env>
     AI_QUEUE_DO: {
       idFromName: () => 'mock-id' as any,
       get: () => ({
-        fetch: async (url: string) => new Response(JSON.stringify({ success: true, conversationId: 'test-conv', message: { id: '1', role: 'assistant', content: 'Hello', createdAt: new Date().toISOString() }, title: 'Test' })),
+        fetch: async (_url: string) =>
+          new Response(
+            JSON.stringify({
+              success: true,
+              conversationId: 'test-conv',
+              message: {
+                id: '1',
+                role: 'assistant',
+                content: 'Hello',
+                createdAt: new Date().toISOString(),
+              },
+              title: 'Test',
+            }),
+          ),
       }),
     } as any,
     GLM_API_KEY: 'test-glm-key',
@@ -554,7 +630,12 @@ export function createIntegrationEnv(db: IntegrationDB, overrides?: Partial<Env>
 
 // ─── Token Helpers ──────────────────────────────────────────────
 
-export async function signUserToken(sub: number, codename = 'test_agent', role = 'personnel', clearance = 1) {
+export async function signUserToken(
+  sub: number,
+  codename = 'test_agent',
+  role = 'personnel',
+  clearance = 1,
+) {
   return signToken({ sub, codename, role, clearance }, TEST_SECRET)
 }
 

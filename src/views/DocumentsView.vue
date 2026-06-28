@@ -49,7 +49,8 @@ const filtered = computed(() => {
   }
   return [...list].sort((a, b) => {
     if (sortBy.value === 'date') return b.date.localeCompare(a.date)
-    if (sortBy.value === 'classification') return (classLevel[b.classification] || 0) - (classLevel[a.classification] || 0)
+    if (sortBy.value === 'classification')
+      return (classLevel[b.classification] || 0) - (classLevel[a.classification] || 0)
     return a.type.localeCompare(b.type)
   })
 })
@@ -62,7 +63,7 @@ const classVariant = (c: string) => {
     Secret: 'thaumiel',
     'Top Secret': 'apollyon',
   }
-  return (map[c] || 'default') as any
+  return (map[c] || 'default') as 'default' | 'safe' | 'euclid' | 'keter' | 'thaumiel' | 'apollyon'
 }
 
 function openDoc(doc: Document) {
@@ -81,8 +82,8 @@ function renderMarkdown(md: string): string {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>')
-    .replace(/^\- (.*$)/gm, '<li>$1</li>')
+    .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+    .replace(/^- (.*$)/gm, '<li>$1</li>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/^/, '<p>')
     .replace(/$/, '</p>')
@@ -129,7 +130,7 @@ function renderMarkdown(md: string): string {
       <div class="sort-group">
         <span class="sort-label">{{ t('documents.sortBy') }}</span>
         <button
-          v-for="s in (['date', 'classification', 'type'] as const)"
+          v-for="s in ['date', 'classification', 'type'] as const"
           :key="s"
           class="sort-btn"
           :class="{ active: sortBy === s }"
@@ -158,7 +159,9 @@ function renderMarkdown(md: string): string {
         <div class="doc-card-accent"></div>
         <div class="doc-header">
           <div class="doc-badges">
-            <Badge :variant="classVariant(doc.classification)">{{ t(`classification.${doc.classification}`) }}</Badge>
+            <Badge :variant="classVariant(doc.classification)">{{
+              t(`classification.${doc.classification}`)
+            }}</Badge>
             <span class="doc-type-badge">
               <span class="type-icon">{{ typeIcon[doc.type] }}</span>
               {{ t(`documents.types.${doc.type}`) }}
@@ -190,18 +193,31 @@ function renderMarkdown(md: string): string {
                 </span>
               </div>
               <button class="close-btn" @click="closeDoc">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
             <h2 class="doc-modal-title">{{ t(`docs.${activeDoc.id}.title`) }}</h2>
-            <div class="doc-modal-content" v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"></div>
+            <!-- eslint-disable vue/no-v-html -->
+            <div
+              class="doc-modal-content"
+              v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"
+            ></div>
             <div class="doc-modal-footer">
               <div class="modal-footer-row">
                 <span class="footer-label">{{ t('documents.meta.classification') }}</span>
-                <span class="footer-value">{{ t(`classification.${activeDoc.classification}`) }}</span>
+                <span class="footer-value">{{
+                  t(`classification.${activeDoc.classification}`)
+                }}</span>
               </div>
               <div class="modal-footer-row">
                 <span class="footer-label">{{ t('documents.meta.lastUpdated') }}</span>
@@ -274,9 +290,16 @@ function renderMarkdown(md: string): string {
 }
 
 @keyframes orb-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(25px, -35px) scale(1.04); }
-  66% { transform: translate(-15px, 20px) scale(0.96); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(25px, -35px) scale(1.04);
+  }
+  66% {
+    transform: translate(-15px, 20px) scale(0.96);
+  }
 }
 
 /* ═══ Hero ═══ */
@@ -325,7 +348,12 @@ function renderMarkdown(md: string): string {
 }
 
 .title-main {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--color-primary) 50%,
+    var(--color-accent) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -340,14 +368,30 @@ function renderMarkdown(md: string): string {
 }
 
 /* ═══ Animations ═══ */
-.fade-up-1 { animation: fade-up 600ms var(--ease-out-expo) 300ms backwards; }
-.fade-up-2 { animation: fade-up 600ms var(--ease-out-expo) 400ms backwards; }
-.fade-up-3 { animation: fade-up 600ms var(--ease-out-expo) 500ms backwards; }
-.fade-up-4 { animation: fade-up 600ms var(--ease-out-expo) 600ms backwards; }
-.fade-up-5 { animation: fade-up 600ms var(--ease-out-expo) 700ms backwards; }
-.fade-up-6 { animation: fade-up 600ms var(--ease-out-expo) 800ms backwards; }
-.fade-up-7 { animation: fade-up 600ms var(--ease-out-expo) 900ms backwards; }
-.fade-up-8 { animation: fade-up 600ms var(--ease-out-expo) 1000ms backwards; }
+.fade-up-1 {
+  animation: fade-up 600ms var(--ease-out-expo) 300ms backwards;
+}
+.fade-up-2 {
+  animation: fade-up 600ms var(--ease-out-expo) 400ms backwards;
+}
+.fade-up-3 {
+  animation: fade-up 600ms var(--ease-out-expo) 500ms backwards;
+}
+.fade-up-4 {
+  animation: fade-up 600ms var(--ease-out-expo) 600ms backwards;
+}
+.fade-up-5 {
+  animation: fade-up 600ms var(--ease-out-expo) 700ms backwards;
+}
+.fade-up-6 {
+  animation: fade-up 600ms var(--ease-out-expo) 800ms backwards;
+}
+.fade-up-7 {
+  animation: fade-up 600ms var(--ease-out-expo) 900ms backwards;
+}
+.fade-up-8 {
+  animation: fade-up 600ms var(--ease-out-expo) 1000ms backwards;
+}
 
 /* ═══ Controls ═══ */
 .controls-bar {
@@ -474,7 +518,9 @@ function renderMarkdown(md: string): string {
 .doc-card:hover {
   border-color: var(--card-color);
   transform: translateY(-4px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px color-mix(in srgb, var(--card-color) 20%, transparent);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px color-mix(in srgb, var(--card-color) 20%, transparent);
 }
 
 .doc-card:hover .doc-card-accent {

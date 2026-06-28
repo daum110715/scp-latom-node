@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+
 import { useUsersStore } from '@/stores/users'
 import SearchInput from '@/components/common/SearchInput.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,7 +8,6 @@ import Pagination from '@/components/common/Pagination.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const store = useUsersStore()
-const router = useRouter()
 const deleteTarget = ref<number | null>(null)
 
 onMounted(() => store.fetchUsers())
@@ -41,7 +40,11 @@ function formatDate(d: string) {
     </div>
 
     <div class="filter-bar">
-      <SearchInput :model-value="store.searchQuery" @update:model-value="onSearch" placeholder="Search by codename..." />
+      <SearchInput
+        :model-value="store.searchQuery"
+        placeholder="Search by codename..."
+        @update:model-value="onSearch"
+      />
       <select class="select" @change="onRoleFilter">
         <option value="">All Roles</option>
         <option value="admin">Admin</option>
@@ -52,7 +55,7 @@ function formatDate(d: string) {
     </div>
 
     <div v-if="store.loading && !store.users.length" class="loading-state">
-      <div class="skeleton" v-for="i in 10" :key="i" style="height: 48px" />
+      <div v-for="i in 10" :key="i" class="skeleton" style="height: 48px" />
     </div>
 
     <div v-else-if="store.error" class="error-state">
@@ -77,18 +80,33 @@ function formatDate(d: string) {
             <tr v-for="user in store.users" :key="user.id">
               <td class="cell-mono">{{ user.id }}</td>
               <td>
-                <router-link :to="`/users/${user.id}`" class="user-link">{{ user.codename }}</router-link>
+                <router-link :to="`/users/${user.id}`" class="user-link">{{
+                  user.codename
+                }}</router-link>
               </td>
               <td><StatusBadge :variant="user.role" :label="user.role" /></td>
               <td class="cell-mono">Level {{ user.clearance }}</td>
               <td class="cell-mono">{{ formatDate(user.created_at) }}</td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/users/${user.id}`" class="btn btn-ghost btn-sm">View</router-link>
-                  <button v-if="user.role !== 'admin'" class="btn btn-sm" :class="user.role === 'banned' ? 'btn-success' : 'btn-danger'" @click="user.role === 'banned' ? store.unban(user.id) : store.ban(user.id)">
+                  <router-link :to="`/users/${user.id}`" class="btn btn-ghost btn-sm"
+                    >View</router-link
+                  >
+                  <button
+                    v-if="user.role !== 'admin'"
+                    class="btn btn-sm"
+                    :class="user.role === 'banned' ? 'btn-success' : 'btn-danger'"
+                    @click="user.role === 'banned' ? store.unban(user.id) : store.ban(user.id)"
+                  >
                     {{ user.role === 'banned' ? 'Unban' : 'Ban' }}
                   </button>
-                  <button v-if="user.role !== 'admin'" class="btn btn-danger btn-sm" @click="deleteTarget = user.id">Delete</button>
+                  <button
+                    v-if="user.role !== 'admin'"
+                    class="btn btn-danger btn-sm"
+                    @click="deleteTarget = user.id"
+                  >
+                    Delete
+                  </button>
                 </div>
               </td>
             </tr>
@@ -121,8 +139,13 @@ function formatDate(d: string) {
   margin-bottom: var(--space-xl);
 }
 
-.page-header h2 { margin-bottom: var(--space-xs); }
-.page-desc { color: var(--text-tertiary); font-size: var(--text-sm); }
+.page-header h2 {
+  margin-bottom: var(--space-xs);
+}
+.page-desc {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
 
 .results-count {
   margin-left: auto;

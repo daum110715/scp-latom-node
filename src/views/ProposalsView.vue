@@ -52,7 +52,9 @@ async function castVote(proposalId: number, vote: 'for' | 'against' | 'abstain')
   const ok = await store.vote(proposalId, vote)
   if (ok) {
     voteMessage.value = t('proposals.vote.success')
-    setTimeout(() => { voteMessage.value = '' }, 3000)
+    setTimeout(() => {
+      voteMessage.value = ''
+    }, 3000)
   }
 }
 
@@ -108,7 +110,9 @@ onMounted(() => {
         />
       </div>
 
-      <p class="daily-info">{{ t('proposals.dailyLimit', { max: store.dailyLimit, used: store.dailyUsed }) }}</p>
+      <p class="daily-info">
+        {{ t('proposals.dailyLimit', { max: store.dailyLimit, used: store.dailyUsed }) }}
+      </p>
 
       <p v-if="store.dailyUsed >= store.dailyLimit" class="form-error">
         {{ t('proposals.dailyLimitReached', { max: store.dailyLimit }) }}
@@ -117,7 +121,12 @@ onMounted(() => {
       <div class="form-actions">
         <button
           class="submit-btn"
-          :disabled="store.creating || store.dailyUsed >= store.dailyLimit || formTitle.trim().length < 5 || formContent.trim().length < 20"
+          :disabled="
+            store.creating ||
+            store.dailyUsed >= store.dailyLimit ||
+            formTitle.trim().length < 5 ||
+            formContent.trim().length < 20
+          "
           @click="submitProposal"
         >
           {{ store.creating ? '...' : t('proposals.submit') }}
@@ -157,7 +166,9 @@ onMounted(() => {
             <Badge :variant="(categoryVariant[p.category] as any) || 'safe'">
               {{ t(`proposals.categories.${p.category}`) || p.category }}
             </Badge>
-            <span class="proposal-status" :class="p.status">{{ t(`proposals.status.${p.status}`) }}</span>
+            <span class="proposal-status" :class="p.status">{{
+              t(`proposals.status.${p.status}`)
+            }}</span>
           </div>
           <span class="proposal-date">{{ new Date(p.createdAt).toLocaleDateString() }}</span>
         </div>
@@ -165,7 +176,9 @@ onMounted(() => {
         <h3 class="proposal-title">{{ p.title }}</h3>
         <p class="proposal-author">{{ t('proposals.by', { author: p.authorCodename }) }}</p>
 
-        <div class="proposal-content-preview">{{ p.content.slice(0, 200) }}{{ p.content.length > 200 ? '...' : '' }}</div>
+        <div class="proposal-content-preview">
+          {{ p.content.slice(0, 200) }}{{ p.content.length > 200 ? '...' : '' }}
+        </div>
 
         <button class="view-btn" @click="viewDetail(p.id)">{{ t('proposals.view') }}</button>
 
@@ -181,9 +194,27 @@ onMounted(() => {
           </div>
 
           <div v-else-if="auth.isAuthenticated && p.status === 'open'" class="vote-actions">
-            <button class="vote-btn for" @click="castVote(p.id, 'for')" :title="t('proposals.vote.for')">▲ {{ t('proposals.vote.for') }}</button>
-            <button class="vote-btn against" @click="castVote(p.id, 'against')" :title="t('proposals.vote.against')">▼ {{ t('proposals.vote.against') }}</button>
-            <button class="vote-btn abstain" @click="castVote(p.id, 'abstain')" :title="t('proposals.vote.abstain')">— {{ t('proposals.vote.abstain') }}</button>
+            <button
+              class="vote-btn for"
+              :title="t('proposals.vote.for')"
+              @click="castVote(p.id, 'for')"
+            >
+              ▲ {{ t('proposals.vote.for') }}
+            </button>
+            <button
+              class="vote-btn against"
+              :title="t('proposals.vote.against')"
+              @click="castVote(p.id, 'against')"
+            >
+              ▼ {{ t('proposals.vote.against') }}
+            </button>
+            <button
+              class="vote-btn abstain"
+              :title="t('proposals.vote.abstain')"
+              @click="castVote(p.id, 'abstain')"
+            >
+              — {{ t('proposals.vote.abstain') }}
+            </button>
           </div>
         </div>
       </div>
@@ -228,8 +259,13 @@ onMounted(() => {
   transition: background var(--transition-fast);
 }
 
-.submit-btn:hover { background: var(--color-primary-hover); }
-.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit-btn:hover {
+  background: var(--color-primary-hover);
+}
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ─── Create Form ─── */
 
@@ -384,9 +420,15 @@ onMounted(() => {
   letter-spacing: 0.05em;
 }
 
-.proposal-status.open { color: var(--color-accent); }
-.proposal-status.approved { color: var(--color-success); }
-.proposal-status.rejected { color: var(--color-danger); }
+.proposal-status.open {
+  color: var(--color-accent);
+}
+.proposal-status.approved {
+  color: var(--color-success);
+}
+.proposal-status.rejected {
+  color: var(--color-danger);
+}
 
 .proposal-date {
   font-size: var(--text-xs);
@@ -451,9 +493,15 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.vote-count.for { color: var(--color-success); }
-.vote-count.against { color: var(--color-danger); }
-.vote-count.abstain { color: var(--text-tertiary); }
+.vote-count.for {
+  color: var(--color-success);
+}
+.vote-count.against {
+  color: var(--color-danger);
+}
+.vote-count.abstain {
+  color: var(--text-tertiary);
+}
 
 .user-voted {
   font-size: var(--text-xs);
@@ -477,12 +525,30 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
-.vote-btn.for { color: var(--color-success); }
-.vote-btn.for:hover { background: var(--color-success); color: var(--text-inverse); border-color: var(--color-success); }
-.vote-btn.against { color: var(--color-danger); }
-.vote-btn.against:hover { background: var(--color-danger); color: var(--text-inverse); border-color: var(--color-danger); }
-.vote-btn.abstain { color: var(--text-tertiary); }
-.vote-btn.abstain:hover { background: var(--text-tertiary); color: var(--text-inverse); border-color: var(--text-tertiary); }
+.vote-btn.for {
+  color: var(--color-success);
+}
+.vote-btn.for:hover {
+  background: var(--color-success);
+  color: var(--text-inverse);
+  border-color: var(--color-success);
+}
+.vote-btn.against {
+  color: var(--color-danger);
+}
+.vote-btn.against:hover {
+  background: var(--color-danger);
+  color: var(--text-inverse);
+  border-color: var(--color-danger);
+}
+.vote-btn.abstain {
+  color: var(--text-tertiary);
+}
+.vote-btn.abstain:hover {
+  background: var(--text-tertiary);
+  color: var(--text-inverse);
+  border-color: var(--text-tertiary);
+}
 
 /* ─── States ─── */
 
@@ -498,26 +564,37 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.skeleton-card { height: 160px; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.skeleton-card {
+  height: 160px;
 }
 
-.error-state, .empty-state {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.error-state,
+.empty-state {
   text-align: center;
   padding: var(--space-3xl) 0;
 }
 
-.error-icon, .empty-icon {
+.error-icon,
+.empty-icon {
   font-size: 3rem;
   color: var(--text-tertiary);
   display: block;
   margin-bottom: var(--space-md);
 }
 
-.error-icon { color: var(--color-danger); }
+.error-icon {
+  color: var(--color-danger);
+}
 
 .retry-btn {
   margin-top: var(--space-md);

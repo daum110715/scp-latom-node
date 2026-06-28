@@ -21,7 +21,7 @@ export const useSearchStore = defineStore('search', () => {
         e.name.toLowerCase().includes(q) ||
         e.id.toLowerCase().includes(q) ||
         e.summary.toLowerCase().includes(q) ||
-        e.tags.some((t) => t.includes(q))
+        e.tags.some((t) => t.includes(q)),
     )
   })
 
@@ -32,7 +32,7 @@ export const useSearchStore = defineStore('search', () => {
       (d) =>
         d.title.toLowerCase().includes(q) ||
         d.summary.toLowerCase().includes(q) ||
-        d.type.includes(q)
+        d.type.includes(q),
     )
   })
 
@@ -52,7 +52,8 @@ export const useSearchStore = defineStore('search', () => {
   }
 
   function toggle() {
-    isOpen.value ? close() : open()
+    if (isOpen.value) close()
+    else open()
   }
 
   function setClassFilter(cls: ObjectClass | null) {

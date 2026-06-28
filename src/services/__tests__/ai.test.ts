@@ -33,7 +33,10 @@ describe('AI Service', () => {
   describe('sendChatMessage', () => {
     it('calls POST /ai/chat with message data', async () => {
       const data = { message: 'Tell me about SCP-173' }
-      mockApiPost.mockResolvedValueOnce({ ok: true, data: { conversationId: 'abc', message: {}, title: 'Chat' } } as any)
+      mockApiPost.mockResolvedValueOnce({
+        ok: true,
+        data: { conversationId: 'abc', message: {}, title: 'Chat' },
+      } as any)
       await sendChatMessage(data)
       expect(mockApiPost).toHaveBeenCalledWith('/ai/chat', data)
     })
@@ -77,13 +80,17 @@ describe('AI Service', () => {
     it('calls PUT /ai/conversations/:id', async () => {
       mockApiPut.mockResolvedValueOnce({ ok: true, data: { success: true } } as any)
       await updateConversation('conv-uuid-123', { title: 'New Title' })
-      expect(mockApiPut).toHaveBeenCalledWith('/ai/conversations/conv-uuid-123', { title: 'New Title' })
+      expect(mockApiPut).toHaveBeenCalledWith('/ai/conversations/conv-uuid-123', {
+        title: 'New Title',
+      })
     })
 
     it('supports systemPrompt update', async () => {
       mockApiPut.mockResolvedValueOnce({ ok: true, data: {} } as any)
       await updateConversation('conv-uuid-123', { systemPrompt: 'New prompt' })
-      expect(mockApiPut).toHaveBeenCalledWith('/ai/conversations/conv-uuid-123', { systemPrompt: 'New prompt' })
+      expect(mockApiPut).toHaveBeenCalledWith('/ai/conversations/conv-uuid-123', {
+        systemPrompt: 'New prompt',
+      })
     })
   })
 
@@ -105,7 +112,11 @@ describe('AI Service', () => {
 
   describe('sendChatMessageStream', () => {
     it('calls onError when apiStream returns error', async () => {
-      mockApiStream.mockResolvedValueOnce({ ok: false, code: 'ERR-500-SYSTEM', error: 'Server error' } as any)
+      mockApiStream.mockResolvedValueOnce({
+        ok: false,
+        code: 'ERR-500-SYSTEM',
+        error: 'Server error',
+      } as any)
       const callbacks = {
         onError: vi.fn(),
         onChunk: vi.fn(),
@@ -171,10 +182,7 @@ describe('AI Service', () => {
 
     it('handles metadata in SSE stream', async () => {
       const encoder = new TextEncoder()
-      const chunks = [
-        'data: {"conversationId":"new-uuid","title":"New Chat"}\n',
-        'data: [DONE]\n',
-      ]
+      const chunks = ['data: {"conversationId":"new-uuid","title":"New Chat"}\n', 'data: [DONE]\n']
 
       const stream = new ReadableStream({
         start(controller) {
@@ -203,10 +211,7 @@ describe('AI Service', () => {
 
     it('handles error events in SSE stream', async () => {
       const encoder = new TextEncoder()
-      const chunks = [
-        'data: {"error":"Rate limit exceeded"}\n',
-        'data: [DONE]\n',
-      ]
+      const chunks = ['data: {"error":"Rate limit exceeded"}\n', 'data: [DONE]\n']
 
       const stream = new ReadableStream({
         start(controller) {

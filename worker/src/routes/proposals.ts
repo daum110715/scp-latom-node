@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../middleware/auth'
+import { verifyToken } from '../utils/jwt'
 import { getLoggerFromContext } from '../utils/logger'
 import type { Env, Proposal, ProposalPublic, ProposalVote } from '../types'
 
@@ -14,7 +15,7 @@ const VALID_VOTES = ['for', 'against', 'abstain'] as const
 function toPublic(
   proposal: Proposal & { author_codename: string },
   votes: { vfor: number; against: number; abstain: number },
-  userVote: string | null
+  userVote: string | null,
 ): ProposalPublic {
   return {
     id: proposal.id,
@@ -47,7 +48,6 @@ proposals.get('/', async (c) => {
   const header = c.req.header('Authorization')
   if (header?.startsWith('Bearer ')) {
     try {
-      const { verifyToken } = await import('../utils/jwt')
       const payload = await verifyToken(header.slice(7), c.env.JWT_SECRET)
       if (payload) currentUserId = payload.sub
     } catch {
@@ -59,8 +59,10 @@ proposals.get('/', async (c) => {
   let dailyUsed = 0
   if (currentUserId) {
     const dailyRow = await c.env.DB.prepare(
-      "SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND created_at >= date('now')"
-    ).bind(currentUserId).first<{ count: number }>()
+      "SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND created_at >= date('now')",
+    )
+      .bind(currentUserId)
+      .first<{ count: number }>()
     dailyUsed = dailyRow?.count ?? 0
   }
 
@@ -68,15 +70,18 @@ proposals.get('/', async (c) => {
   let where = 'WHERE p.status = ?'
   const params: unknown[] = [statusFilter]
 
-  if (categoryFilter && VALID_CATEGORIES.includes(categoryFilter as typeof VALID_CATEGORIES[number])) {
+  if (
+    categoryFilter &&
+    VALID_CATEGORIES.includes(categoryFilter as (typeof VALID_CATEGORIES)[number])
+  ) {
     where += ' AND p.category = ?'
     params.push(categoryFilter)
   }
 
   // Count total
-  const countRow = await c.env.DB.prepare(
-    `SELECT COUNT(*) as total FROM proposals p ${where}`
-  ).bind(...params).first<{ total: number }>()
+  const countRow = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM proposals p ${where}`)
+    .bind(...params)
+    .first<{ total: number }>()
   const total = countRow?.total ?? 0
 
   // Fetch proposals with author codename
@@ -86,37 +91,70 @@ proposals.get('/', async (c) => {
      JOIN users u ON p.user_id = u.id
      ${where}
      ORDER BY p.created_at DESC
-     LIMIT ? OFFSET ?`
-  ).bind(...params, limit, offset).all<Proposal & { author_codename: string }>()
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(...params, limit, offset)
+    .all<Proposal & { author_codename: string }>()
 
-  // Fetch vote counts and user votes for this page
+  // Fetch vote counts and user votes for this page in batch (avoids N+1)
   const proposalIds = rows.results.map((r) => r.id)
   const resultProposals: ProposalPublic[] = []
 
-  for (const proposal of rows.results) {
-    // Vote counts
-    const voteCounts = await c.env.DB.prepare(
-      `SELECT
-        SUM(CASE WHEN vote = 'for' THEN 1 ELSE 0 END) as vfor,
-        SUM(CASE WHEN vote = 'against' THEN 1 ELSE 0 END) as against,
-        SUM(CASE WHEN vote = 'abstain' THEN 1 ELSE 0 END) as abstain
-       FROM proposal_votes WHERE proposal_id = ?`
-    ).bind(proposal.id).first<{ vfor: number; against: number; abstain: number }>()
+  if (proposalIds.length === 0) {
+    return c.json({
+      success: true,
+      proposals: [],
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      dailyUsed,
+      dailyLimit: MAX_PROPOSALS_PER_DAY,
+    })
+  }
 
-    // User's vote (if authenticated)
-    let userVote: string | null = null
-    if (currentUserId) {
-      const voteRow = await c.env.DB.prepare(
-        'SELECT vote FROM proposal_votes WHERE proposal_id = ? AND user_id = ?'
-      ).bind(proposal.id, currentUserId).first<{ vote: string }>()
-      userVote = voteRow?.vote ?? null
+  const placeholders = proposalIds.map(() => '?').join(',')
+
+  // Single query for all vote counts on this page
+  const allVoteCounts = await c.env.DB.prepare(
+    `SELECT proposal_id,
+      SUM(CASE WHEN vote = 'for' THEN 1 ELSE 0 END) as vfor,
+      SUM(CASE WHEN vote = 'against' THEN 1 ELSE 0 END) as against,
+      SUM(CASE WHEN vote = 'abstain' THEN 1 ELSE 0 END) as abstain
+     FROM proposal_votes WHERE proposal_id IN (${placeholders})
+     GROUP BY proposal_id`,
+  )
+    .bind(...proposalIds)
+    .all<{ proposal_id: number; vfor: number; against: number; abstain: number }>()
+
+  const voteCountMap = new Map<number, { vfor: number; against: number; abstain: number }>()
+  for (const row of allVoteCounts.results) {
+    voteCountMap.set(row.proposal_id, {
+      vfor: row.vfor,
+      against: row.against,
+      abstain: row.abstain,
+    })
+  }
+
+  // Single query for user's votes on this page (if authenticated)
+  const userVoteMap = new Map<number, string>()
+  if (currentUserId) {
+    const userVotes = await c.env.DB.prepare(
+      `SELECT proposal_id, vote FROM proposal_votes
+       WHERE proposal_id IN (${placeholders}) AND user_id = ?`,
+    )
+      .bind(...proposalIds, currentUserId)
+      .all<{ proposal_id: number; vote: string }>()
+
+    for (const row of userVotes.results) {
+      userVoteMap.set(row.proposal_id, row.vote)
     }
+  }
 
-    resultProposals.push(toPublic(
-      proposal,
-      { vfor: voteCounts?.vfor ?? 0, against: voteCounts?.against ?? 0, abstain: voteCounts?.abstain ?? 0 },
-      userVote
-    ))
+  for (const proposal of rows.results) {
+    const votes = voteCountMap.get(proposal.id) ?? { vfor: 0, against: 0, abstain: 0 }
+    const userVote = userVoteMap.get(proposal.id) ?? null
+    resultProposals.push(toPublic(proposal, votes, userVote))
   }
 
   return c.json({
@@ -143,7 +181,6 @@ proposals.get('/:id', async (c) => {
   const header = c.req.header('Authorization')
   if (header?.startsWith('Bearer ')) {
     try {
-      const { verifyToken } = await import('../utils/jwt')
       const payload = await verifyToken(header.slice(7), c.env.JWT_SECRET)
       if (payload) currentUserId = payload.sub
     } catch {
@@ -155,8 +192,10 @@ proposals.get('/:id', async (c) => {
     `SELECT p.*, u.codename as author_codename
      FROM proposals p
      JOIN users u ON p.user_id = u.id
-     WHERE p.id = ?`
-  ).bind(id).first<Proposal & { author_codename: string }>()
+     WHERE p.id = ?`,
+  )
+    .bind(id)
+    .first<Proposal & { author_codename: string }>()
 
   if (!proposal) return c.json({ success: false, error: 'Proposal not found' }, 404)
 
@@ -165,14 +204,18 @@ proposals.get('/:id', async (c) => {
       SUM(CASE WHEN vote = 'for' THEN 1 ELSE 0 END) as vfor,
       SUM(CASE WHEN vote = 'against' THEN 1 ELSE 0 END) as against,
       SUM(CASE WHEN vote = 'abstain' THEN 1 ELSE 0 END) as abstain
-     FROM proposal_votes WHERE proposal_id = ?`
-  ).bind(id).first<{ vfor: number; against: number; abstain: number }>()
+     FROM proposal_votes WHERE proposal_id = ?`,
+  )
+    .bind(id)
+    .first<{ vfor: number; against: number; abstain: number }>()
 
   let userVote: string | null = null
   if (currentUserId) {
     const voteRow = await c.env.DB.prepare(
-      'SELECT vote FROM proposal_votes WHERE proposal_id = ? AND user_id = ?'
-    ).bind(id, currentUserId).first<{ vote: string }>()
+      'SELECT vote FROM proposal_votes WHERE proposal_id = ? AND user_id = ?',
+    )
+      .bind(id, currentUserId)
+      .first<{ vote: string }>()
     userVote = voteRow?.vote ?? null
   }
 
@@ -180,8 +223,12 @@ proposals.get('/:id', async (c) => {
     success: true,
     proposal: toPublic(
       proposal,
-      { vfor: voteCounts?.vfor ?? 0, against: voteCounts?.against ?? 0, abstain: voteCounts?.abstain ?? 0 },
-      userVote
+      {
+        vfor: voteCounts?.vfor ?? 0,
+        against: voteCounts?.against ?? 0,
+        abstain: voteCounts?.abstain ?? 0,
+      },
+      userVote,
     ),
   })
 })
@@ -204,23 +251,33 @@ proposals.post('/', authMiddleware, async (c) => {
   if (!content || content.length < 20 || content.length > 10000) {
     return c.json({ success: false, error: 'Content must be 20-10000 characters' }, 400)
   }
-  if (!VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
-    return c.json({ success: false, error: `Invalid category. Use: ${VALID_CATEGORIES.join(', ')}` }, 400)
+  if (!VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])) {
+    return c.json(
+      { success: false, error: `Invalid category. Use: ${VALID_CATEGORIES.join(', ')}` },
+      400,
+    )
   }
 
   // Check daily limit
   const todayCount = await c.env.DB.prepare(
-    "SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND created_at >= date('now')"
-  ).bind(payload.sub).first<{ count: number }>()
+    "SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND created_at >= date('now')",
+  )
+    .bind(payload.sub)
+    .first<{ count: number }>()
 
   if ((todayCount?.count ?? 0) >= MAX_PROPOSALS_PER_DAY) {
     logger.warn('Proposal creation blocked: daily limit reached', { userId: payload.sub })
-    return c.json({ success: false, error: `Daily limit reached (${MAX_PROPOSALS_PER_DAY} proposals per day)` }, 429)
+    return c.json(
+      { success: false, error: `Daily limit reached (${MAX_PROPOSALS_PER_DAY} proposals per day)` },
+      429,
+    )
   }
 
   const result = await c.env.DB.prepare(
-    'INSERT INTO proposals (user_id, title, content, category) VALUES (?, ?, ?, ?) RETURNING *'
-  ).bind(payload.sub, title, content, category).first<Proposal>()
+    'INSERT INTO proposals (user_id, title, content, category) VALUES (?, ?, ?, ?) RETURNING *',
+  )
+    .bind(payload.sub, title, content, category)
+    .first<Proposal>()
 
   if (!result) {
     logger.error('Proposal creation failed: DB insert returned no result', { userId: payload.sub })
@@ -228,23 +285,26 @@ proposals.post('/', authMiddleware, async (c) => {
   }
 
   logger.info('Proposal created', { proposalId: result.id, userId: payload.sub, category })
-  return c.json({
-    success: true,
-    proposal: {
-      id: result.id,
-      title: result.title,
-      content: result.content,
-      category: result.category,
-      status: result.status,
-      authorCodename: payload.codename,
-      votesFor: 0,
-      votesAgainst: 0,
-      votesAbstain: 0,
-      userVote: null,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
+  return c.json(
+    {
+      success: true,
+      proposal: {
+        id: result.id,
+        title: result.title,
+        content: result.content,
+        category: result.category,
+        status: result.status,
+        authorCodename: payload.codename,
+        votesFor: 0,
+        votesAgainst: 0,
+        votesAbstain: 0,
+        userVote: null,
+        createdAt: result.created_at,
+        updatedAt: result.updated_at,
+      },
     },
-  }, 201)
+    201,
+  )
 })
 
 // ─── POST /api/proposals/:id/vote ──────────────────────────
@@ -259,32 +319,41 @@ proposals.post('/:id/vote', authMiddleware, async (c) => {
   const body = await c.req.json<{ vote?: string }>()
   const vote = body.vote?.trim()
 
-  if (!vote || !VALID_VOTES.includes(vote as typeof VALID_VOTES[number])) {
+  if (!vote || !VALID_VOTES.includes(vote as (typeof VALID_VOTES)[number])) {
     return c.json({ success: false, error: `Invalid vote. Use: ${VALID_VOTES.join(', ')}` }, 400)
   }
 
   // Check proposal exists and is open
-  const proposal = await c.env.DB.prepare(
-    'SELECT id, status FROM proposals WHERE id = ?'
-  ).bind(id).first<Proposal>()
+  const proposal = await c.env.DB.prepare('SELECT id, status FROM proposals WHERE id = ?')
+    .bind(id)
+    .first<Proposal>()
 
   if (!proposal) return c.json({ success: false, error: 'Proposal not found' }, 404)
-  if (proposal.status !== 'open') return c.json({ success: false, error: 'Voting is closed for this proposal' }, 400)
+  if (proposal.status !== 'open')
+    return c.json({ success: false, error: 'Voting is closed for this proposal' }, 400)
 
   // Check if user already voted
   const existingVote = await c.env.DB.prepare(
-    'SELECT id, vote FROM proposal_votes WHERE proposal_id = ? AND user_id = ?'
-  ).bind(id, payload.sub).first<ProposalVote>()
+    'SELECT id, vote FROM proposal_votes WHERE proposal_id = ? AND user_id = ?',
+  )
+    .bind(id, payload.sub)
+    .first<ProposalVote>()
 
   if (existingVote) {
     logger.warn('Duplicate vote attempt', { proposalId: id, userId: payload.sub })
-    return c.json({ success: false, error: 'You have already voted on this proposal. Votes cannot be changed.' }, 409)
+    return c.json(
+      {
+        success: false,
+        error: 'You have already voted on this proposal. Votes cannot be changed.',
+      },
+      409,
+    )
   }
 
   // Insert vote
-  await c.env.DB.prepare(
-    'INSERT INTO proposal_votes (proposal_id, user_id, vote) VALUES (?, ?, ?)'
-  ).bind(id, payload.sub, vote).run()
+  await c.env.DB.prepare('INSERT INTO proposal_votes (proposal_id, user_id, vote) VALUES (?, ?, ?)')
+    .bind(id, payload.sub, vote)
+    .run()
 
   logger.info('Vote recorded', { proposalId: id, userId: payload.sub, vote })
 
@@ -294,8 +363,10 @@ proposals.post('/:id/vote', authMiddleware, async (c) => {
       SUM(CASE WHEN vote = 'for' THEN 1 ELSE 0 END) as vfor,
       SUM(CASE WHEN vote = 'against' THEN 1 ELSE 0 END) as against,
       SUM(CASE WHEN vote = 'abstain' THEN 1 ELSE 0 END) as abstain
-     FROM proposal_votes WHERE proposal_id = ?`
-  ).bind(id).first<{ vfor: number; against: number; abstain: number }>()
+     FROM proposal_votes WHERE proposal_id = ?`,
+  )
+    .bind(id)
+    .first<{ vfor: number; against: number; abstain: number }>()
 
   return c.json({
     success: true,

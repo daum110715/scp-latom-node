@@ -10,10 +10,14 @@ const auth = useAuthStore()
       <div class="lock-icon">🔒</div>
       <h1 class="title">Insufficient Clearance</h1>
       <p class="description">You do not have admin privileges to access this terminal.</p>
-      <p class="codename" v-if="auth.user">Logged in as: {{ auth.user.codename }} ({{ auth.user.role }})</p>
+      <p v-if="auth.user" class="codename">
+        Logged in as: {{ auth.user.codename }} ({{ auth.user.role }})
+      </p>
       <div class="actions">
-        <router-link to="/login" class="btn btn-primary" v-if="!auth.isAuthenticated">Login as Admin</router-link>
-        <button class="btn btn-ghost" @click="auth.logout()" v-else>Logout</button>
+        <router-link v-if="!auth.isAuthenticated" to="/login" class="btn btn-primary"
+          >Login as Admin</router-link
+        >
+        <button v-else class="btn btn-ghost" @click="auth.logout()">Logout</button>
       </div>
     </div>
   </div>

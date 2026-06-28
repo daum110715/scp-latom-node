@@ -1,10 +1,10 @@
-.PHONY: all ci test test-frontend test-backend typecheck build clean help
+.PHONY: all ci test test-frontend test-backend typecheck lint format build clean help
 
 # ─── Default target ────────────────────────────────────────────────
 all: ci
 
 # ─── Full CI pipeline (matches GitHub Actions) ────────────────────
-ci: typecheck test build
+ci: typecheck lint test build
 	@echo ""
 	@echo "✅ All checks passed"
 
@@ -25,6 +25,20 @@ typecheck:
 	npm run typecheck
 	@echo "━━━ Backend type-check ━━━"
 	cd worker && npm run typecheck
+
+# ─── Lint ──────────────────────────────────────────────────────────
+lint:
+	@echo "━━━ Frontend lint ━━━"
+	npm run lint
+	@echo "━━━ Backend lint ━━━"
+	cd worker && npm run lint
+
+# ─── Format ────────────────────────────────────────────────────────
+format:
+	@echo "━━━ Frontend format ━━━"
+	npm run format
+	@echo "━━━ Backend format ━━━"
+	cd worker && npm run format
 
 # ─── Build ─────────────────────────────────────────────────────────
 build:
@@ -57,6 +71,8 @@ help:
 	@echo "  test-frontend - Run frontend tests only"
 	@echo "  test-backend  - Run backend tests only"
 	@echo "  typecheck     - Run TypeScript type-checking for both projects"
+	@echo "  lint          - Run ESLint for frontend and backend"
+	@echo "  format        - Run Prettier for frontend and backend"
 	@echo "  build         - Build the frontend for production"
 	@echo "  coverage      - Run tests with coverage reporting"
 	@echo "  install       - Install dependencies for both projects"

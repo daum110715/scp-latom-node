@@ -36,17 +36,26 @@ export enum ErrorCode {
 /** Map HTTP status codes to ErrorCode. */
 export function httpStatusToErrorCode(status: number): ErrorCode {
   switch (status) {
-    case 400: return ErrorCode.BAD_REQUEST
-    case 401: return ErrorCode.UNAUTHORIZED
-    case 403: return ErrorCode.FORBIDDEN
-    case 404: return ErrorCode.NOT_FOUND
-    case 409: return ErrorCode.CONFLICT
-    case 429: return ErrorCode.RATE_LIMITED
-    case 500: return ErrorCode.SERVER_ERROR
+    case 400:
+      return ErrorCode.BAD_REQUEST
+    case 401:
+      return ErrorCode.UNAUTHORIZED
+    case 403:
+      return ErrorCode.FORBIDDEN
+    case 404:
+      return ErrorCode.NOT_FOUND
+    case 409:
+      return ErrorCode.CONFLICT
+    case 429:
+      return ErrorCode.RATE_LIMITED
+    case 500:
+      return ErrorCode.SERVER_ERROR
     case 502:
     case 503:
-    case 504: return ErrorCode.SERVICE_UNAVAILABLE
-    default: return status >= 500 ? ErrorCode.SERVER_ERROR : ErrorCode.UNKNOWN
+    case 504:
+      return ErrorCode.SERVICE_UNAVAILABLE
+    default:
+      return status >= 500 ? ErrorCode.SERVER_ERROR : ErrorCode.UNKNOWN
   }
 }
 

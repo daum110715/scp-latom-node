@@ -34,8 +34,20 @@ const mockEntriesResponse = {
   success: true,
   language: 'en' as const,
   entries: [
-    { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: 'https://scp-wiki.wikidot.com/scp-173', series: 1 },
-    { scpNumber: 999, name: 'Tickle Monster', objectClass: 'Safe', url: 'https://scp-wiki.wikidot.com/scp-999', series: 1 },
+    {
+      scpNumber: 173,
+      name: 'The Sculpture',
+      objectClass: 'Euclid',
+      url: 'https://scp-wiki.wikidot.com/scp-173',
+      series: 1,
+    },
+    {
+      scpNumber: 999,
+      name: 'Tickle Monster',
+      objectClass: 'Safe',
+      url: 'https://scp-wiki.wikidot.com/scp-999',
+      series: 1,
+    },
   ],
   total: 2,
   page: 1,
@@ -95,7 +107,9 @@ describe('Crawler Store', () => {
 
     it('sets loading state during fetch', async () => {
       let resolvePromise: (v: any) => void
-      const pending = new Promise((resolve) => { resolvePromise = resolve })
+      const pending = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
       mockFetchCrawlerEntries.mockReturnValueOnce(pending as any)
 
       const store = useCrawlerStore()
@@ -159,11 +173,13 @@ describe('Crawler Store', () => {
 
   describe('fetchOverallStatus', () => {
     it('fetches overall status for both languages', async () => {
-      mockFetchCrawlerOverallStatus.mockResolvedValueOnce(okResult({
-        success: true,
-        en: { status: 'idle', lastCrawl: 1719400000000, totalEntries: 7999 },
-        cn: { status: 'idle', lastCrawl: 1719400000000, totalEntries: 5200 },
-      }))
+      mockFetchCrawlerOverallStatus.mockResolvedValueOnce(
+        okResult({
+          success: true,
+          en: { status: 'idle', lastCrawl: 1719400000000, totalEntries: 7999 },
+          cn: { status: 'idle', lastCrawl: 1719400000000, totalEntries: 5200 },
+        }),
+      )
       const store = useCrawlerStore()
       const result = await store.fetchOverallStatus()
 
@@ -175,10 +191,18 @@ describe('Crawler Store', () => {
 
   describe('fetchSeries', () => {
     it('fetches entries for a specific series', async () => {
-      const seriesEntries = [{ scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: '', series: 1 }]
-      mockFetchCrawlerSeries.mockResolvedValueOnce(okResult({
-        success: true, language: 'en', series: 1, entries: seriesEntries, total: 1,
-      }))
+      const seriesEntries = [
+        { scpNumber: 173, name: 'The Sculpture', objectClass: 'Euclid', url: '', series: 1 },
+      ]
+      mockFetchCrawlerSeries.mockResolvedValueOnce(
+        okResult({
+          success: true,
+          language: 'en',
+          series: 1,
+          entries: seriesEntries,
+          total: 1,
+        }),
+      )
       const store = useCrawlerStore()
       const result = await store.fetchSeries(1)
 

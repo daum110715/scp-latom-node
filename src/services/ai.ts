@@ -49,9 +49,10 @@ export function sendChatMessage(data: {
   return apiPost<AiChatResponse>('/ai/chat', data)
 }
 
-export function fetchConversations(
-  params?: { page?: number; limit?: number }
-): Promise<ApiResult<AiConversationsListResponse>> {
+export function fetchConversations(params?: {
+  page?: number
+  limit?: number
+}): Promise<ApiResult<AiConversationsListResponse>> {
   const searchParams = new URLSearchParams()
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.limit) searchParams.set('limit', String(params.limit))
@@ -60,27 +61,23 @@ export function fetchConversations(
 }
 
 export function fetchConversation(
-  id: string
+  id: string,
 ): Promise<ApiResult<{ conversation: AiConversationDetail }>> {
   return apiGet<{ conversation: AiConversationDetail }>(`/ai/conversations/${id}`)
 }
 
 export function updateConversation(
   id: string,
-  data: { title?: string; systemPrompt?: string }
+  data: { title?: string; systemPrompt?: string },
 ): Promise<ApiResult<{ success: boolean }>> {
   return apiPut(`/ai/conversations/${id}`, data)
 }
 
-export function deleteConversation(
-  id: string
-): Promise<ApiResult<{ success: boolean }>> {
+export function deleteConversation(id: string): Promise<ApiResult<{ success: boolean }>> {
   return apiDelete(`/ai/conversations/${id}`)
 }
 
-export function regenerateMessage(
-  id: string
-): Promise<ApiResult<{ message: AiMessage }>> {
+export function regenerateMessage(id: string): Promise<ApiResult<{ message: AiMessage }>> {
   return apiPost<{ message: AiMessage }>(`/ai/conversations/${id}/regenerate`)
 }
 
@@ -100,7 +97,7 @@ export async function sendChatMessageStream(
     systemPrompt?: string
     title?: string
   },
-  callbacks: AiStreamCallbacks
+  callbacks: AiStreamCallbacks,
 ): Promise<void> {
   const result = await apiStream('/ai/chat', { ...data, stream: true })
 

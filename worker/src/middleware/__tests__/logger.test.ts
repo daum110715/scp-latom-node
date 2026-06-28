@@ -136,7 +136,7 @@ describe('requestLogger middleware', () => {
         headers: { 'cf-ray': 'test-ray-id-123' },
       }),
       undefined,
-      env
+      env,
     )
 
     expect(res.headers.get('X-Request-Id')).toBe('test-ray-id-123')

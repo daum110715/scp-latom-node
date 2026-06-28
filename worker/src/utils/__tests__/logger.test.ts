@@ -142,9 +142,7 @@ describe('Logger', () => {
       // Wait for the async fire-and-forget persist
       await new Promise((r) => setTimeout(r, 10))
 
-      expect(db.prepare).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO system_logs')
-      )
+      expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO system_logs'))
     })
 
     it('persists error logs to D1', async () => {
@@ -188,7 +186,7 @@ describe('Logger', () => {
     it('returns the logger from context', async () => {
       const { getLoggerFromContext } = await import('../logger')
       const mockLogger = new Logger()
-      const ctx = { get: (key: string) => key === 'logger' ? mockLogger : undefined }
+      const ctx = { get: (key: string) => (key === 'logger' ? mockLogger : undefined) }
 
       const result = getLoggerFromContext(ctx)
       expect(result).toBe(mockLogger)

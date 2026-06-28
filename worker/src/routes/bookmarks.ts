@@ -19,14 +19,16 @@ bookmarks.get('/', async (c) => {
      FROM bookmarks b
      LEFT JOIN scp_entries e ON b.scp_number = e.scp_number AND b.language = e.language
      WHERE b.user_id = ?
-     ORDER BY b.created_at DESC`
-  ).bind(user.sub).all<{
-    scp_number: number
-    language: string
-    created_at: string
-    name: string | null
-    object_class: string | null
-  }>()
+     ORDER BY b.created_at DESC`,
+  )
+    .bind(user.sub)
+    .all<{
+      scp_number: number
+      language: string
+      created_at: string
+      name: string | null
+      object_class: string | null
+    }>()
 
   const result: BookmarkPublic[] = rows.results.map((r) => ({
     scpNumber: r.scp_number,
@@ -55,8 +57,10 @@ bookmarks.get('/:lang/:scpNumber', async (c) => {
   }
 
   const row = await c.env.DB.prepare(
-    'SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?'
-  ).bind(user.sub, scpNumber, lang).first<{ id: number }>()
+    'SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?',
+  )
+    .bind(user.sub, scpNumber, lang)
+    .first<{ id: number }>()
 
   return c.json({ success: true, bookmarked: !!row })
 })
@@ -78,16 +82,18 @@ bookmarks.post('/:lang/:scpNumber', async (c) => {
 
   // Check for duplicate
   const existing = await c.env.DB.prepare(
-    'SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?'
-  ).bind(user.sub, scpNumber, lang).first<{ id: number }>()
+    'SELECT id FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?',
+  )
+    .bind(user.sub, scpNumber, lang)
+    .first<{ id: number }>()
 
   if (existing) {
     return c.json({ success: false, error: 'Entry already bookmarked' }, 409)
   }
 
-  await c.env.DB.prepare(
-    'INSERT INTO bookmarks (user_id, scp_number, language) VALUES (?, ?, ?)'
-  ).bind(user.sub, scpNumber, lang).run()
+  await c.env.DB.prepare('INSERT INTO bookmarks (user_id, scp_number, language) VALUES (?, ?, ?)')
+    .bind(user.sub, scpNumber, lang)
+    .run()
 
   return c.json({ success: true, message: 'Bookmark added' }, 201)
 })
@@ -108,8 +114,10 @@ bookmarks.delete('/:lang/:scpNumber', async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    'DELETE FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?'
-  ).bind(user.sub, scpNumber, lang).run()
+    'DELETE FROM bookmarks WHERE user_id = ? AND scp_number = ? AND language = ?',
+  )
+    .bind(user.sub, scpNumber, lang)
+    .run()
 
   if (result.meta.changes === 0) {
     return c.json({ success: false, error: 'Bookmark not found' }, 404)

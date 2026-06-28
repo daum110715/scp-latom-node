@@ -15,10 +15,15 @@ describe('glmChat', () => {
   })
 
   it('sends correct request format', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
-      choices: [{ message: { content: 'Hello' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-    }), { status: 200 }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'Hello' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+        }),
+        { status: 200 },
+      ),
+    )
 
     await glmChat({
       apiKey: 'test-key',
@@ -43,10 +48,15 @@ describe('glmChat', () => {
   })
 
   it('parses successful response correctly', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
-      choices: [{ message: { content: 'Test response' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-    }), { status: 200 }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'Test response' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+        }),
+        { status: 200 },
+      ),
+    )
 
     const result = await glmChat({
       apiKey: 'test-key',
@@ -61,10 +71,15 @@ describe('glmChat', () => {
   })
 
   it('uses custom model and parameters', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
-      choices: [{ message: { content: 'OK' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-    }), { status: 200 }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'OK' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+        { status: 200 },
+      ),
+    )
 
     await glmChat({
       apiKey: 'key',
@@ -83,22 +98,31 @@ describe('glmChat', () => {
   it('throws on HTTP error', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }))
 
-    await expect(glmChat({
-      apiKey: 'bad-key',
-      messages: [{ role: 'user', content: 'Test' }],
-    })).rejects.toThrow('GLM API error 401')
+    await expect(
+      glmChat({
+        apiKey: 'bad-key',
+        messages: [{ role: 'user', content: 'Test' }],
+      }),
+    ).rejects.toThrow('GLM API error 401')
   })
 
   it('throws on missing choices', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
-      choices: [],
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-    }), { status: 200 }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [],
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        }),
+        { status: 200 },
+      ),
+    )
 
-    await expect(glmChat({
-      apiKey: 'key',
-      messages: [{ role: 'user', content: 'Test' }],
-    })).rejects.toThrow('GLM API returned no choices')
+    await expect(
+      glmChat({
+        apiKey: 'key',
+        messages: [{ role: 'user', content: 'Test' }],
+      }),
+    ).rejects.toThrow('GLM API returned no choices')
   })
 })
 
@@ -132,10 +156,12 @@ describe('glmChatStream', () => {
       'data: [DONE]\n\n',
     ]
 
-    fetchSpy.mockResolvedValueOnce(new Response(createSseStream(sseData), {
-      status: 200,
-      headers: { 'Content-Type': 'text/event-stream' },
-    }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(createSseStream(sseData), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    )
 
     const chunks: { delta: string; finishReason: string | null }[] = []
     for await (const chunk of glmChatStream({
@@ -158,10 +184,12 @@ describe('glmChatStream', () => {
       'data: [DONE]\n\n',
     ]
 
-    fetchSpy.mockResolvedValueOnce(new Response(createSseStream(sseData), {
-      status: 200,
-      headers: { 'Content-Type': 'text/event-stream' },
-    }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(createSseStream(sseData), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    )
 
     const chunks: { delta: string; finishReason: string | null }[] = []
     for await (const chunk of glmChatStream({
@@ -193,10 +221,12 @@ describe('glmChatStream', () => {
   })
 
   it('sends stream: true in request body', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response(createSseStream(['data: [DONE]\n\n']), {
-      status: 200,
-      headers: { 'Content-Type': 'text/event-stream' },
-    }))
+    fetchSpy.mockResolvedValueOnce(
+      new Response(createSseStream(['data: [DONE]\n\n']), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    )
 
     // Consume the generator
     for await (const _ of glmChatStream({
@@ -225,10 +255,13 @@ describe('glmChat retry', () => {
   })
 
   function okResponse(content: string) {
-    return new Response(JSON.stringify({
-      choices: [{ message: { content }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
-    }), { status: 200 })
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+      }),
+      { status: 200 },
+    )
   }
 
   it('retries on 429 and succeeds', async () => {
@@ -269,10 +302,12 @@ describe('glmChat retry', () => {
   it('does not retry on 401', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }))
 
-    await expect(glmChat({
-      apiKey: 'key',
-      messages: [{ role: 'user', content: 'Test' }],
-    })).rejects.toThrow('GLM API error 401')
+    await expect(
+      glmChat({
+        apiKey: 'key',
+        messages: [{ role: 'user', content: 'Test' }],
+      }),
+    ).rejects.toThrow('GLM API error 401')
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })

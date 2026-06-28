@@ -41,7 +41,9 @@ describe('Proposals Service', () => {
     it('includes both filters', async () => {
       mockApiGet.mockResolvedValueOnce({ ok: true, data: {} } as any)
       await fetchProposals(2, 50, 'open', 'research')
-      expect(mockApiGet).toHaveBeenCalledWith('/proposals?page=2&limit=50&status=open&category=research')
+      expect(mockApiGet).toHaveBeenCalledWith(
+        '/proposals?page=2&limit=50&status=open&category=research',
+      )
     })
   })
 

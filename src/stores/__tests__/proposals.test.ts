@@ -127,7 +127,11 @@ describe('Proposals Store', () => {
       const newProposal = { ...mockProposal, id: 2, title: 'New Proposal' }
       mockCreateProposal.mockResolvedValueOnce(okResult({ proposal: newProposal }))
       const store = useProposalsStore()
-      const result = await store.submitProposal({ title: 'New Proposal', content: 'Content', category: 'general' })
+      const result = await store.submitProposal({
+        title: 'New Proposal',
+        content: 'Content',
+        category: 'general',
+      })
 
       expect(result).toBe(true)
       expect(store.proposals[0]).toEqual(newProposal)
@@ -138,7 +142,11 @@ describe('Proposals Store', () => {
     it('handles creation error', async () => {
       mockCreateProposal.mockResolvedValueOnce(errResult('Daily limit reached'))
       const store = useProposalsStore()
-      const result = await store.submitProposal({ title: 'Test', content: 'Content', category: 'general' })
+      const result = await store.submitProposal({
+        title: 'Test',
+        content: 'Content',
+        category: 'general',
+      })
 
       expect(result).toBe(false)
       expect(store.error).toBe('Daily limit reached')
@@ -146,11 +154,17 @@ describe('Proposals Store', () => {
 
     it('sets creating state during submission', async () => {
       let resolvePromise: (v: any) => void
-      const pending = new Promise((resolve) => { resolvePromise = resolve })
+      const pending = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
       mockCreateProposal.mockReturnValueOnce(pending as any)
 
       const store = useProposalsStore()
-      const submitPromise = store.submitProposal({ title: 'Test', content: 'Content', category: 'general' })
+      const submitPromise = store.submitProposal({
+        title: 'Test',
+        content: 'Content',
+        category: 'general',
+      })
       expect(store.creating).toBe(true)
 
       resolvePromise!(okResult({ proposal: mockProposal }))
@@ -161,9 +175,14 @@ describe('Proposals Store', () => {
 
   describe('vote', () => {
     it('records a vote and updates proposal in list', async () => {
-      mockVoteProposal.mockResolvedValueOnce(okResult({
-        votesFor: 6, votesAgainst: 2, votesAbstain: 1, userVote: 'for',
-      }))
+      mockVoteProposal.mockResolvedValueOnce(
+        okResult({
+          votesFor: 6,
+          votesAgainst: 2,
+          votesAbstain: 1,
+          userVote: 'for',
+        }),
+      )
       const store = useProposalsStore()
       store.proposals = [{ ...mockProposal }]
 
@@ -175,9 +194,14 @@ describe('Proposals Store', () => {
     })
 
     it('updates currentProposal if it matches', async () => {
-      mockVoteProposal.mockResolvedValueOnce(okResult({
-        votesFor: 6, votesAgainst: 2, votesAbstain: 1, userVote: 'for',
-      }))
+      mockVoteProposal.mockResolvedValueOnce(
+        okResult({
+          votesFor: 6,
+          votesAgainst: 2,
+          votesAbstain: 1,
+          userVote: 'for',
+        }),
+      )
       const store = useProposalsStore()
       store.currentProposal = { ...mockProposal }
 

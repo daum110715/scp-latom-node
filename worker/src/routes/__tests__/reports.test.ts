@@ -36,15 +36,17 @@ const mockReport = {
   object_class: 'Euclid',
 }
 
-function createMockDB(data: {
-  reportRows?: any[]
-  report?: any
-  entryExists?: boolean
-  existingCount?: number
-  duplicateReport?: any
-  insertResult?: any
-  checkRows?: any[]
-} = {}) {
+function createMockDB(
+  data: {
+    reportRows?: any[]
+    report?: any
+    entryExists?: boolean
+    existingCount?: number
+    duplicateReport?: any
+    insertResult?: any
+    checkRows?: any[]
+  } = {},
+) {
   const {
     reportRows = [],
     report = null,
@@ -68,16 +70,26 @@ function createMockDB(data: {
           if (sql.includes('SELECT id FROM scp_entries WHERE scp_number = ? AND language = ?')) {
             return entryExists ? { id: 1 } : null
           }
-          if (sql.includes('COUNT(*)') && sql.includes('entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?')) {
+          if (
+            sql.includes('COUNT(*)') &&
+            sql.includes('entry_reports WHERE user_id = ? AND scp_number = ? AND language = ?')
+          ) {
             return { count: existingCount }
           }
-          if (sql.includes('SELECT id FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ? AND report_type = ?')) {
+          if (
+            sql.includes(
+              'SELECT id FROM entry_reports WHERE user_id = ? AND scp_number = ? AND language = ? AND report_type = ?',
+            )
+          ) {
             return duplicateReport
           }
           if (sql.includes('COUNT(*)') && sql.includes('entry_reports WHERE user_id = ?')) {
             return { total: reportRows.length }
           }
-          if (sql.includes('SELECT r.*, e.name') && sql.includes('WHERE r.id = ? AND r.user_id = ?')) {
+          if (
+            sql.includes('SELECT r.*, e.name') &&
+            sql.includes('WHERE r.id = ? AND r.user_id = ?')
+          ) {
             return report
           }
           if (sql.includes('INSERT INTO entry_reports') && sql.includes('RETURNING *')) {
@@ -133,11 +145,20 @@ describe('Report Routes', () => {
 
   describe('Auth enforcement', () => {
     it('returns 401 without token on POST /', async () => {
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'content_error', description: 'Test report' }),
-      }, createEnv())
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Test report',
+          }),
+        },
+        createEnv(),
+      )
       expect(res.status).toBe(401)
     })
 
@@ -151,11 +172,20 @@ describe('Report Routes', () => {
     it('submits a report successfully', async () => {
       const token = await signTestToken()
       const env = createEnv({ entryExists: true, existingCount: 0, duplicateReport: null })
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'content_error', description: 'There is a typo in the description.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'There is a typo in the description.',
+          }),
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(201)
       expect(body.success).toBe(true)
@@ -166,33 +196,60 @@ describe('Report Routes', () => {
     it('rejects invalid SCP number', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 0, language: 'en', reportType: 'content_error', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 0,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'fr', reportType: 'content_error', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'fr',
+            reportType: 'content_error',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('rejects invalid report type', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'invalid_type', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'invalid_type',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('Invalid report type')
@@ -201,11 +258,20 @@ describe('Report Routes', () => {
     it('rejects description that is too short', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'content_error', description: 'Short' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Short',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(400)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('10-2000')
@@ -214,11 +280,20 @@ describe('Report Routes', () => {
     it('returns 404 when entry not found', async () => {
       const token = await signTestToken()
       const env = createEnv({ entryExists: false })
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 99999, language: 'en', reportType: 'content_error', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 99999,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(404)
       const body = await res.json<ApiResponse>()
       expect(body.error).toContain('not found')
@@ -227,22 +302,40 @@ describe('Report Routes', () => {
     it('returns 429 when max reports reached', async () => {
       const token = await signTestToken()
       const env = createEnv({ existingCount: 3 })
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'content_error', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(429)
     })
 
     it('returns 409 for duplicate report type', async () => {
       const token = await signTestToken()
       const env = createEnv({ duplicateReport: { id: 1 } })
-      const res = await app.request('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scpNumber: 173, language: 'en', reportType: 'content_error', description: 'Test report content here.' }),
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            scpNumber: 173,
+            language: 'en',
+            reportType: 'content_error',
+            description: 'Test report content here.',
+          }),
+        },
+        env,
+      )
       expect(res.status).toBe(409)
     })
   })
@@ -251,10 +344,14 @@ describe('Report Routes', () => {
     it('returns paginated reports', async () => {
       const token = await signTestToken()
       const env = createEnv({ reportRows: [mockReport] })
-      const res = await app.request('/api/reports', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -267,10 +364,14 @@ describe('Report Routes', () => {
     it('returns a single report', async () => {
       const token = await signTestToken()
       const env = createEnv({ report: mockReport })
-      const res = await app.request('/api/reports/1', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports/1',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
@@ -280,20 +381,28 @@ describe('Report Routes', () => {
     it('returns 400 for invalid ID', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports/abc', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports/abc',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
 
     it('returns 404 when report not found', async () => {
       const token = await signTestToken()
       const env = createEnv({ report: null })
-      const res = await app.request('/api/reports/999', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports/999',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(404)
     })
   })
@@ -301,11 +410,17 @@ describe('Report Routes', () => {
   describe('GET /api/reports/check/:lang/:scpNumber', () => {
     it('returns hasReports: true when reports exist', async () => {
       const token = await signTestToken()
-      const env = createEnv({ checkRows: [{ id: 1, report_type: 'content_error', status: 'open' }] })
-      const res = await app.request('/api/reports/check/en/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const env = createEnv({
+        checkRows: [{ id: 1, report_type: 'content_error', status: 'open' }],
+      })
+      const res = await app.request(
+        '/api/reports/check/en/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.hasReports).toBe(true)
@@ -316,10 +431,14 @@ describe('Report Routes', () => {
     it('returns hasReports: false when no reports exist', async () => {
       const token = await signTestToken()
       const env = createEnv({ checkRows: [] })
-      const res = await app.request('/api/reports/check/en/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports/check/en/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       const body = await res.json<ApiResponse>()
       expect(res.status).toBe(200)
       expect(body.hasReports).toBe(false)
@@ -329,10 +448,14 @@ describe('Report Routes', () => {
     it('returns 400 for invalid language', async () => {
       const token = await signTestToken()
       const env = createEnv()
-      const res = await app.request('/api/reports/check/fr/173', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      }, env)
+      const res = await app.request(
+        '/api/reports/check/fr/173',
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        env,
+      )
       expect(res.status).toBe(400)
     })
   })

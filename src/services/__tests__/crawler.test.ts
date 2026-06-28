@@ -88,7 +88,9 @@ describe('Crawler Service', () => {
     it('combines all params', async () => {
       mockApiGet.mockResolvedValueOnce(okResult({}))
       await fetchCrawlerEntries('en', { class: 'Safe', q: '999', page: 1, limit: 50 })
-      expect(mockApiGet).toHaveBeenCalledWith('/crawler/en/entries?class=Safe&q=999&page=1&limit=50')
+      expect(mockApiGet).toHaveBeenCalledWith(
+        '/crawler/en/entries?class=Safe&q=999&page=1&limit=50',
+      )
     })
   })
 

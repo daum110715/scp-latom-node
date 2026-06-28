@@ -42,13 +42,41 @@ function errResult(error: string, code = 'ERR-500-SYSTEM') {
 }
 
 const mockBookmarks = [
-  { scpNumber: 173, language: 'en', name: 'The Sculpture', objectClass: 'Euclid', createdAt: '2026-06-26' },
-  { scpNumber: 999, language: 'en', name: 'Tickle Monster', objectClass: 'Safe', createdAt: '2026-06-25' },
+  {
+    scpNumber: 173,
+    language: 'en',
+    name: 'The Sculpture',
+    objectClass: 'Euclid',
+    createdAt: '2026-06-26',
+  },
+  {
+    scpNumber: 999,
+    language: 'en',
+    name: 'Tickle Monster',
+    objectClass: 'Safe',
+    createdAt: '2026-06-25',
+  },
 ]
 
 const mockHistoryEntries = [
-  { id: 1, user_id: 1, language: 'en', scp_number: 173, name: 'The Sculpture', object_class: 'Euclid', visited_at: '2026-06-26' },
-  { id: 2, user_id: 1, language: 'en', scp_number: 999, name: 'Tickle Monster', object_class: 'Safe', visited_at: '2026-06-25' },
+  {
+    id: 1,
+    user_id: 1,
+    language: 'en',
+    scp_number: 173,
+    name: 'The Sculpture',
+    object_class: 'Euclid',
+    visited_at: '2026-06-26',
+  },
+  {
+    id: 2,
+    user_id: 1,
+    language: 'en',
+    scp_number: 999,
+    name: 'Tickle Monster',
+    object_class: 'Safe',
+    visited_at: '2026-06-25',
+  },
 ]
 
 describe('UserActivity Store', () => {
@@ -82,7 +110,9 @@ describe('UserActivity Store', () => {
   describe('bookmarks', () => {
     describe('loadBookmarks', () => {
       it('fetches bookmarks successfully', async () => {
-        mockFetchBookmarks.mockResolvedValueOnce(okResult({ success: true, bookmarks: mockBookmarks }))
+        mockFetchBookmarks.mockResolvedValueOnce(
+          okResult({ success: true, bookmarks: mockBookmarks }),
+        )
         const store = useUserActivityStore()
         await store.loadBookmarks()
 
@@ -215,9 +245,16 @@ describe('UserActivity Store', () => {
   describe('history', () => {
     describe('fetchHistoryList', () => {
       it('fetches history successfully', async () => {
-        mockFetchHistory.mockResolvedValueOnce(okResult({
-          success: true, entries: mockHistoryEntries, total: 2, page: 1, limit: 50, totalPages: 1,
-        }))
+        mockFetchHistory.mockResolvedValueOnce(
+          okResult({
+            success: true,
+            entries: mockHistoryEntries,
+            total: 2,
+            page: 1,
+            limit: 50,
+            totalPages: 1,
+          }),
+        )
         const store = useUserActivityStore()
         const result = await store.fetchHistoryList()
 
@@ -243,7 +280,11 @@ describe('UserActivity Store', () => {
         const store = useUserActivityStore()
         await store.recordVisit({ language: 'en', scpNumber: 173, name: 'The Sculpture' })
 
-        expect(mockRecordHistory).toHaveBeenCalledWith({ language: 'en', scpNumber: 173, name: 'The Sculpture' })
+        expect(mockRecordHistory).toHaveBeenCalledWith({
+          language: 'en',
+          scpNumber: 173,
+          name: 'The Sculpture',
+        })
       })
     })
 
@@ -321,9 +362,16 @@ describe('UserActivity Store', () => {
     })
 
     it('loads history when switching to history tab if empty', async () => {
-      mockFetchHistory.mockResolvedValue(okResult({
-        success: true, entries: [], total: 0, page: 1, limit: 50, totalPages: 0,
-      }))
+      mockFetchHistory.mockResolvedValue(
+        okResult({
+          success: true,
+          entries: [],
+          total: 0,
+          page: 1,
+          limit: 50,
+          totalPages: 0,
+        }),
+      )
       const store = useUserActivityStore()
       store.setTab('history')
 

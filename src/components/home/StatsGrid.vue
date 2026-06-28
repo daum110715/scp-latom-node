@@ -12,7 +12,14 @@ const props = defineProps<{
 }>()
 
 const classCounts = computed(() => {
-  const counts: Record<string, number> = { Safe: 0, Euclid: 0, Keter: 0, Thaumiel: 0, Apollyon: 0, Neutralized: 0 }
+  const counts: Record<string, number> = {
+    Safe: 0,
+    Euclid: 0,
+    Keter: 0,
+    Thaumiel: 0,
+    Apollyon: 0,
+    Neutralized: 0,
+  }
   for (const entry of props.entries) {
     const cls = entry.objectClass
     if (cls in counts) counts[cls]++
@@ -23,14 +30,29 @@ const classCounts = computed(() => {
 const stats = computed(() => [
   { labelKey: 'stats.totalEntries', value: props.total, icon: '◈', color: 'var(--color-primary)' },
   { labelKey: 'stats.safe', value: classCounts.value.Safe, icon: '●', color: 'var(--class-safe)' },
-  { labelKey: 'stats.euclid', value: classCounts.value.Euclid, icon: '●', color: 'var(--class-euclid)' },
-  { labelKey: 'stats.keter', value: classCounts.value.Keter, icon: '●', color: 'var(--class-keter)' },
+  {
+    labelKey: 'stats.euclid',
+    value: classCounts.value.Euclid,
+    icon: '●',
+    color: 'var(--class-euclid)',
+  },
+  {
+    labelKey: 'stats.keter',
+    value: classCounts.value.Keter,
+    icon: '●',
+    color: 'var(--class-keter)',
+  },
 ])
 </script>
 
 <template>
   <section class="stats-grid stagger-children">
-    <div v-for="(stat, index) in stats" :key="stat.labelKey" class="stat-card" :style="{ '--accent': stat.color }">
+    <div
+      v-for="stat in stats"
+      :key="stat.labelKey"
+      class="stat-card"
+      :style="{ '--accent': stat.color }"
+    >
       <div class="stat-icon" :style="{ color: stat.color }">{{ stat.icon }}</div>
       <div class="stat-value" :style="{ color: stat.color }">{{ stat.value }}</div>
       <div class="stat-label">{{ t(stat.labelKey) }}</div>

@@ -37,11 +37,7 @@ onMounted(() => {
 
     <!-- Data -->
     <template v-else>
-      <StatsGrid
-        :total="crawler.total"
-        :entries="crawler.entries"
-        :state="crawler.state"
-      />
+      <StatsGrid :total="crawler.total" :entries="crawler.entries" :state="crawler.state" />
       <RecentEntries :entries="crawler.entries" :language="crawler.language" />
     </template>
   </div>
@@ -82,8 +78,13 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .home-error {

@@ -56,7 +56,8 @@ export default {
   },
   catalog: {
     title: 'SCP Catalog',
-    description: 'Browse all documented anomalous objects and entities under Foundation jurisdiction.',
+    description:
+      'Browse all documented anomalous objects and entities under Foundation jurisdiction.',
     searchPlaceholder: 'Search entries...',
     entriesFound: '{count} entries found',
     empty: 'No entries match your search criteria.',
@@ -64,8 +65,10 @@ export default {
       title: 'Operation Protocol',
       auto: 'AUTO-OP',
       manual: 'MANUAL-OP',
-      autoDesc: 'System automatically recommends random SCP entries based on your language setting. Timer-controlled rotation.',
-      manualDesc: 'Full user control — browse and select entries independently with search and filters.',
+      autoDesc:
+        'System automatically recommends random SCP entries based on your language setting. Timer-controlled rotation.',
+      manualDesc:
+        'Full user control — browse and select entries independently with search and filters.',
       autoActive: 'AUTO-ROTATION ACTIVE',
       autoPaused: 'ROTATION PAUSED',
       nextEntry: 'NEXT ROTATION',
@@ -112,7 +115,8 @@ export default {
   },
   documents: {
     title: 'Documents',
-    description: 'Foundation protocols, research papers, incident reports, and executive directives.',
+    description:
+      'Foundation protocols, research papers, incident reports, and executive directives.',
     hero: {
       badge: '{count} DOCUMENTS // RESTRICTED → TOP SECRET',
     },
@@ -141,13 +145,15 @@ export default {
       classification: 'Classification',
     },
     footer: {
-      disclaimer: 'All documents are property of the SCP Foundation. Unauthorized distribution is prohibited under Foundation Directive 101-B.',
+      disclaimer:
+        'All documents are property of the SCP Foundation. Unauthorized distribution is prohibited under Foundation Directive 101-B.',
     },
   },
   docs: {
     'doc-user-manual': {
       title: 'Latom Node User Manual',
-      summary: 'Comprehensive guide for navigating and utilizing the Latom Node documentation terminal.',
+      summary:
+        'Comprehensive guide for navigating and utilizing the Latom Node documentation terminal.',
       content: `# Latom Node User Manual
 
 ## 1. Overview
@@ -316,7 +322,8 @@ For terminal malfunctions or access issues, contact your site IT department or s
     },
     'doc-anomalous-materials': {
       title: 'Anomalous Materials Handling',
-      summary: 'Standard research procedures for handling and analyzing anomalous materials in laboratory settings.',
+      summary:
+        'Standard research procedures for handling and analyzing anomalous materials in laboratory settings.',
       content: `# Anomalous Materials Handling
 
 ## Safety Protocols
@@ -375,7 +382,8 @@ Investigation determined the breach was caused by a failure in the backup power 
     },
     'doc-o5-directive-7': {
       title: 'O5 Directive — Protocol Zeta-9',
-      summary: 'Executive directive regarding the activation of Protocol Zeta-9 for XK-class scenarios.',
+      summary:
+        'Executive directive regarding the activation of Protocol Zeta-9 for XK-class scenarios.',
       content: `# O5 DIRECTIVE — PROTOCOL ZETA-9
 
 ## Classification: TOP SECRET — O5 EYES ONLY
@@ -414,7 +422,8 @@ Following successful execution, all personnel involved will undergo Class-A amne
     },
     'doc-containment-procedures-guide': {
       title: 'Containment Procedures Guide',
-      summary: 'Standard template and guidelines for authoring, reviewing, and maintaining containment procedures for anomalous objects.',
+      summary:
+        'Standard template and guidelines for authoring, reviewing, and maintaining containment procedures for anomalous objects.',
       content: `# Containment Procedures Guide
 
 ## 1. Purpose
@@ -495,7 +504,8 @@ Procedure revisions follow the same review process. Emergency provisional proced
     },
     'doc-ethics-committee-guidelines': {
       title: 'Ethics Committee Guidelines',
-      summary: 'Guidelines governing human-subject experimentation, D-Class personnel protocols, and ethical boundaries in anomalous research.',
+      summary:
+        'Guidelines governing human-subject experimentation, D-Class personnel protocols, and ethical boundaries in anomalous research.',
       content: `# Ethics Committee Guidelines
 
 ## 1. Mandate
@@ -554,7 +564,8 @@ Any Foundation personnel may file an ethics complaint through the secure interna
     },
     'doc-cognitohazard-response': {
       title: 'Cognitohazard Response Report',
-      summary: 'Incident report detailing a cognitohazard containment failure at Site-64 and the emergency response protocols enacted.',
+      summary:
+        'Incident report detailing a cognitohazard containment failure at Site-64 and the emergency response protocols enacted.',
       content: `# Cognitohazard Response Report — Site-64
 
 ## Classification: TOP SECRET — LEVEL 5 REQUIRED
@@ -605,7 +616,8 @@ Investigation determined the breach originated from a corrupted data transfer du
     },
     'doc-mtf-deployment-records': {
       title: 'MTF Deployment Records — Q3 2025',
-      summary: 'Operational summary of Mobile Task Force deployments, mission outcomes, and casualty reports for the third quarter of 2025.',
+      summary:
+        'Operational summary of Mobile Task Force deployments, mission outcomes, and casualty reports for the third quarter of 2025.',
       content: `# Mobile Task Force Deployment Records
 
 ## Q3 2025 — Operational Summary
@@ -694,7 +706,7 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
     },
     latomNode: {
       title: 'The Latom Node',
-      p1: 'The Latom Node is a documentation terminal within the Foundation\'s decentralized information network. It serves as a comprehensive archival and retrieval system for SCP entries, containment procedures, research documents, incident reports, and operational protocols.',
+      p1: "The Latom Node is a documentation terminal within the Foundation's decentralized information network. It serves as a comprehensive archival and retrieval system for SCP entries, containment procedures, research documents, incident reports, and operational protocols.",
       p2: 'Designated as Node LATOM-7, this terminal operates under Level 4 clearance and maintains continuous synchronization with the central Foundation database via encrypted quantum-entangled communication channels. Data integrity is verified through multi-layered cryptographic checksums updated every synchronization cycle.',
       p3: 'The node employs a triple-redundant storage architecture ensuring zero data loss even under catastrophic breach conditions. All document access is logged, timestamped, and cross-referenced with personnel clearance records. Anomalous data patterns are automatically flagged for review by the Department of Analytics.',
     },
@@ -718,7 +730,7 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
       },
       thaumiel: {
         name: 'Thaumiel',
-        desc: 'Objects used by the Foundation to contain or counteract other anomalous entities or phenomena. These objects are exceptionally rare and represent some of the Foundation\'s most closely guarded secrets.',
+        desc: "Objects used by the Foundation to contain or counteract other anomalous entities or phenomena. These objects are exceptionally rare and represent some of the Foundation's most closely guarded secrets.",
         level: 'Containment Difficulty: N/A (Foundation-Utilized)',
       },
       apollyon: {
@@ -742,23 +754,30 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
       title: 'Security Protocols',
       desc: 'The Foundation employs a multi-layered security architecture to protect classified information and operational integrity.',
       item1Title: 'Clearance Levels',
-      item1Desc: 'Personnel are assigned clearance levels from Level 0 (General) to Level 5 (O5 Command). Each level grants access to progressively sensitive information. Level 4 personnel, such as those operating this node, have access to most SCP documentation and operational data.',
+      item1Desc:
+        'Personnel are assigned clearance levels from Level 0 (General) to Level 5 (O5 Command). Each level grants access to progressively sensitive information. Level 4 personnel, such as those operating this node, have access to most SCP documentation and operational data.',
       item2Title: 'Document Classification',
-      item2Desc: 'All Foundation documents are classified as Unrestricted, Restricted, Confidential, Secret, or Top Secret. Classification determines who may access, copy, or distribute the document. Unauthorized access attempts are automatically logged and reported to Internal Security.',
+      item2Desc:
+        'All Foundation documents are classified as Unrestricted, Restricted, Confidential, Secret, or Top Secret. Classification determines who may access, copy, or distribute the document. Unauthorized access attempts are automatically logged and reported to Internal Security.',
       item3Title: 'Amnestic Protocols',
-      item3Desc: 'In the event of information leaks or civilian exposure, the Foundation deploys targeted amnestic treatments to preserve operational security. Class-A amnestics erase specific memories; Class-B amnestics cause general confusion; Class-C amnestics induce temporary disorientation.',
+      item3Desc:
+        'In the event of information leaks or civilian exposure, the Foundation deploys targeted amnestic treatments to preserve operational security. Class-A amnestics erase specific memories; Class-B amnestics cause general confusion; Class-C amnestics induce temporary disorientation.',
     },
     structure: {
       title: 'Foundation Structure',
       desc: 'The Foundation operates through a hierarchical organizational structure designed for maximum operational efficiency and information compartmentalization.',
       item1Title: 'O5 Council',
-      item1Desc: 'The Overseer Council consists of thirteen individuals with the highest authority within the Foundation. They operate with full autonomy, answering to no government or organization. Their identities are classified even from most Foundation personnel.',
+      item1Desc:
+        'The Overseer Council consists of thirteen individuals with the highest authority within the Foundation. They operate with full autonomy, answering to no government or organization. Their identities are classified even from most Foundation personnel.',
       item2Title: 'Ethics Committee',
-      item2Desc: 'An independent body responsible for overseeing the moral and ethical conduct of Foundation operations. The Committee has the authority to veto containment procedures deemed unnecessarily cruel or dangerous to personnel.',
+      item2Desc:
+        'An independent body responsible for overseeing the moral and ethical conduct of Foundation operations. The Committee has the authority to veto containment procedures deemed unnecessarily cruel or dangerous to personnel.',
       item3Title: 'Mobile Task Forces',
-      item3Desc: 'Specialized teams deployed to handle specific types of anomalous threats. Each MTF is composed of personnel selected for relevant expertise, from combat operatives to field researchers. Over 100 active MTFs operate worldwide.',
+      item3Desc:
+        'Specialized teams deployed to handle specific types of anomalous threats. Each MTF is composed of personnel selected for relevant expertise, from combat operatives to field researchers. Over 100 active MTFs operate worldwide.',
       item4Title: 'Site Directors',
-      item4Desc: 'Each Foundation facility is managed by a Site Director with full operational authority over their assigned location. Site Directors report directly to the O5 Council and are responsible for containment, research, and personnel management.',
+      item4Desc:
+        'Each Foundation facility is managed by a Site Director with full operational authority over their assigned location. Site Directors report directly to the O5 Council and are responsible for containment, research, and personnel management.',
     },
     system: {
       title: 'System Information',
@@ -776,7 +795,8 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
       encryptionValue: 'AES-256-GCM',
     },
     footer: {
-      disclaimer: 'The SCP Foundation is a fictional organization from the collaborative writing project at scpwiki.com. This documentation system is a fan-created thematic interface. All SCP content is licensed under CC BY-SA 3.0.',
+      disclaimer:
+        'The SCP Foundation is a fictional organization from the collaborative writing project at scpwiki.com. This documentation system is a fan-created thematic interface. All SCP content is licensed under CC BY-SA 3.0.',
     },
   },
   notFound: {
@@ -859,7 +879,8 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
     submit: 'Submit Proposal',
     submitDesc: 'Create a new proposal for Foundation review.',
     templateTitle: 'Proposal Template',
-    template: '## Objective\n\n[Describe the objective of this proposal]\n\n## Justification\n\n[Explain why this proposal is necessary]\n\n## Implementation\n\n[Detail the proposed implementation steps]\n\n## Expected Outcome\n\n[Describe the expected results]',
+    template:
+      '## Objective\n\n[Describe the objective of this proposal]\n\n## Justification\n\n[Explain why this proposal is necessary]\n\n## Implementation\n\n[Detail the proposed implementation steps]\n\n## Expected Outcome\n\n[Describe the expected results]',
     titleLabel: 'Title',
     titlePlaceholder: 'Brief proposal title (5-200 characters)',
     contentLabel: 'Content',

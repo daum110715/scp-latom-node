@@ -56,20 +56,28 @@ function formatTime(iso: string): string {
 <template>
   <div class="message" :class="{ 'message-user': isUser, 'message-assistant': isAssistant }">
     <div v-if="isAssistant" class="avatar">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="2" />
       </svg>
     </div>
     <div class="bubble" :class="{ 'bubble-user': isUser, 'bubble-assistant': isAssistant }">
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-if="isAssistant" class="content markdown" v-html="formattedContent" />
       <div v-else class="content">{{ message.content }}</div>
-      <div v-if="streaming && !message.content" class="typing-dots">
-        <span /><span /><span />
-      </div>
+      <div v-if="streaming && !message.content" class="typing-dots"><span /><span /><span /></div>
     </div>
-    <span v-if="message.createdAt && !streaming" class="time">{{ formatTime(message.createdAt) }}</span>
+    <span v-if="message.createdAt && !streaming" class="time">{{
+      formatTime(message.createdAt)
+    }}</span>
   </div>
 </template>
 
@@ -191,12 +199,26 @@ function formatTime(iso: string): string {
   animation: bounce 1.4s infinite ease-in-out;
 }
 
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+.typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

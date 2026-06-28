@@ -7,7 +7,7 @@ async function request<T = unknown>(
   method: string,
   path: string,
   body?: unknown,
-  token?: string
+  token?: string,
 ): Promise<ApiResult<T>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 

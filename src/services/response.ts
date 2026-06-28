@@ -37,10 +37,7 @@ export type ApiResult<T = unknown> = ApiSuccess<T> | ApiFailure
  * @param json  Parsed JSON body from the response
  * @param status  HTTP status code (used to derive the error code when json.error is absent)
  */
-export function normalizeResponse<T>(
-  json: Record<string, unknown>,
-  status?: number
-): ApiResult<T> {
+export function normalizeResponse<T>(json: Record<string, unknown>, status?: number): ApiResult<T> {
   if (json.success === true) {
     // Strip the success flag; everything else is the payload
     const { success: _, ...payload } = json
@@ -48,10 +45,7 @@ export function normalizeResponse<T>(
   }
 
   const code = status ? httpStatusToErrorCode(status) : ErrorCode.UNKNOWN
-  const message =
-    (json.error as string) ||
-    (json.message as string) ||
-    resolveErrorMessage(code)
+  const message = (json.error as string) || (json.message as string) || resolveErrorMessage(code)
 
   return { ok: false, code, error: message }
 }

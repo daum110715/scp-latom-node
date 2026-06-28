@@ -6,7 +6,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import app from '../../index'
-import { createIntegrationDB, createIntegrationEnv, parseJson, signUserToken, signAdminToken } from './helpers'
+import {
+  createIntegrationDB,
+  createIntegrationEnv,
+  parseJson,
+  signUserToken,
+  signAdminToken,
+} from './helpers'
 
 describe('Proposal Flow Integration', () => {
   let db: ReturnType<typeof createIntegrationDB>
@@ -27,18 +33,22 @@ describe('Proposal Flow Integration', () => {
       const { env, token } = await setupUser()
 
       // Create proposal
-      const createRes = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const createRes = await app.request(
+        '/api/proposals',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: 'New Containment Protocol',
+            content: 'This proposal outlines a new containment procedure for Keter-class objects.',
+            category: 'protocol',
+          }),
         },
-        body: JSON.stringify({
-          title: 'New Containment Protocol',
-          content: 'This proposal outlines a new containment procedure for Keter-class objects.',
-          category: 'protocol',
-        }),
-      }, env)
+        env,
+      )
       const createBody = await parseJson(createRes)
       expect(createRes.status).toBe(201)
       expect(createBody.success).toBe(true)
@@ -57,17 +67,21 @@ describe('Proposal Flow Integration', () => {
       const { env, token } = await setupUser()
 
       // Create proposal
-      const createRes = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const createRes = await app.request(
+        '/api/proposals',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: 'Vote Test Proposal',
+            content: 'This proposal will receive votes from multiple users.',
+          }),
         },
-        body: JSON.stringify({
-          title: 'Vote Test Proposal',
-          content: 'This proposal will receive votes from multiple users.',
-        }),
-      }, env)
+        env,
+      )
       const createBody = await parseJson(createRes)
       const proposalId = createBody.proposal.id
 
@@ -75,14 +89,18 @@ describe('Proposal Flow Integration', () => {
       await db._seedUser('voter', 'password123')
       const voterToken = await signUserToken(2, 'voter')
 
-      const voteRes = await app.request(`/api/proposals/${proposalId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${voterToken}`,
+      const voteRes = await app.request(
+        `/api/proposals/${proposalId}/vote`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${voterToken}`,
+          },
+          body: JSON.stringify({ vote: 'for' }),
         },
-        body: JSON.stringify({ vote: 'for' }),
-      }, env)
+        env,
+      )
       const voteBody = await parseJson(voteRes)
       expect(voteRes.status).toBe(200)
       expect(voteBody.votesFor).toBe(1)
@@ -99,32 +117,40 @@ describe('Proposal Flow Integration', () => {
 
       // Create 2 proposals (the daily limit)
       for (let i = 0; i < 2; i++) {
-        const res = await app.request('/api/proposals', {
+        const res = await app.request(
+          '/api/proposals',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              title: `Proposal ${i + 1}`,
+              content: `This is proposal number ${i + 1} with enough content.`,
+            }),
+          },
+          env,
+        )
+        expect(res.status).toBe(201)
+      }
+
+      // Third proposal should be rejected
+      const res = await app.request(
+        '/api/proposals',
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title: `Proposal ${i + 1}`,
-            content: `This is proposal number ${i + 1} with enough content.`,
+            title: 'Third Proposal',
+            content: 'This should be rejected due to daily limit.',
           }),
-        }, env)
-        expect(res.status).toBe(201)
-      }
-
-      // Third proposal should be rejected
-      const res = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          title: 'Third Proposal',
-          content: 'This should be rejected due to daily limit.',
-        }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(429)
       const body = await parseJson(res)
       expect(body.error).toContain('Daily limit')
@@ -134,36 +160,48 @@ describe('Proposal Flow Integration', () => {
       const { env, token } = await setupUser()
 
       // Create proposal
-      const createRes = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const createRes = await app.request(
+        '/api/proposals',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: 'Vote Test', content: 'Testing duplicate votes.' }),
         },
-        body: JSON.stringify({ title: 'Vote Test', content: 'Testing duplicate votes.' }),
-      }, env)
+        env,
+      )
       const createBody = await parseJson(createRes)
       const proposalId = createBody.proposal.id
 
       // First vote
-      await app.request(`/api/proposals/${proposalId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      await app.request(
+        `/api/proposals/${proposalId}/vote`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ vote: 'for' }),
         },
-        body: JSON.stringify({ vote: 'for' }),
-      }, env)
+        env,
+      )
 
       // Second vote should fail
-      const res = await app.request(`/api/proposals/${proposalId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const res = await app.request(
+        `/api/proposals/${proposalId}/vote`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ vote: 'against' }),
         },
-        body: JSON.stringify({ vote: 'against' }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(409)
     })
   })
@@ -176,17 +214,21 @@ describe('Proposal Flow Integration', () => {
       await db._seedUser('proposal_author', 'password123')
       const authorToken = await signUserToken(1, 'proposal_author')
 
-      const createRes = await app.request('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authorToken}`,
+      const createRes = await app.request(
+        '/api/proposals',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authorToken}`,
+          },
+          body: JSON.stringify({
+            title: 'Proposal for Moderation',
+            content: 'This proposal will be moderated by an admin.',
+          }),
         },
-        body: JSON.stringify({
-          title: 'Proposal for Moderation',
-          content: 'This proposal will be moderated by an admin.',
-        }),
-      }, env)
+        env,
+      )
       const createBody = await parseJson(createRes)
 
       // Create admin user
@@ -199,14 +241,18 @@ describe('Proposal Flow Integration', () => {
     it('admin can approve a proposal', async () => {
       const { env, adminToken, proposalId } = await setupModerationScenario()
 
-      const res = await app.request(`/api/admin/proposals/${proposalId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
+      const res = await app.request(
+        `/api/admin/proposals/${proposalId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ status: 'approved' }),
         },
-        body: JSON.stringify({ status: 'approved' }),
-      }, env)
+        env,
+      )
       const body = await parseJson(res)
       expect(res.status).toBe(200)
       expect(body.message).toContain('approved')
@@ -215,14 +261,18 @@ describe('Proposal Flow Integration', () => {
     it('admin can reject a proposal', async () => {
       const { env, adminToken, proposalId } = await setupModerationScenario()
 
-      const res = await app.request(`/api/admin/proposals/${proposalId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
+      const res = await app.request(
+        `/api/admin/proposals/${proposalId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ status: 'rejected' }),
         },
-        body: JSON.stringify({ status: 'rejected' }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(200)
     })
 
@@ -232,24 +282,32 @@ describe('Proposal Flow Integration', () => {
       await db._seedUser('regular_user', 'password123')
       const userToken = await signUserToken(3, 'regular_user')
 
-      const res = await app.request(`/api/admin/proposals/${proposalId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
+      const res = await app.request(
+        `/api/admin/proposals/${proposalId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`,
+          },
+          body: JSON.stringify({ status: 'approved' }),
         },
-        body: JSON.stringify({ status: 'approved' }),
-      }, env)
+        env,
+      )
       expect(res.status).toBe(403)
     })
 
     it('admin can delete a proposal', async () => {
       const { env, adminToken, proposalId } = await setupModerationScenario()
 
-      const res = await app.request(`/api/admin/proposals/${proposalId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${adminToken}` },
-      }, env)
+      const res = await app.request(
+        `/api/admin/proposals/${proposalId}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${adminToken}` },
+        },
+        env,
+      )
       expect(res.status).toBe(200)
 
       // Verify it's gone

@@ -68,14 +68,16 @@ onMounted(() => {
     <template v-if="activity.activeTab === 'bookmarks'">
       <!-- Loading -->
       <div v-if="activity.bookmarkLoading && activity.bookmarks.length === 0" class="m-loading">
-        <div class="m-skeleton" v-for="i in 5" :key="i" />
+        <div v-for="i in 5" :key="i" class="m-skeleton" />
       </div>
 
       <!-- Error -->
       <div v-else-if="activity.bookmarkError && activity.bookmarks.length === 0" class="m-error">
         <span class="m-error-icon">⚠</span>
         <p>{{ activity.bookmarkError }}</p>
-        <button class="m-retry-btn" @click="activity.loadBookmarks()">{{ t('activity.retry') }}</button>
+        <button class="m-retry-btn" @click="activity.loadBookmarks()">
+          {{ t('activity.retry') }}
+        </button>
       </div>
 
       <!-- Empty -->
@@ -86,7 +88,11 @@ onMounted(() => {
 
       <!-- Bookmark List -->
       <div v-else class="m-entry-list">
-        <div v-for="entry in activity.bookmarks" :key="`${entry.language}:${entry.scpNumber}`" class="m-entry-card">
+        <div
+          v-for="entry in activity.bookmarks"
+          :key="`${entry.language}:${entry.scpNumber}`"
+          class="m-entry-card"
+        >
           <router-link :to="`/entry/${entry.language}/${entry.scpNumber}`" class="m-card-link">
             <div class="m-card-top">
               <div class="m-entry-id-wrap">
@@ -101,7 +107,12 @@ onMounted(() => {
             <h3 class="m-entry-name">{{ entry.name || `SCP-${entry.scpNumber}` }}</h3>
             <p class="m-entry-time">{{ formatTime(entry.createdAt) }}</p>
           </router-link>
-          <button class="m-delete-btn" @click="handleRemoveBookmark(entry.language, entry.scpNumber)">✕</button>
+          <button
+            class="m-delete-btn"
+            @click="handleRemoveBookmark(entry.language, entry.scpNumber)"
+          >
+            ✕
+          </button>
         </div>
       </div>
     </template>
@@ -113,7 +124,9 @@ onMounted(() => {
         <p>{{ t('history.confirmClear') }}</p>
         <div class="m-confirm-actions">
           <button class="m-confirm-yes" @click="handleClear">{{ t('history.yes') }}</button>
-          <button class="m-confirm-no" @click="showClearConfirm = false">{{ t('history.no') }}</button>
+          <button class="m-confirm-no" @click="showClearConfirm = false">
+            {{ t('history.no') }}
+          </button>
         </div>
       </div>
 
@@ -121,14 +134,38 @@ onMounted(() => {
       <div class="m-toolbar">
         <div class="m-filter-scroll">
           <div class="m-filter-pills">
-            <button class="m-pill" :class="{ active: activity.langFilter === null }" @click="setLanguage(null)">{{ t('history.all') }}</button>
-            <button class="m-pill" :class="{ active: activity.langFilter === 'en' }" @click="setLanguage('en')">EN</button>
-            <button class="m-pill" :class="{ active: activity.langFilter === 'cn' }" @click="setLanguage('cn')">CN</button>
+            <button
+              class="m-pill"
+              :class="{ active: activity.langFilter === null }"
+              @click="setLanguage(null)"
+            >
+              {{ t('history.all') }}
+            </button>
+            <button
+              class="m-pill"
+              :class="{ active: activity.langFilter === 'en' }"
+              @click="setLanguage('en')"
+            >
+              EN
+            </button>
+            <button
+              class="m-pill"
+              :class="{ active: activity.langFilter === 'cn' }"
+              @click="setLanguage('cn')"
+            >
+              CN
+            </button>
           </div>
         </div>
         <div class="m-toolbar-right">
-          <span class="m-results-info">{{ t('history.entries', { count: activity.historyTotal }) }}</span>
-          <button v-if="activity.hasHistoryEntries" class="m-clear-btn" @click="showClearConfirm = !showClearConfirm">
+          <span class="m-results-info">{{
+            t('history.entries', { count: activity.historyTotal })
+          }}</span>
+          <button
+            v-if="activity.hasHistoryEntries"
+            class="m-clear-btn"
+            @click="showClearConfirm = !showClearConfirm"
+          >
             {{ t('history.clearAll') }}
           </button>
         </div>
@@ -136,14 +173,16 @@ onMounted(() => {
 
       <!-- Loading -->
       <div v-if="activity.historyLoading && !activity.hasHistoryEntries" class="m-loading">
-        <div class="m-skeleton" v-for="i in 6" :key="i" />
+        <div v-for="i in 6" :key="i" class="m-skeleton" />
       </div>
 
       <!-- Error -->
       <div v-else-if="activity.historyError && !activity.hasHistoryEntries" class="m-error">
         <span class="m-error-icon">⚠</span>
         <p>{{ activity.historyError }}</p>
-        <button class="m-retry-btn" @click="activity.fetchHistoryList()">{{ t('activity.retry') }}</button>
+        <button class="m-retry-btn" @click="activity.fetchHistoryList()">
+          {{ t('activity.retry') }}
+        </button>
       </div>
 
       <!-- Empty -->
@@ -160,7 +199,9 @@ onMounted(() => {
               <div class="m-card-top">
                 <div class="m-entry-id-wrap">
                   <ClassBar :object-class="entry.object_class as ObjectClass" />
-                  <span class="m-entry-id">SCP-{{ String(entry.scp_number).padStart(3, '0') }}</span>
+                  <span class="m-entry-id"
+                    >SCP-{{ String(entry.scp_number).padStart(3, '0') }}</span
+                  >
                   <span class="m-entry-lang">{{ entry.language.toUpperCase() }}</span>
                 </div>
                 <Badge :variant="entry.object_class.toLowerCase() as any">
@@ -168,7 +209,9 @@ onMounted(() => {
                 </Badge>
               </div>
               <h3 class="m-entry-name">{{ entry.name || `SCP-${entry.scp_number}` }}</h3>
-              <p class="m-entry-time">{{ t('history.visited') }} {{ formatTime(entry.visited_at) }}</p>
+              <p class="m-entry-time">
+                {{ t('history.visited') }} {{ formatTime(entry.visited_at) }}
+              </p>
             </router-link>
             <button class="m-delete-btn" @click="handleDeleteHistory(entry.id)">✕</button>
           </div>
@@ -176,9 +219,23 @@ onMounted(() => {
 
         <!-- Pagination -->
         <div v-if="activity.historyTotalPages > 1" class="m-pagination">
-          <button class="m-page-btn" :disabled="activity.historyPage <= 1" @click="activity.setHistoryPage(activity.historyPage - 1)">←</button>
-          <span class="m-page-info">{{ activity.historyPage }} / {{ activity.historyTotalPages }}</span>
-          <button class="m-page-btn" :disabled="activity.historyPage >= activity.historyTotalPages" @click="activity.setHistoryPage(activity.historyPage + 1)">→</button>
+          <button
+            class="m-page-btn"
+            :disabled="activity.historyPage <= 1"
+            @click="activity.setHistoryPage(activity.historyPage - 1)"
+          >
+            ←
+          </button>
+          <span class="m-page-info"
+            >{{ activity.historyPage }} / {{ activity.historyTotalPages }}</span
+          >
+          <button
+            class="m-page-btn"
+            :disabled="activity.historyPage >= activity.historyTotalPages"
+            @click="activity.setHistoryPage(activity.historyPage + 1)"
+          >
+            →
+          </button>
         </div>
       </template>
     </template>
@@ -471,8 +528,13 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .m-error {

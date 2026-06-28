@@ -147,7 +147,7 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
         throw new Error(`GLM API error ${res.status}: ${errorBody}`)
       }
 
-      const json = await res.json() as {
+      const json = (await res.json()) as {
         choices?: {
           message?: {
             content?: string

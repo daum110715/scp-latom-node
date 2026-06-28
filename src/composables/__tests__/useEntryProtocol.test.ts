@@ -32,7 +32,7 @@ function mountWithProtocol() {
         return () => ''
       },
     }),
-    { global: { plugins: [i18n] } }
+    { global: { plugins: [i18n] } },
   )
   return { wrapper, composable: composable! }
 }
@@ -118,7 +118,14 @@ describe('useEntryProtocol', () => {
   it('shuffle fetches entries and updates state', async () => {
     mockFetchCrawlerEntries.mockResolvedValue({
       ok: true,
-      data: { entries: mockEntries, total: 2, page: 1, limit: 50, totalPages: 1, state: { status: 'idle', lastCrawl: 0, totalEntries: 2 } },
+      data: {
+        entries: mockEntries,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        state: { status: 'idle', lastCrawl: 0, totalEntries: 2 },
+      },
     } as any)
     const { composable } = mountWithProtocol()
 
@@ -152,7 +159,14 @@ describe('useEntryProtocol', () => {
   it('shuffle handles empty results', async () => {
     mockFetchCrawlerEntries.mockResolvedValue({
       ok: true,
-      data: { entries: [], total: 0, page: 1, limit: 50, totalPages: 0, state: { status: 'idle', lastCrawl: 0, totalEntries: 0 } },
+      data: {
+        entries: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        state: { status: 'idle', lastCrawl: 0, totalEntries: 0 },
+      },
     } as any)
     const { composable } = mountWithProtocol()
 
@@ -166,7 +180,14 @@ describe('useEntryProtocol', () => {
   it('setMode persists to localStorage', async () => {
     mockFetchCrawlerEntries.mockResolvedValue({
       ok: true,
-      data: { entries: mockEntries, total: 2, page: 1, limit: 50, totalPages: 1, state: { status: 'idle', lastCrawl: 0, totalEntries: 2 } },
+      data: {
+        entries: mockEntries,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        state: { status: 'idle', lastCrawl: 0, totalEntries: 2 },
+      },
     } as any)
     const { composable } = mountWithProtocol()
 

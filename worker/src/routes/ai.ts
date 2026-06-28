@@ -78,7 +78,13 @@ ai.post('/chat', async (c) => {
     return c.json({ success: false, error: 'Message is required' }, 400)
   }
   if (body.message.length > MAX_MESSAGE_LENGTH) {
-    return c.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
+    return c.json(
+      {
+        success: false,
+        error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`,
+      },
+      400,
+    )
   }
 
   let conversationId = body.conversationId
@@ -114,13 +120,15 @@ ai.post('/chat', async (c) => {
     if (isNew) {
       await c.env.DB.prepare(
         `INSERT INTO ai_conversations (id, user_id, title, system_prompt, message_count, last_message_at)
-         VALUES (?, ?, ?, ?, 0, datetime('now'))`
-      ).bind(
-        conversationId,
-        payload.sub,
-        body.title ?? 'New Conversation',
-        body.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
-      ).run()
+         VALUES (?, ?, ?, ?, 0, datetime('now'))`,
+      )
+        .bind(
+          conversationId,
+          payload.sub,
+          body.title ?? 'New Conversation',
+          body.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
+        )
+        .run()
       logger.info('AI conversation created (stream)', { conversationId, userId: payload.sub })
     }
 
@@ -141,7 +149,7 @@ ai.post('/chat', async (c) => {
     body: JSON.stringify(doBody),
   })
 
-  const data = await queueResponse.json() as {
+  const data = (await queueResponse.json()) as {
     success: boolean
     conversationId: string
     message: unknown
@@ -157,21 +165,20 @@ ai.post('/chat', async (c) => {
   if (isNew) {
     await c.env.DB.prepare(
       `INSERT INTO ai_conversations (id, user_id, title, system_prompt, message_count, last_message_at)
-       VALUES (?, ?, ?, ?, 1, datetime('now'))`
-    ).bind(
-      conversationId,
-      payload.sub,
-      data.title,
-      body.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
-    ).run()
+       VALUES (?, ?, ?, ?, 1, datetime('now'))`,
+    )
+      .bind(conversationId, payload.sub, data.title, body.systemPrompt ?? DEFAULT_SYSTEM_PROMPT)
+      .run()
     logger.info('AI conversation created', { conversationId, userId: payload.sub })
   } else {
     // Update message count and last message time in D1
     await c.env.DB.prepare(
       `UPDATE ai_conversations
        SET message_count = message_count + 1, last_message_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ?`
-    ).bind(conversationId).run()
+       WHERE id = ?`,
+    )
+      .bind(conversationId)
+      .run()
   }
 
   return c.json({
@@ -191,13 +198,17 @@ ai.get('/conversations', async (c) => {
   const offset = (page - 1) * limit
 
   const countRow = await c.env.DB.prepare(
-    'SELECT COUNT(*) as total FROM ai_conversations WHERE user_id = ?'
-  ).bind(payload.sub).first<{ total: number }>()
+    'SELECT COUNT(*) as total FROM ai_conversations WHERE user_id = ?',
+  )
+    .bind(payload.sub)
+    .first<{ total: number }>()
   const total = countRow?.total ?? 0
 
   const rows = await c.env.DB.prepare(
-    'SELECT * FROM ai_conversations WHERE user_id = ? ORDER BY last_message_at DESC LIMIT ? OFFSET ?'
-  ).bind(payload.sub, limit, offset).all<AiConversationMeta>()
+    'SELECT * FROM ai_conversations WHERE user_id = ? ORDER BY last_message_at DESC LIMIT ? OFFSET ?',
+  )
+    .bind(payload.sub, limit, offset)
+    .all<AiConversationMeta>()
 
   return c.json({
     success: true,
@@ -215,9 +226,9 @@ ai.get('/conversations/:id', async (c) => {
   const payload = c.get('user')
   const conversationId = c.req.param('id')
 
-  const meta = await c.env.DB.prepare(
-    'SELECT * FROM ai_conversations WHERE id = ? AND user_id = ?'
-  ).bind(conversationId, payload.sub).first<AiConversationMeta>()
+  const meta = await c.env.DB.prepare('SELECT * FROM ai_conversations WHERE id = ? AND user_id = ?')
+    .bind(conversationId, payload.sub)
+    .first<AiConversationMeta>()
 
   if (!meta) {
     return c.json({ success: false, error: 'Conversation not found' }, 404)
@@ -226,7 +237,7 @@ ai.get('/conversations/:id', async (c) => {
   // Get messages from DO
   const stub = getConversationStub(c.env, conversationId)
   const doResponse = await stub.fetch('https://do.ai/messages')
-  const data = await doResponse.json() as { success: boolean; messages: unknown[] }
+  const data = (await doResponse.json()) as { success: boolean; messages: unknown[] }
 
   return c.json({
     success: true,
@@ -242,8 +253,10 @@ ai.put('/conversations/:id', async (c) => {
   const body = await c.req.json<{ title?: string; systemPrompt?: string }>()
 
   const meta = await c.env.DB.prepare(
-    'SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?'
-  ).bind(conversationId, payload.sub).first()
+    'SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?',
+  )
+    .bind(conversationId, payload.sub)
+    .first()
 
   if (!meta) {
     return c.json({ success: false, error: 'Conversation not found' }, 404)
@@ -271,9 +284,9 @@ ai.put('/conversations/:id', async (c) => {
   if (updates.length > 0) {
     updates.push("updated_at = datetime('now')")
     params.push(conversationId)
-    await c.env.DB.prepare(
-      `UPDATE ai_conversations SET ${updates.join(', ')} WHERE id = ?`
-    ).bind(...params).run()
+    await c.env.DB.prepare(`UPDATE ai_conversations SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...params)
+      .run()
   }
 
   return c.json({ success: true })
@@ -285,9 +298,9 @@ ai.delete('/conversations/:id', async (c) => {
   const payload = c.get('user')
   const conversationId = c.req.param('id')
 
-  const result = await c.env.DB.prepare(
-    'DELETE FROM ai_conversations WHERE id = ? AND user_id = ?'
-  ).bind(conversationId, payload.sub).run()
+  const result = await c.env.DB.prepare('DELETE FROM ai_conversations WHERE id = ? AND user_id = ?')
+    .bind(conversationId, payload.sub)
+    .run()
 
   if (result.meta.changes === 0) {
     return c.json({ success: false, error: 'Conversation not found' }, 404)
@@ -303,8 +316,10 @@ ai.post('/conversations/:id/regenerate', async (c) => {
   const conversationId = c.req.param('id')
 
   const meta = await c.env.DB.prepare(
-    'SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?'
-  ).bind(conversationId, payload.sub).first()
+    'SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?',
+  )
+    .bind(conversationId, payload.sub)
+    .first()
 
   if (!meta) {
     return c.json({ success: false, error: 'Conversation not found' }, 404)
@@ -314,16 +329,16 @@ ai.post('/conversations/:id/regenerate', async (c) => {
   const doResponse = await stub.fetch('https://do.ai/regenerate', {
     method: 'POST',
   })
-  const data = await doResponse.json() as { success: boolean; message?: unknown; error?: string }
+  const data = (await doResponse.json()) as { success: boolean; message?: unknown; error?: string }
 
   if (!data.success) {
     return c.json({ success: false, error: data.error ?? 'Regenerate failed' }, 502)
   }
 
   // Refresh updated_at in D1
-  await c.env.DB.prepare(
-    "UPDATE ai_conversations SET updated_at = datetime('now') WHERE id = ?"
-  ).bind(conversationId).run()
+  await c.env.DB.prepare("UPDATE ai_conversations SET updated_at = datetime('now') WHERE id = ?")
+    .bind(conversationId)
+    .run()
 
   return c.json(data)
 })

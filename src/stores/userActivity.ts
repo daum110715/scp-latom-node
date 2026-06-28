@@ -19,9 +19,7 @@ export type ActivityTab = 'bookmarks' | 'history'
 export const useUserActivityStore = defineStore('userActivity', () => {
   // ─── Tab State ───────────────────────────────────────────
 
-  const activeTab = ref<ActivityTab>(
-    (localStorage.getItem(TAB_KEY) as ActivityTab) || 'history'
-  )
+  const activeTab = ref<ActivityTab>((localStorage.getItem(TAB_KEY) as ActivityTab) || 'history')
 
   function setTab(tab: ActivityTab) {
     activeTab.value = tab
@@ -93,7 +91,7 @@ export const useUserActivityStore = defineStore('userActivity', () => {
 
     if (res.ok) {
       bookmarks.value = bookmarks.value.filter(
-        (b) => !(b.language === lang && b.scpNumber === scpNumber)
+        (b) => !(b.language === lang && b.scpNumber === scpNumber),
       )
       return true
     }

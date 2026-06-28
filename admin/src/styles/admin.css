@@ -330,13 +330,34 @@
 }
 
 /* Object class badges */
-.badge-safe { background: rgba(74, 222, 128, 0.12); color: var(--class-safe); }
-.badge-euclid { background: rgba(250, 204, 21, 0.12); color: var(--class-euclid); }
-.badge-keter { background: rgba(239, 68, 68, 0.12); color: var(--class-keter); }
-.badge-thaumiel { background: rgba(168, 85, 247, 0.12); color: var(--class-thaumiel); }
-.badge-apollyon { background: rgba(26, 26, 46, 0.3); color: #6366f1; }
-.badge-neutralized { background: rgba(107, 114, 128, 0.12); color: var(--class-neutralized); }
-.badge-unknown { background: var(--bg-elevated); color: var(--text-tertiary); }
+.badge-safe {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--class-safe);
+}
+.badge-euclid {
+  background: rgba(250, 204, 21, 0.12);
+  color: var(--class-euclid);
+}
+.badge-keter {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--class-keter);
+}
+.badge-thaumiel {
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--class-thaumiel);
+}
+.badge-apollyon {
+  background: rgba(26, 26, 46, 0.3);
+  color: #6366f1;
+}
+.badge-neutralized {
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--class-neutralized);
+}
+.badge-unknown {
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+}
 
 /* ═══ Modal ═══ */
 
@@ -432,8 +453,13 @@
 /* ═══ Loading Skeleton ═══ */
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .skeleton {

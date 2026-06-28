@@ -47,9 +47,12 @@ function collapseFooterDetails() {
   })
 }
 
-watch(() => data.value?.content, (content) => {
-  if (content) collapseFooterDetails()
-})
+watch(
+  () => data.value?.content,
+  (content) => {
+    if (content) collapseFooterDetails()
+  },
+)
 
 async function loadContent() {
   loading.value = true
@@ -73,7 +76,9 @@ async function loadContent() {
   }
 
   if (res.data.status === 'pending' || res.data.status === 'fetching') {
-    pollTimer = setTimeout(() => { pollForContent() }, 2000)
+    pollTimer = setTimeout(() => {
+      pollForContent()
+    }, 2000)
     return
   }
 
@@ -119,7 +124,9 @@ async function pollForContent() {
   }
 
   if (res.data.status === 'pending' || res.data.status === 'fetching') {
-    pollTimer = setTimeout(() => { pollForContent() }, 2000)
+    pollTimer = setTimeout(() => {
+      pollForContent()
+    }, 2000)
     return
   }
 
@@ -181,7 +188,14 @@ onUnmounted(() => {
   <div class="m-entry">
     <!-- Back -->
     <router-link to="/catalog" class="m-back">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline points="15 18 9 12 15 6" />
       </svg>
       {{ t('entry.back') }}
@@ -192,8 +206,13 @@ onUnmounted(() => {
       <div class="m-skeleton m-skeleton-badge" />
       <div class="m-skeleton m-skeleton-title" />
       <div class="m-skeleton m-skeleton-sub" />
-      <div v-for="i in 6" :key="i" class="m-skeleton m-skeleton-line" :style="{ width: `${50 + Math.random() * 50}%` }" />
-      <p class="m-loading-hint" v-if="data?.status === 'pending' || data?.status === 'fetching'">
+      <div
+        v-for="i in 6"
+        :key="i"
+        class="m-skeleton m-skeleton-line"
+        :style="{ width: `${50 + Math.random() * 50}%` }"
+      />
+      <p v-if="data?.status === 'pending' || data?.status === 'fetching'" class="m-loading-hint">
         Fetching from wiki…
       </p>
     </div>
@@ -205,7 +224,12 @@ onUnmounted(() => {
       <p>{{ error }}</p>
       <div class="m-error-actions">
         <button class="m-retry-btn" @click="retry">Retry</button>
-        <a :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`" target="_blank" rel="noopener noreferrer" class="m-wiki-link">
+        <a
+          :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="m-wiki-link"
+        >
           View on Wiki ↗
         </a>
       </div>
@@ -215,7 +239,11 @@ onUnmounted(() => {
     <template v-else-if="data">
       <div class="m-entry-header">
         <div class="m-entry-meta">
-          <ClassBar v-if="data.objectClass" :object-class="data.objectClass as ObjectClass" :show-label="true" />
+          <ClassBar
+            v-if="data.objectClass"
+            :object-class="data.objectClass as ObjectClass"
+            :show-label="true"
+          />
           <Badge v-if="data.objectClass" :variant="data.objectClass.toLowerCase() as any">
             {{ data.objectClass }}
           </Badge>
@@ -226,7 +254,14 @@ onUnmounted(() => {
               :title="t('entry.download')"
               @click="handleDownload"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -240,8 +275,17 @@ onUnmounted(() => {
               :title="bookmarked ? t('bookmarks.remove') : t('bookmarks.add')"
               @click="toggleBookmark"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" :fill="bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                :fill="bookmarked ? 'currentColor' : 'none'"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                />
               </svg>
             </button>
             <button
@@ -250,8 +294,17 @@ onUnmounted(() => {
               :title="t('entry.report')"
               @click="reportOpen = true"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                />
                 <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
@@ -264,7 +317,12 @@ onUnmounted(() => {
         </h1>
         <div class="m-entry-info">
           <span>{{ lang === 'en' ? 'English' : '中文' }}</span>
-          <a :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`" target="_blank" rel="noopener noreferrer" class="m-wiki-link">
+          <a
+            :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="m-wiki-link"
+          >
             Wiki ↗
           </a>
         </div>
@@ -272,25 +330,38 @@ onUnmounted(() => {
 
       <!-- Tags -->
       <div v-if="tags.length > 0" class="m-entry-tags">
-        <div v-for="category in Object.keys(TAG_CATEGORY_LABELS)" :key="category" class="m-tag-group" v-show="tags.some(t => t.categoryId === category)">
+        <div
+          v-for="category in Object.keys(TAG_CATEGORY_LABELS)"
+          v-show="tags.some((t) => t.categoryId === category)"
+          :key="category"
+          class="m-tag-group"
+        >
           <span class="m-tag-group-label" :style="{ color: TAG_CATEGORY_LABELS[category]?.color }">
-            {{ lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en }}
+            {{
+              lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en
+            }}
           </span>
           <span
-            v-for="tag in tags.filter(t => t.categoryId === category)"
+            v-for="tag in tags.filter((t) => t.categoryId === category)"
             :key="tag.id"
             class="m-tag-chip"
-            :style="{ borderColor: TAG_CATEGORY_LABELS[category]?.color, color: TAG_CATEGORY_LABELS[category]?.color }"
+            :style="{
+              borderColor: TAG_CATEGORY_LABELS[category]?.color,
+              color: TAG_CATEGORY_LABELS[category]?.color,
+            }"
           >
             {{ lang === 'cn' ? tag.nameZh : tag.name }}
           </span>
         </div>
       </div>
       <div v-else-if="tagsLoading" class="m-entry-tags m-entry-tags-loading">
-        <span class="m-tag-skeleton" /><span class="m-tag-skeleton" /><span class="m-tag-skeleton" />
+        <span class="m-tag-skeleton" /><span class="m-tag-skeleton" /><span
+          class="m-tag-skeleton"
+        />
       </div>
 
-      <div class="m-entry-body" v-if="data.content" v-html="data.content" />
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div v-if="data.content" class="m-entry-body" v-html="data.content" />
 
       <ReportDialog
         :open="reportOpen"
@@ -511,8 +582,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ─── Error ─── */

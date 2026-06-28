@@ -33,10 +33,10 @@
 
 /* Prevent iOS zoom on input focus */
 @media (max-width: 768px) {
-  input[type="text"],
-  input[type="password"],
-  input[type="email"],
-  input[type="search"],
+  input[type='text'],
+  input[type='password'],
+  input[type='email'],
+  input[type='search'],
   textarea,
   select {
     font-size: 16px !important;

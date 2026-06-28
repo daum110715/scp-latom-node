@@ -86,9 +86,22 @@ export const useProposalsStore = defineStore('proposals', () => {
   }
 
   return {
-    proposals, total, page, limit, totalPages, loading, error,
-    statusFilter, categoryFilter, currentProposal,
-    fetchProposals, fetchProposal, changeStatus, remove,
-    setPage, setStatusFilter, setCategoryFilter,
+    proposals,
+    total,
+    page,
+    limit,
+    totalPages,
+    loading,
+    error,
+    statusFilter,
+    categoryFilter,
+    currentProposal,
+    fetchProposals,
+    fetchProposal,
+    changeStatus,
+    remove,
+    setPage,
+    setStatusFilter,
+    setCategoryFilter,
   }
 })

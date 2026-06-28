@@ -46,10 +46,15 @@ function formatDate(d: string) {
         <div class="proposal-header">
           <div class="proposal-title-row">
             <h3>{{ store.currentProposal.title }}</h3>
-            <StatusBadge :variant="store.currentProposal.status" :label="store.currentProposal.status" />
+            <StatusBadge
+              :variant="store.currentProposal.status"
+              :label="store.currentProposal.status"
+            />
           </div>
           <div class="proposal-meta">
-            <span>By <strong>{{ store.currentProposal.authorCodename }}</strong></span>
+            <span
+              >By <strong>{{ store.currentProposal.authorCodename }}</strong></span
+            >
             <span>•</span>
             <span>{{ store.currentProposal.category }}</span>
             <span>•</span>
@@ -83,7 +88,12 @@ function formatDate(d: string) {
           <div class="voters">
             <div v-for="v in store.currentProposal.voters" :key="v.codename" class="voter-item">
               <span class="voter-name">{{ v.codename }}</span>
-              <StatusBadge :variant="v.vote === 'for' ? 'approved' : v.vote === 'against' ? 'rejected' : 'open'" :label="v.vote" />
+              <StatusBadge
+                :variant="
+                  v.vote === 'for' ? 'approved' : v.vote === 'against' ? 'rejected' : 'open'
+                "
+                :label="v.vote"
+              />
               <span class="voter-date">{{ formatDate(v.created_at) }}</span>
             </div>
           </div>
@@ -91,9 +101,27 @@ function formatDate(d: string) {
 
         <!-- Actions -->
         <div class="proposal-actions">
-          <button v-if="store.currentProposal.status !== 'approved'" class="btn btn-success" @click="setStatus('approved')">Approve</button>
-          <button v-if="store.currentProposal.status !== 'rejected'" class="btn btn-danger" @click="setStatus('rejected')">Reject</button>
-          <button v-if="store.currentProposal.status !== 'open'" class="btn btn-ghost" @click="setStatus('open')">Reopen</button>
+          <button
+            v-if="store.currentProposal.status !== 'approved'"
+            class="btn btn-success"
+            @click="setStatus('approved')"
+          >
+            Approve
+          </button>
+          <button
+            v-if="store.currentProposal.status !== 'rejected'"
+            class="btn btn-danger"
+            @click="setStatus('rejected')"
+          >
+            Reject
+          </button>
+          <button
+            v-if="store.currentProposal.status !== 'open'"
+            class="btn btn-ghost"
+            @click="setStatus('open')"
+          >
+            Reopen
+          </button>
           <button class="btn btn-danger" @click="showDelete = true">Delete Proposal</button>
         </div>
       </div>
@@ -112,10 +140,17 @@ function formatDate(d: string) {
 </template>
 
 <style scoped>
-.proposal-detail { max-width: var(--max-content); margin: 0 auto; }
-.page-header { margin-bottom: var(--space-lg); }
+.proposal-detail {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: var(--space-lg);
+}
 
-.proposal-header { margin-bottom: var(--space-lg); }
+.proposal-header {
+  margin-bottom: var(--space-lg);
+}
 
 .proposal-title-row {
   display: flex;
@@ -170,12 +205,22 @@ function formatDate(d: string) {
   font-family: var(--font-mono);
 }
 
-.vote-item.for .vote-value { color: var(--color-success); }
-.vote-item.against .vote-value { color: var(--color-danger); }
-.vote-item.abstain .vote-value { color: var(--text-tertiary); }
+.vote-item.for .vote-value {
+  color: var(--color-success);
+}
+.vote-item.against .vote-value {
+  color: var(--color-danger);
+}
+.vote-item.abstain .vote-value {
+  color: var(--text-tertiary);
+}
 
-.voter-list { margin-bottom: var(--space-lg); }
-.voter-list h4 { margin-bottom: var(--space-md); }
+.voter-list {
+  margin-bottom: var(--space-lg);
+}
+.voter-list h4 {
+  margin-bottom: var(--space-md);
+}
 
 .voters {
   display: flex;
