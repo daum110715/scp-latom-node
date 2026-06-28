@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { getLoggerFromContext } from '../../utils/logger'
+import { autoTagEntry } from '../../utils/auto-tagger'
 import type { Env, TagCategory, Tag, EntryTag } from '../../types'
 
 const tags = new Hono<{ Bindings: Env }>()
@@ -374,6 +375,72 @@ tags.delete('/entry/:scpNumber/:tagId', async (c) => {
   logger.info('Tag removed from entry', { scpNumber, language, tagId })
 
   return c.json({ success: true, message: 'Tag removed from entry' })
+})
+
+// ─── POST /api/admin/tags/entry/:scpNumber/auto — AI auto-tag an entry ────
+// Triggers GLM-4-flash to analyze entry content and assign tags from the pool.
+
+tags.post('/entry/:scpNumber/auto', async (c) => {
+  const logger = getLoggerFromContext(c).child({ category: 'admin' })
+  const scpNumber = parseInt(c.req.param('scpNumber'), 10)
+  if (isNaN(scpNumber)) return c.json({ success: false, error: 'Invalid SCP number' }, 400)
+
+  const body = await c.req.json<{ language?: string; force?: boolean }>().catch(() => ({} as { language?: string; force?: boolean }))
+  const language = (body.language?.trim() || 'en') as 'en' | 'cn'
+
+  if (language !== 'en' && language !== 'cn') {
+    return c.json({ success: false, error: "Language must be 'en' or 'cn'" }, 400)
+  }
+
+  // Verify entry exists
+  const entry = await c.env.DB.prepare(
+    'SELECT scp_number, content FROM scp_entries WHERE scp_number = ? AND language = ?'
+  ).bind(scpNumber, language).first<{ scp_number: number; content: string | null }>()
+
+  if (!entry) {
+    return c.json({ success: false, error: `SCP-${scpNumber} not found for language '${language}'` }, 404)
+  }
+
+  if (!entry.content) {
+    return c.json({ success: false, error: `SCP-${scpNumber} has no content to analyze` }, 400)
+  }
+
+  // If force is set, clear existing tags first to allow re-tagging
+  if (body.force) {
+    await c.env.DB.prepare(
+      'DELETE FROM entry_tags WHERE scp_number = ? AND language = ?'
+    ).bind(scpNumber, language).run()
+  }
+
+  // Check if already tagged
+  if (!body.force) {
+    const existing = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM entry_tags WHERE scp_number = ? AND language = ?'
+    ).bind(scpNumber, language).first<{ count: number }>()
+
+    if (existing && existing.count > 0) {
+      return c.json({
+        success: false,
+        error: `SCP-${scpNumber} already has ${existing.count} tags. Use force: true to re-tag.`,
+        existingCount: existing.count,
+      }, 409)
+    }
+  }
+
+  const tagIds = await autoTagEntry(c.env.DB, c.env.GLM_API_KEY, scpNumber, language, logger)
+
+  if (!tagIds) {
+    return c.json({
+      success: false,
+      error: 'Auto-tagging failed or returned no tags',
+    }, 500)
+  }
+
+  return c.json({
+    success: true,
+    message: `SCP-${scpNumber} auto-tagged with ${tagIds.length} tags`,
+    tagIds,
+  })
 })
 
 export default tags

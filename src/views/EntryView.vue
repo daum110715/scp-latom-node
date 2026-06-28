@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
+import { fetchEntryTags, TAG_CATEGORY_LABELS, type TagInfo } from '@/services/tags'
 import { downloadEntry } from '@/services/download'
 import { checkReports } from '@/services/reports'
 import { useAuthStore } from '@/stores/auth'
@@ -32,6 +33,8 @@ const scpId = computed(() => `SCP-${String(scpNumber.value).padStart(3, '0')}`)
 const loading = ref(true)
 const error = ref('')
 const data = ref<EntryContentResponse | null>(null)
+const tags = ref<TagInfo[]>([])
+const tagsLoading = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 // Collapse all <details> elements in footer content after render
@@ -66,6 +69,7 @@ async function loadContent() {
   if (res.data.status === 'cached' || res.data.status === 'fetched') {
     loading.value = false
     recordVisit(res.data)
+    loadTags()
     return
   }
 
@@ -92,6 +96,15 @@ function recordVisit(entry: EntryContentResponse) {
   })
 }
 
+async function loadTags() {
+  tagsLoading.value = true
+  const res = await fetchEntryTags(scpNumber.value, lang.value)
+  if (res.ok) {
+    tags.value = res.data.tags
+  }
+  tagsLoading.value = false
+}
+
 async function pollForContent() {
   const res = await fetchEntryContent(lang.value, scpNumber.value)
 
@@ -106,6 +119,7 @@ async function pollForContent() {
   if (res.data.status === 'cached' || res.data.status === 'fetched') {
     loading.value = false
     recordVisit(res.data)
+    loadTags()
     return
   }
 
@@ -279,6 +293,26 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- Tags -->
+      <div v-if="tags.length > 0" class="entry-tags">
+        <div v-for="category in Object.keys(TAG_CATEGORY_LABELS)" :key="category" class="tag-group" v-show="tags.some(t => t.categoryId === category)">
+          <span class="tag-group-label" :style="{ color: TAG_CATEGORY_LABELS[category]?.color }">
+            {{ lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en }}
+          </span>
+          <span
+            v-for="tag in tags.filter(t => t.categoryId === category)"
+            :key="tag.id"
+            class="tag-chip"
+            :style="{ borderColor: TAG_CATEGORY_LABELS[category]?.color, color: TAG_CATEGORY_LABELS[category]?.color }"
+          >
+            {{ lang === 'cn' ? tag.nameZh : tag.name }}
+          </span>
+        </div>
+      </div>
+      <div v-else-if="tagsLoading" class="entry-tags entry-tags-loading">
+        <span class="tag-skeleton" /><span class="tag-skeleton" /><span class="tag-skeleton" />
+      </div>
+
       <div class="entry-body" v-if="data.content" v-html="data.content" />
 
       <ReportDialog
@@ -410,6 +444,55 @@ onUnmounted(() => {
 
 .wiki-link:hover {
   color: var(--color-accent);
+}
+
+/* ─── Tags ─── */
+
+.entry-tags {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.tag-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.tag-group-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: var(--space-xs);
+}
+
+.tag-chip {
+  display: inline-block;
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.entry-tags-loading {
+  gap: var(--space-xs);
+}
+
+.tag-skeleton {
+  display: inline-block;
+  width: 60px;
+  height: 20px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-surface);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* ─── Body ─── */

@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
+import { fetchEntryTags, TAG_CATEGORY_LABELS, type TagInfo } from '@/services/tags'
 import { downloadEntry } from '@/services/download'
 import { checkReports } from '@/services/reports'
 import { useAuthStore } from '@/stores/auth'
@@ -31,6 +32,8 @@ const scpId = computed(() => `SCP-${String(scpNumber.value).padStart(3, '0')}`)
 const loading = ref(true)
 const error = ref('')
 const data = ref<EntryContentResponse | null>(null)
+const tags = ref<TagInfo[]>([])
+const tagsLoading = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 // Collapse all <details> elements in footer content after render
@@ -65,6 +68,7 @@ async function loadContent() {
   if (res.data.status === 'cached' || res.data.status === 'fetched') {
     loading.value = false
     recordVisit(res.data)
+    loadTags()
     return
   }
 
@@ -87,6 +91,15 @@ function recordVisit(entry: EntryContentResponse) {
   })
 }
 
+async function loadTags() {
+  tagsLoading.value = true
+  const res = await fetchEntryTags(scpNumber.value, lang.value)
+  if (res.ok) {
+    tags.value = res.data.tags
+  }
+  tagsLoading.value = false
+}
+
 async function pollForContent() {
   const res = await fetchEntryContent(lang.value, scpNumber.value)
 
@@ -101,6 +114,7 @@ async function pollForContent() {
   if (res.data.status === 'cached' || res.data.status === 'fetched') {
     loading.value = false
     recordVisit(res.data)
+    loadTags()
     return
   }
 
@@ -256,6 +270,26 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- Tags -->
+      <div v-if="tags.length > 0" class="m-entry-tags">
+        <div v-for="category in Object.keys(TAG_CATEGORY_LABELS)" :key="category" class="m-tag-group" v-show="tags.some(t => t.categoryId === category)">
+          <span class="m-tag-group-label" :style="{ color: TAG_CATEGORY_LABELS[category]?.color }">
+            {{ lang === 'cn' ? TAG_CATEGORY_LABELS[category]?.zh : TAG_CATEGORY_LABELS[category]?.en }}
+          </span>
+          <span
+            v-for="tag in tags.filter(t => t.categoryId === category)"
+            :key="tag.id"
+            class="m-tag-chip"
+            :style="{ borderColor: TAG_CATEGORY_LABELS[category]?.color, color: TAG_CATEGORY_LABELS[category]?.color }"
+          >
+            {{ lang === 'cn' ? tag.nameZh : tag.name }}
+          </span>
+        </div>
+      </div>
+      <div v-else-if="tagsLoading" class="m-entry-tags m-entry-tags-loading">
+        <span class="m-tag-skeleton" /><span class="m-tag-skeleton" /><span class="m-tag-skeleton" />
+      </div>
+
       <div class="m-entry-body" v-if="data.content" v-html="data.content" />
 
       <ReportDialog
@@ -372,6 +406,55 @@ onUnmounted(() => {
 
 .m-wiki-link:hover {
   color: var(--color-accent);
+}
+
+/* ─── Tags ─── */
+
+.m-entry-tags {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.m-tag-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.m-tag-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.m-tag-chip {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid;
+  border-radius: 9999px;
+  background: transparent;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.m-entry-tags-loading {
+  gap: var(--space-xs);
+}
+
+.m-tag-skeleton {
+  display: inline-block;
+  width: 50px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* ─── Body ─── */

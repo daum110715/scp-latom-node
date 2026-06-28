@@ -2,6 +2,7 @@ import type { CrawlEntry, CrawlState, Env, EntryContentResponse, SyncResult } fr
 import { parseScpIndexPage, SERIES_PAGES, getWikiBaseUrl, cleanEntryHtml, extractObjectClassFromEntryPage, buildClassMap, applyClassMap } from './parser'
 import { fetchPageLikeBrowser, humanDelay } from './http-client'
 import { Logger } from '../utils/logger'
+import { autoTagEntry } from '../utils/auto-tagger'
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -282,6 +283,12 @@ export class ScpCrawlerDo {
 
     // 2. If content is cached (explicit null check — empty string is valid), return it
     if (row.content !== null && row.content !== undefined) {
+      // Trigger background auto-tagging if entry has no tags yet
+      const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
+      if (typeof ctx.waitUntil === 'function') {
+        ctx.waitUntil(autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).then(() => {}).catch(() => {}))
+      }
+
       const resp: EntryContentResponse = {
         success: true,
         scpNumber,
@@ -360,6 +367,9 @@ export class ScpCrawlerDo {
       await this.env.DB.prepare(
         `UPDATE scp_entries SET content = ?, content_error = NULL, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`
       ).bind(cleaned, scpNumber, language).run()
+
+      // Auto-tag the entry now that content is available
+      await autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).catch(() => {})
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       this.logger.error(`Error fetching entry scp-${scpNumber} (${language})`, { error: err, scpNumber, language })
