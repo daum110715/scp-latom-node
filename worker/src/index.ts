@@ -11,6 +11,7 @@ import reportRoutes from './routes/reports'
 import logRoutes from './routes/logs'
 import adminRoutes from './routes/admin'
 import aiRoutes from './routes/ai'
+import tagRoutes from './routes/tags'
 import type { Env } from './types'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -82,6 +83,9 @@ app.route('/api/admin', adminRoutes)
 
 // AI chat routes
 app.route('/api/ai', aiRoutes)
+
+// Tag routes
+app.route('/api/tags', tagRoutes)
 
 // 404 fallback
 app.notFound((c) => {

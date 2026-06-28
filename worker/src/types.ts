@@ -231,6 +231,56 @@ export interface AdminLogEntry {
   created_at: string
 }
 
+// ─── Tag Types ──────────────────────────────────────────────
+
+export interface TagCategory {
+  id: string
+  name: string
+  name_en: string
+  description: string
+  sort_order: number
+  created_at: string
+}
+
+export interface Tag {
+  id: string
+  category_id: string
+  name: string
+  name_zh: string
+  description: string
+  ai_keywords: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TagPublic {
+  id: string
+  categoryId: string
+  name: string
+  nameZh: string
+  description: string
+  aiKeywords: string[]
+  sortOrder: number
+}
+
+export interface TagCategoryPublic {
+  id: string
+  name: string
+  nameEn: string
+  description: string
+  sortOrder: number
+  tags: TagPublic[]
+}
+
+export interface EntryTag {
+  id: number
+  scp_number: number
+  language: string
+  tag_id: string
+  created_at: string
+}
+
 // ─── AI Chat Types ──────────────────────────────────────────
 
 export interface AiMessage {
