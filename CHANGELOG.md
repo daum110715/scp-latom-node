@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Community proposals system with voting, daily limits, and admin moderation
+- Bookmarks and browsing history with unified activity page
+- Entry reporting system for content issues
+- AI chat assistant with GLM (ZhipuAI) integration and tool calling
+- Tag system with categories (object class, anomaly type, group of interest, narrative format, theme)
+- Admin dashboard (separate Vue 3 SPA) for user, entry, proposal, and tag management
+- Crawler Durable Objects for English and Chinese SCP Wiki crawling
+- Client-side logging with buffered server transmission
+- Entry content download as standalone HTML
+- Responsive mobile views for all pages
+- Durable Objects for AI chat and queue management
+
+### Changed
+
+- Entries are now fetched from the crawler API instead of static mock data
+- Unified bookmarks and history into a single userActivity store
+- Updated all documentation to reflect current project architecture
+
 ## [0.1.0] - 2026-06-26
 
 ### Added
@@ -24,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Responsive layout with sidebar navigation (desktop) and bottom navigation (mobile)
 - SCP-themed UI design system with classification levels and clearance system
 - Error boundary component with SCP-themed error codes
-- Vitest test suite for frontend (14 test files) and backend (4 test files)
+- Vitest test suite for frontend (15 test files) and backend (15 test files)
 - CI pipeline (GitHub Actions): type-check, test, build
 - Deployment pipeline: Cloudflare Pages (frontend) + Cloudflare Workers (backend)
 - Makefile for common development tasks

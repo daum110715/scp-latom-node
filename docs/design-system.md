@@ -1,6 +1,6 @@
 # Design System
 
-The SCP Docs UI uses a custom CSS design system built on CSS custom properties. No external CSS frameworks are used. The design follows the SCP Foundation aesthetic: dark backgrounds, gold/amber accents, and a monospace terminal feel.
+The SCP Docs UI uses a custom CSS design system built on CSS custom properties, supplemented by Tailwind CSS v4 for utility classes. The design follows the SCP Foundation aesthetic: dark backgrounds, gold/amber accents, and a monospace terminal feel.
 
 ## CSS Architecture
 
@@ -8,6 +8,8 @@ The SCP Docs UI uses a custom CSS design system built on CSS custom properties. 
 
 - `src/styles/variables.css` — All design tokens as CSS custom properties
 - `src/styles/base.css` — Global resets, typography, transitions, scrollbar, reduced motion
+- `src/styles/tailwind.css` — Tailwind CSS v4 import
+- `src/styles/mobile.css` — Mobile-specific CSS overrides
 
 ### Theme System
 
@@ -177,6 +179,8 @@ Light theme uses reduced opacity: `0.06`, `0.08`, `0.12` respectively.
 - **Card.vue** — Content cards with consistent styling and optional hover effect
 - **ClassBar.vue** — Object class colored dot indicator
 - **ErrorBoundary.vue** — Vue error boundary with retry functionality
+- **BackToTop.vue** — Scroll-to-top button
+- **ReportDialog.vue** — Dialog for reporting entry issues
 
 ### Using Design Tokens
 

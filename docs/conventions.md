@@ -34,8 +34,8 @@ All components use `<script setup lang="ts">`:
 
 ### Composition API
 
-- Use composables for shared logic (`useLocale`, `useTheme`)
-- Use Pinia stores for global state (`auth`, `search`)
+- Use composables for shared logic (`useLocale`, `useTheme`, `useDevice`, `useSidebar`)
+- Use Pinia stores for global state (`auth`, `search`, `crawler`, `proposals`, `userActivity`)
 - Prefer `ref()` over `reactive()` for primitives
 - Use `computed()` for derived values
 
@@ -81,6 +81,10 @@ Use CSS custom properties from `variables.css` for all colors, spacing, and typo
 
 See the [Design System](design-system.md) for the full token reference.
 
+### Tailwind CSS
+
+The project uses Tailwind CSS v4 alongside the custom CSS design system. Use Tailwind utility classes for layout and spacing, but prefer CSS custom properties for theme-aware values (colors, borders, shadows).
+
 ### Scoped Styles
 
 Use `<style scoped>` for component-specific styles. Global styles go in `src/styles/base.css`.
@@ -95,7 +99,7 @@ Use the `--pad-page` token for responsive page padding:
 }
 ```
 
-Prefer `clamp()` and CSS functions over media queries where possible.
+Prefer `clamp()` and CSS functions over media queries where possible. Use `useDevice()` composable for JavaScript-based responsive logic.
 
 ## Project Structure
 
@@ -103,15 +107,15 @@ Prefer `clamp()` and CSS functions over media queries where possible.
 
 | Directory         | Purpose                              |
 | ----------------- | ------------------------------------ |
-| `src/views/`      | Page-level components (one per route) |
-| `src/components/` | Shared components, organized by domain |
-| `src/stores/`     | Pinia stores (auth, search)          |
-| `src/composables/`| Vue composables (useLocale, useTheme) |
-| `src/data/`       | Static mock data                     |
-| `src/services/`   | API client layer                     |
+| `src/views/`      | Page-level components (one per route, desktop + mobile variants) |
+| `src/components/` | Shared components, organized by domain (common, home, layout, mobile, ai) |
+| `src/stores/`     | Pinia stores (auth, search, crawler, proposals, userActivity) |
+| `src/composables/`| Vue composables (useLocale, useTheme, useDevice, useSidebar, useEntryProtocol) |
+| `src/data/`       | Static documents (entries fetched from crawler API) |
+| `src/services/`   | API client layer (api, ai, crawler, proposals, userActivity, reports, download) |
 | `src/locales/`    | i18n translation files               |
 | `src/types/`      | TypeScript interfaces                |
-| `src/styles/`     | CSS tokens and base styles           |
+| `src/styles/`     | CSS tokens, base styles, Tailwind, mobile |
 | `src/router/`     | Vue Router configuration             |
 
 ### Backend (`worker/`)
@@ -120,9 +124,21 @@ Prefer `clamp()` and CSS functions over media queries where possible.
 | ------------------- | -------------------------------- |
 | `src/index.ts`      | Hono app entry, CORS, routes    |
 | `src/routes/`       | API routes (one file per resource) |
-| `src/middleware/`    | Middleware (JWT auth)            |
-| `src/utils/`        | Utilities (JWT, password hashing) |
+| `src/routes/admin/` | Admin routes (dashboard, users, entries, proposals, logs, settings, tags) |
+| `src/middleware/`    | Middleware (JWT auth, admin check, logger) |
+| `src/do/`           | Durable Objects (crawler, ai-chat, ai-queue) |
+| `src/tools/`        | AI tool definitions and executor |
+| `src/utils/`        | Utilities (JWT, password, logger, GLM client) |
 | `src/types.ts`      | TypeScript interfaces            |
+
+### Admin Dashboard (`admin/`)
+
+| Directory           | Purpose                          |
+| ------------------- | -------------------------------- |
+| `src/views/`        | Admin pages (Dashboard, Users, Entries, Proposals, Logs, Settings) |
+| `src/stores/`       | Admin Pinia stores               |
+| `src/services/`     | Admin API client                 |
+| `src/components/`   | Admin UI components              |
 
 ## Testing Conventions
 
@@ -159,7 +175,7 @@ type(scope): description
 
 **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`
 
-**Scopes:** `frontend`, `backend`, `auth`, `i18n`, `ui`, `api`, `docs`
+**Scopes:** `frontend`, `backend`, `admin`, `auth`, `i18n`, `ui`, `api`, `docs`
 
 **Examples:**
 
@@ -168,6 +184,7 @@ feat(auth): add profile editing endpoint
 fix(cors): handle wildcard subdomain matching
 docs: add architecture documentation
 test(auth): add login flow unit tests
+feat(admin): add user management dashboard
 ```
 
 ### Branch Naming

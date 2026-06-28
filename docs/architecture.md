@@ -2,12 +2,13 @@
 
 ## Overview
 
-SCP Docs is a two-part application:
+SCP Docs is a three-part application:
 
 - **Frontend** — Vue 3 SPA served via Cloudflare Pages at `scp-docs.scp.lat`
 - **Backend** — Hono API on Cloudflare Workers at `api.scp.lat` with D1 database and Durable Objects
+- **Admin Dashboard** — Separate Vue 3 SPA at `admin.scp.lat` for administrative functions
 
-The frontend handles all UI rendering and routing. The backend handles user authentication, profile management, and wiki crawling via Durable Objects.
+The frontend handles all UI rendering and routing. The backend handles user authentication, profile management, wiki crawling, AI chat, proposals, bookmarks, history, and reports via Durable Objects. The admin dashboard provides management interfaces for users, entries, proposals, and system settings.
 
 ## Frontend Architecture
 
@@ -21,14 +22,16 @@ The frontend handles all UI rendering and routing. The backend handles user auth
 | Vue Router 4.6 | Client-side routing (HTML5 history mode) |
 | Pinia 3.0 | State management |
 | vue-i18n 11.4 | Internationalization (English + Chinese) |
+| Tailwind CSS 4.3 | Utility-first CSS (via `@tailwindcss/vite`) |
+| VitePWA | Service worker and offline support |
 | Vitest 4.1 | Testing (happy-dom environment) |
 
 ### Directory Structure
 
 ```
 src/
-  main.ts              # App bootstrap: Pinia, Router, i18n, auth init
-  App.vue              # Root component: layout shell
+  main.ts              # App bootstrap: Pinia, Router, i18n, auth init, log flusher
+  App.vue              # Root component: desktop/mobile layout switching
   i18n.ts              # vue-i18n setup
 
   views/               # Page-level components (route targets)
@@ -40,66 +43,118 @@ src/
     LoginView.vue      # Login form
     RegisterView.vue   # Registration form
     ProfileView.vue    # User profile with codename/password editing
+    ActivityView.vue   # Unified bookmarks + browsing history
+    ProposalsView.vue  # Community proposals list
+    ProposalDetailView.vue # Single proposal detail with voting
     NotFoundView.vue   # 404 page with glitch animation
+    mobile/            # Mobile-specific view variants
+      MobileHomeView.vue
+      MobileCatalogView.vue
+      MobileEntryView.vue
+      MobileDocumentsView.vue
+      MobileAboutView.vue
+      MobileLoginView.vue
+      MobileRegisterView.vue
+      MobileProfileView.vue
+      MobileActivityView.vue
+      MobileProposalsView.vue
+      MobileProposalDetailView.vue
+      MobileNotFoundView.vue
 
   components/
+    DeviceView.vue     # Route-level wrapper: renders desktop or mobile component
     common/            # Reusable UI
       Badge.vue        # Color-coded classification badge
       Card.vue         # Generic card with hover effect
       ClassBar.vue     # Object class colored dot indicator
       ErrorBoundary.vue # Vue error boundary with retry
+      BackToTop.vue    # Scroll-to-top button
+      ReportDialog.vue # Dialog for reporting entry issues
     home/              # Homepage sections
       HeroSection.vue  # Animated hero with grid background
-      RecentEntries.vue # Grid of recent SCP entries
+      RecentEntries.vue # Grid of recent SCP entries (from crawler API)
       StatsGrid.vue    # Statistics dashboard
-    layout/            # App shell
+    layout/            # App shell (desktop)
       AppHeader.vue    # Fixed header: logo, search, lang, theme, auth
-      AppSidebar.vue   # Sidebar nav (desktop) + bottom nav (mobile)
+      AppSidebar.vue   # Sidebar nav with system info
       AppFooter.vue    # Footer with Foundation branding
       SearchModal.vue  # Command-palette search (Ctrl+K)
+    mobile/            # Mobile-specific components
+      MobileLayout.vue # Mobile shell with bottom navigation
+      MobileHeader.vue # Mobile top header
+      MobileNav.vue    # Bottom tab navigation (5 tabs)
+      MobileSearchModal.vue # Full-screen mobile search
+      MobileAiChatPanel.vue # Mobile AI chat panel
+    ai/                # AI chat components
+      AiChatPanel.vue  # Desktop AI chat panel
+      AiConversationList.vue # Conversation list sidebar
+      AiMessageBubble.vue # Individual message bubble
 
   stores/              # Pinia stores
     auth.ts            # User session, JWT token, login/logout/register
     search.ts          # Search query state for SearchModal
+    crawler.ts         # Crawler entries, language switching, pagination, class filtering
+    proposals.ts       # Proposals CRUD, voting, pagination, daily limits
+    userActivity.ts    # Unified bookmarks + browsing history
+    bookmarks.ts       # Re-export shim (backward compatibility)
+    history.ts         # Re-export shim (backward compatibility)
 
   composables/         # Vue composables
     useLocale.ts       # Locale toggle (en/zh), persists to localStorage
     useTheme.ts        # Dark/light theme toggle, persists to localStorage
+    useDevice.ts       # Responsive device detection (mobile/tablet/desktop)
+    useSidebar.ts      # Sidebar collapsed state, persists to localStorage
+    useEntryProtocol.ts # Auto/manual rotation protocol for catalog page
 
   services/            # API client layer
-    api.ts             # HTTP client: request(), apiGet(), apiPost(), apiPut()
+    config.ts          # Centralized API URL: https://api.scp.lat/api
+    api.ts             # HTTP client: apiGet(), apiPost(), apiPut(), apiDelete(), apiStream()
     response.ts        # Normalizes backend JSON into ApiResult<T>
     errors.ts          # ErrorCode enum + i18n error resolution
+    logger.ts          # Client-side logger with buffered server transmission
+    ai.ts              # AI chat service (streaming SSE, conversations)
+    crawler.ts         # Crawler API (entries, status, series, content)
+    proposals.ts       # Proposals API (list, fetch, create, vote)
+    userActivity.ts    # Unified bookmarks + history API
+    bookmarks.ts       # Re-export shim
+    history.ts         # Re-export shim
+    reports.ts         # Entry reports API (submit, list, check)
+    download.ts        # Generate standalone HTML for SCP entries
 
-  data/                # Static mock data
-    entries.ts         # 7 hardcoded SCP entries + siteStats
-    documents.ts       # 4 hardcoded Foundation documents
+  data/                # Static data
+    entries.ts         # Empty array (entries now fetched from crawler API)
+    documents.ts       # 8 static Foundation documents with metadata
 
   locales/             # i18n translation files
-    en.ts              # English translations
-    zh.ts              # Chinese translations
+    en.ts              # English translations (955 lines, includes full document content)
+    zh.ts              # Chinese translations (954 lines)
 
   types/               # TypeScript interfaces
     index.ts           # ScpEntry, Document, SiteStats, ObjectClass
 
   styles/              # CSS design system
     variables.css      # Design tokens (colors, spacing, typography, etc.)
-    base.css           # Global resets and base styles
+    base.css           # Global resets, transitions, animations
+    tailwind.css       # Tailwind CSS v4 import
+    mobile.css         # Mobile-specific CSS overrides
 
   router/              # Vue Router configuration
-    index.ts           # 9 routes with auth guards
+    index.ts           # 12 routes with auth guards + DeviceView wrapper
 ```
 
 ### Routing
 
-Routes are defined in `src/router/index.ts`. All routes are lazy-loaded via dynamic `import()`.
+Routes are defined in `src/router/index.ts`. All routes use a `DeviceView` wrapper component that renders either desktop or mobile versions based on screen width. All routes are lazy-loaded via dynamic `import()`.
 
 | Path | Component | Auth Guard |
 | ---- | --------- | ---------- |
 | `/` | HomeView | None |
 | `/catalog` | CatalogView | None |
-| `/entry/:id` | EntryView | None |
+| `/entry/:lang/:scpNumber` | EntryView | None |
 | `/documents` | DocumentsView | None |
+| `/proposals` | ProposalsView | `requiresAuth` |
+| `/proposals/:id` | ProposalDetailView | `requiresAuth` |
+| `/activity` | ActivityView | `requiresAuth` |
 | `/about` | AboutView | None |
 | `/login` | LoginView | `requiresGuest` |
 | `/register` | RegisterView | `requiresGuest` |
@@ -118,7 +173,7 @@ Routes are defined in `src/router/index.ts`. All routes are lazy-loaded via dyna
 
 ### State Management
 
-Two Pinia stores:
+Seven Pinia stores:
 
 **`auth.ts`** — User session management
 
@@ -131,13 +186,32 @@ Two Pinia stores:
 
 - State: `query`, filtering logic for entries and documents
 
+**`crawler.ts`** — Crawler entries from backend API
+
+- State: entries, language (en/cn), pagination, class filtering
+- Actions: `fetchEntries()`, `setLanguage()`, `setClass()`, `setPage()`
+
+**`proposals.ts`** — Community proposals
+
+- State: proposals, pagination, daily limits
+- Actions: `fetchProposals()`, `createProposal()`, `vote()`, `fetchProposal()`
+
+**`userActivity.ts`** — Unified bookmarks + browsing history
+
+- State: bookmarks, history, active tab
+- Actions: `fetchBookmarks()`, `addBookmark()`, `removeBookmark()`, `fetchHistory()`, `recordHistory()`, `deleteHistory()`, `clearHistory()`
+
+**`bookmarks.ts`** / **`history.ts`** — Backward-compatibility shims that re-export from `userActivity.ts`
+
 ### API Client Layer
 
 `src/services/` provides a typed HTTP client:
 
-- **`api.ts`** — Core HTTP functions: `request()`, `apiGet()`, `apiPost()`, `apiPut()`. Targets `https://api.scp.lat`.
+- **`config.ts`** — Centralized API URL: `https://api.scp.lat/api`
+- **`api.ts`** — Core HTTP functions: `apiGet()`, `apiPost()`, `apiPut()`, `apiDelete()`, `apiStream()`. Auto-injects auth token, logs slow/error responses.
 - **`response.ts`** — Normalizes backend JSON into `ApiResult<T>` (either `{ ok: true, data }` or `{ ok: false, code, error }`)
 - **`errors.ts`** — `ErrorCode` enum mapping HTTP status codes to i18n error keys
+- **`logger.ts`** — Client-side logger with buffered server transmission. Warn/error logs batched and POSTed to `/api/logs` every 30s.
 
 ### Error Handling
 
@@ -155,9 +229,10 @@ Two Pinia stores:
 | Hono 4.9 | Lightweight web framework for edge |
 | Cloudflare Workers | Serverless runtime |
 | Cloudflare D1 | SQLite-based database |
-| Cloudflare Durable Objects | Stateful crawler instances |
+| Cloudflare Durable Objects | Stateful crawler and AI chat instances |
 | jose 6.0 | JWT handling (HS256) |
 | PBKDF2 | Password hashing (Web Crypto API) |
+| ZhipuAI GLM | AI chat backend with tool calling |
 | Wrangler 4.86 | Development and deployment CLI |
 | Vitest 4.1 | Testing |
 
@@ -166,37 +241,74 @@ Two Pinia stores:
 ```
 worker/src/
   index.ts             # Hono app entry: CORS, health check, route mounting, 404, error handler
-  types.ts             # TypeScript interfaces: Env, User, UserPublic, JwtPayload, CrawlEntry, CrawlState
+  types.ts             # TypeScript interfaces: Env, User, CrawlEntry, Proposal, Bookmark, etc.
   routes/
     auth.ts            # Auth endpoints: register, login, me, profile
-    crawler.ts         # Crawler endpoints: status, entries, series, trigger crawl
+    crawler.ts         # Crawler endpoints: status, entries, series, entry content
+    history.ts         # Browsing history: GET/POST/DELETE
+    proposals.ts       # Proposals: GET/POST, voting
+    bookmarks.ts       # Bookmarks: GET/POST/DELETE
+    reports.ts         # Entry reports: POST, GET check/list
+    logs.ts            # Client log ingestion
+    ai.ts              # AI chat: POST chat (streaming), GET/PUT/DELETE conversations, POST regenerate
+    tags.ts            # Tag categories and tags
+    admin/
+      index.ts         # Mounts all admin sub-routes under adminMiddleware
+      dashboard.ts     # GET /stats — admin statistics
+      users.ts         # User management (list, detail, update role/clearance)
+      entries.ts       # SCP entry management
+      proposals.ts     # Proposal management (approve/reject)
+      logs.ts          # System log viewing
+      settings.ts      # System settings
+      tags.ts          # Tag management (CRUD categories and tags)
   middleware/
     auth.ts            # JWT Bearer token verification
+    admin.ts           # Admin role verification (403 for non-admin)
+    logger.ts          # Request logging middleware
   utils/
     jwt.ts             # JWT sign/verify using jose (HS256, 24h expiry)
     password.ts        # PBKDF2 password hashing (100k iterations, SHA-256)
+    logger.ts          # Server-side structured logger with D1 persistence
+    glm-client.ts      # GLM (ZhipuAI) API client for AI chat
   do/
-    scp-crawler.ts     # Durable Object class for wiki crawling
+    scp-crawler.ts     # Durable Object class for wiki crawling (EN + CN)
+    ai-chat.ts         # Durable Object for AI chat conversations
+    ai-queue.ts        # Durable Object serial queue for AI tasks
+    http-client.ts     # HTTP client utilities for crawling
     parser.ts          # HTML parser for SCP wiki index pages
+  tools/
+    definitions.ts     # MCP-style tool definitions for AI chat
+    executor.ts        # Tool execution logic (queries D1)
 ```
 
 ### Database Schema
 
-Single table in Cloudflare D1 (`scp-latom-node`):
+12 tables in Cloudflare D1 (`scp-latom-node`):
 
 ```sql
-CREATE TABLE IF NOT EXISTS users (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  codename   TEXT NOT NULL UNIQUE,
-  password   TEXT NOT NULL,
-  role       TEXT NOT NULL DEFAULT 'personnel',
-  clearance  INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+-- Core tables
+users              -- User accounts (codename, password, role, clearance)
+scp_entries        -- Crawled SCP entries (number, name, class, URL, language, series)
+crawl_state        -- Crawler state per language (status, last_crawl, cursor)
 
-CREATE INDEX IF NOT EXISTS idx_users_codename ON users(codename);
+-- User activity
+browsing_history   -- User browsing history (user_id, scp_number, language, viewed_at)
+bookmarks          -- User bookmarks (user_id, scp_number, language, created_at)
+proposals          -- Community proposals (user_id, title, content, status, votes)
+proposal_votes     -- Proposal votes (proposal_id, user_id, vote)
+
+-- Content management
+entry_reports      -- Entry issue reports (user_id, scp_number, reason, status)
+tag_categories     -- Tag category definitions (name, description, color)
+tags               -- Individual tags (category_id, name, slug)
+entry_tags         -- Entry-tag associations (scp_number, tag_id)
+
+-- System
+system_logs        -- Application logs (level, message, context, timestamp)
+ai_conversations   -- AI chat conversations (user_id, title, messages JSON)
 ```
+
+Includes seed data for 5 tag categories and 41 tags (object classes, anomaly types, groups of interest, narrative formats, themes).
 
 **Password storage format:** `hex(salt).hex(hash)` where salt is 16 bytes and hash is 32 bytes (PBKDF2, SHA-256, 100,000 iterations).
 
@@ -221,6 +333,15 @@ The system uses two Durable Object instances to crawl the SCP Foundation wiki in
 **Rate limiting:** 500ms delay between page fetches, max 2 retries per page, exponential backoff on 429 responses.
 
 **Parser:** Uses regex-based HTML parsing (no DOM parser in Workers). Matches `<a href="/scp-XXX">` links and `Object Class: <class>` patterns. Handles variations in HTML structure across different series pages.
+
+### Durable Objects — AI Chat
+
+The AI chat system uses two Durable Object types:
+
+- **`AiChatDo`** — Manages individual AI chat conversations using the GLM (ZhipuAI) API. Supports tool calling for querying SCP entries from the database.
+- **`AiQueueDo`** — Serial queue for AI conversation tasks to prevent concurrent processing.
+
+The AI chat integrates MCP-style tools that allow the AI to query SCP entries, search by object class, and retrieve specific entry details from the D1 database.
 
 See the [API Reference](api-reference.md) for endpoint details.
 
@@ -248,18 +369,18 @@ See the [API Reference](api-reference.md) for full endpoint documentation.
 
 ## Data Flow
 
-### Unauthenticated User (Static Content)
+### Unauthenticated User (Static Content + Crawler Data)
 
 ```
-Browser → Cloudflare Pages → Vue SPA → static data from src/data/
+Browser → Cloudflare Pages → Vue SPA → crawler API for entries, static data for documents
 ```
 
-SCP entries and documents are served entirely from the frontend's static TypeScript data files. No API calls are needed.
+SCP entries are fetched from the crawler API (`/api/crawler/:lang/entries`). Documents are served from the frontend's static TypeScript data files.
 
 ### Authenticated User
 
 ```
-Browser → Vue SPA → src/services/api.ts → https://api.scp.lat/api/auth/* → Hono Worker → D1 Database
+Browser → Vue SPA → src/services/api.ts → https://api.scp.lat/api/* → Hono Worker → D1 Database
 ```
 
 1. User submits login/register form
@@ -268,6 +389,19 @@ Browser → Vue SPA → src/services/api.ts → https://api.scp.lat/api/auth/* �
 4. Hono middleware validates CORS, extracts JWT (for protected routes)
 5. Route handler validates input, queries D1, returns response
 6. Frontend stores JWT in localStorage, updates Pinia state
+
+### AI Chat Flow
+
+```
+Browser → Vue SPA → src/services/ai.ts → POST /api/ai/chat → AiQueueDo → AiChatDo → GLM API
+```
+
+1. User sends message in AI chat panel
+2. Frontend opens SSE stream to `/api/ai/chat`
+3. Request is queued in `AiQueueDo` for serial processing
+4. `AiChatDo` sends message to GLM API with tool definitions
+5. GLM may invoke tools (query SCP entries) — tools are executed against D1
+6. Response streams back to frontend via SSE
 
 ## Build and Deployment Pipeline
 

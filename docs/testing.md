@@ -17,7 +17,7 @@ cd worker && npm test
 cd worker && npm run test:watch
 
 # Tests with coverage
-npm run test:coverage
+make coverage
 ```
 
 ## Frontend Testing
@@ -33,7 +33,7 @@ npm run test:coverage
 Configuration: `vite.config.ts` (test section)
 Globals: enabled — `describe`, `it`, `expect` available without import
 
-### Test File Locations
+### Test File Locations (15 files)
 
 Tests are in `__tests__/` directories adjacent to the code they test:
 
@@ -47,6 +47,7 @@ src/data/__tests__/documents.test.ts
 src/data/__tests__/entries.test.ts
 src/locales/__tests__/i18n.test.ts
 src/services/__tests__/api.test.ts
+src/services/__tests__/logger.test.ts
 src/services/__tests__/response.test.ts
 src/stores/__tests__/auth.test.ts
 src/stores/__tests__/search.test.ts
@@ -124,7 +125,7 @@ describe('useTheme', () => {
 ### Coverage
 
 ```bash
-npm run test:coverage
+make coverage
 ```
 
 Coverage reports: text (terminal), lcov, json-summary
@@ -143,12 +144,23 @@ Output directory: `coverage/`
 Configuration: `worker/vitest.config.ts`
 Globals: enabled
 
-### Test File Locations
+### Test File Locations (10 files)
 
 ```
 worker/src/__tests__/index.test.ts
+worker/src/do/__tests__/ai-chat.test.ts
+worker/src/do/__tests__/ai-queue.test.ts
+worker/src/do/__tests__/parser.test.ts
+worker/src/do/__tests__/scp-crawler.test.ts
+worker/src/middleware/__tests__/logger.test.ts
+worker/src/routes/__tests__/ai.test.ts
 worker/src/routes/__tests__/auth.test.ts
+worker/src/routes/__tests__/crawler.test.ts
+worker/src/routes/__tests__/logs.test.ts
+worker/src/tools/__tests__/executor.test.ts
+worker/src/utils/__tests__/glm-client.test.ts
 worker/src/utils/__tests__/jwt.test.ts
+worker/src/utils/__tests__/logger.test.ts
 worker/src/utils/__tests__/password.test.ts
 ```
 
@@ -194,6 +206,20 @@ describe('Password Utils', () => {
     const hashed = await hashPassword('testpassword')
     const valid = await verifyPassword('wrongpassword', hashed)
     expect(valid).toBe(false)
+  })
+})
+```
+
+### Writing Durable Object Tests
+
+Test Durable Objects with mocked storage and state:
+
+```ts
+import { ScpCrawlerDo } from '../scp-crawler'
+
+describe('ScpCrawlerDo', () => {
+  it('handles crawl requests', async () => {
+    // Test DO behavior with mocked env and state
   })
 })
 ```

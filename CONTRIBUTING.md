@@ -81,26 +81,32 @@ test(auth): add login flow unit tests
 
 - Vue 3 `<script setup>` with Composition API
 - TypeScript strict mode
-- CSS custom properties from `variables.css` for all styling
-- No external CSS frameworks
+- CSS custom properties from `variables.css` for all theme-aware styling
+- Tailwind CSS v4 for utility classes (layout, spacing)
+- No external CSS frameworks beyond Tailwind
 
 See [Code Conventions](docs/conventions.md) for the full style guide.
 
 ### Adding a New Page
 
-1. Create view in `src/views/` (e.g., `MyNewView.vue`)
-2. Add route in `src/router/index.ts`:
+1. Create desktop view in `src/views/` (e.g., `MyNewView.vue`)
+2. Create mobile view in `src/views/mobile/` (e.g., `MobileMyNewView.vue`)
+3. Add route in `src/router/index.ts` using the `DeviceView` wrapper:
    ```ts
    {
      path: '/my-new',
      name: 'my-new',
-     component: () => import('@/views/MyNewView.vue'),
+     component: DeviceView,
+     props: {
+       desktop: () => import('@/views/MyNewView.vue'),
+       mobile: () => import('@/views/mobile/MobileMyNewView.vue'),
+     },
      meta: { titleKey: 'nav.myNew' },
    }
    ```
-3. Add i18n keys to both `src/locales/en.ts` and `src/locales/zh.ts`
-4. Add navigation link in `AppSidebar.vue` if needed
-5. Add tests in `src/views/__tests__/`
+4. Add i18n keys to both `src/locales/en.ts` and `src/locales/zh.ts`
+5. Add navigation link in `AppSidebar.vue` and `MobileNav.vue` if needed
+6. Add tests in `src/views/__tests__/`
 
 ### Adding a New API Endpoint
 

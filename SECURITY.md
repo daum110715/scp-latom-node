@@ -47,7 +47,8 @@ All user input is validated server-side before database operations:
 ### Database
 
 - Uses Cloudflare D1 (SQLite-based) with parameterized queries.
-- Single `users` table with unique constraint on codename.
+- 12 tables: `users`, `scp_entries`, `crawl_state`, `browsing_history`, `bookmarks`, `proposals`, `proposal_votes`, `entry_reports`, `system_logs`, `ai_conversations`, `tag_categories`, `tags`, `entry_tags`.
+- Unique constraint on `users.codename`.
 - Index on codename for efficient lookups.
 
 ## Production Checklist
@@ -55,7 +56,9 @@ All user input is validated server-side before database operations:
 Before deploying to production:
 
 1. [ ] Change `JWT_SECRET` in `wrangler.toml` to a strong, unique secret
-2. [ ] Verify `CORS_ORIGINS` only includes your actual domains
-3. [ ] Ensure D1 database bindings are correctly configured
-4. [ ] Review and test all authentication flows
-5. [ ] Enable Cloudflare's built-in DDoS protection
+2. [ ] Set `GLM_API_KEY` for AI chat functionality
+3. [ ] Verify `CORS_ORIGINS` only includes your actual domains
+4. [ ] Ensure D1 database bindings are correctly configured
+5. [ ] Verify Durable Object bindings are configured
+6. [ ] Review and test all authentication flows
+7. [ ] Enable Cloudflare's built-in DDoS protection
