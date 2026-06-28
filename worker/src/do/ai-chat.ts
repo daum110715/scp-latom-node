@@ -185,15 +185,29 @@ export class AiChatDo {
    * Chat with GLM using tool-use loop.
    * If the model requests tool calls, execute them and feed results back.
    * Repeats up to MAX_TOOL_ROUNDS times until the model produces a final response.
+   * Falls back to plain chat (no tools) if the tool-enabled call fails.
    */
   private async chatWithTools(glmMessages: GlmMessage[]): Promise<GlmChatResult> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const result = await glmChat({
-        apiKey: this.env.GLM_API_KEY,
-        messages: glmMessages,
-        tools: SCP_TOOLS,
-        tool_choice: 'auto',
-      })
+      let result: GlmChatResult
+      try {
+        result = await glmChat({
+          apiKey: this.env.GLM_API_KEY,
+          messages: glmMessages,
+          tools: SCP_TOOLS,
+          tool_choice: 'auto',
+        })
+      } catch (err) {
+        // If tool-enabled call fails, retry without tools
+        this.logger.warn('GLM tool-enabled call failed, retrying without tools', {
+          error: err instanceof Error ? err.message : String(err),
+          round: round + 1,
+        })
+        return glmChat({
+          apiKey: this.env.GLM_API_KEY,
+          messages: glmMessages,
+        })
+      }
 
       // No tool calls — final response
       if (!result.toolCalls?.length) {
@@ -341,13 +355,24 @@ export class AiChatDo {
         try {
           // Run tool-use loop non-streamed to resolve any tool calls
           let toolResult: GlmChatResult | null = null
+          let toolsFailed = false
           for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            const result = await glmChat({
-              apiKey: this.env.GLM_API_KEY,
-              messages: glmMessages,
-              tools: SCP_TOOLS,
-              tool_choice: 'auto',
-            })
+            let result: GlmChatResult
+            try {
+              result = await glmChat({
+                apiKey: this.env.GLM_API_KEY,
+                messages: glmMessages,
+                tools: SCP_TOOLS,
+                tool_choice: 'auto',
+              })
+            } catch (err) {
+              this.logger.warn('GLM tool-enabled call failed in stream, falling back to plain stream', {
+                error: err instanceof Error ? err.message : String(err),
+                round: round + 1,
+              })
+              toolsFailed = true
+              break
+            }
 
             if (!result.toolCalls?.length) {
               toolResult = result
@@ -380,6 +405,7 @@ export class AiChatDo {
             fullContent = toolResult.content
             await writeSse({ delta: fullContent })
           } else {
+            // toolsFailed or no tool result — stream plain response (no tools)
             // Final call — stream the response
             for await (const chunk of glmChatStream({
               apiKey: this.env.GLM_API_KEY,
@@ -398,8 +424,9 @@ export class AiChatDo {
 
           await writeSse({ message: assistantMsg, done: true })
         } catch (err) {
-          this.logger.error('GLM stream failed', { error: err instanceof Error ? err.message : String(err) })
-          await writeSse({ error: 'Stream failed' })
+          const errMsg = err instanceof Error ? err.message : String(err)
+          this.logger.error('GLM stream failed', { error: errMsg })
+          await writeSse({ error: `Stream failed: ${errMsg}` })
         } finally {
           await writer.close()
         }

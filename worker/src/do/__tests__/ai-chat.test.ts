@@ -236,7 +236,8 @@ describe('AiChatDo', () => {
     })
 
     it('returns 502 on GLM API failure', async () => {
-      mockGlmChat.mockRejectedValueOnce(new Error('API down'))
+      // Both the tool-enabled call and the fallback without tools fail
+      mockGlmChat.mockRejectedValue(new Error('API down'))
 
       const state = createMockState()
       const doInstance = new AiChatDo(state, env)
