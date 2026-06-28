@@ -649,11 +649,19 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
   // 6. Remove style="..." attributes
   content = content.replace(/\s+style\s*=\s*(?:"[^"]*"|'[^']*')/gi, '')
 
-  // 7. Convert relative URLs to absolute
+  // 7. Neutralize dangerous URL protocols in href/src/action attributes
+  //    Prevents javascript:, data:, and vbscript: XSS vectors
+  content = content.replace(/\b(href|src|action)\s*=\s*(?:"(javascript|data|vbscript):[^"]*"|'(javascript|data|vbscript):[^']*')/gi,
+    (_match, attr) => `${attr}=""`)
+  // Also handle unquoted values (rare but possible in malformed HTML)
+  content = content.replace(/\b(href|src|action)\s*=\s*((?:javascript|data|vbscript):[^\s>]+)/gi,
+    (_match, attr) => `${attr}=""`)
+
+  // 8. Convert relative URLs to absolute
   content = content.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
   content = content.replace(/\bsrc="\/(?!\/)/g, `src="${baseUrl}/`)
 
-  // 8. Convert Wikidot SCP entry links to in-platform links
+  // 9. Convert Wikidot SCP entry links to in-platform links
   //    Matches: href="https://scp-wiki.wikidot.com/scp-173"
   //         and href="https://scp-wiki-cn.wikidot.com/scp-500-j"
   //    Converts to: href="/entry/en/173" or href="/entry/cn/500"
@@ -663,7 +671,7 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
     return `href="/entry/${language}/${scpNum}"`
   })
 
-  // 9. Append collapsible copyright notice if footer sections were found
+  // 10. Append collapsible copyright notice if footer sections were found
   if (footerHtml) {
     // Clean the footer HTML with the same URL conversion
     let cleanedFooter = footerHtml.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
@@ -675,6 +683,6 @@ export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | '
     content += `\n<details class="scp-copyright"><summary>Copyright / Attribution</summary><div class="scp-copyright-body">${cleanedFooter}</div></details>`
   }
 
-  // 10. Wrap in container
+  // 11. Wrap in container
   return `<div class="scp-content">${content}</div>`
 }

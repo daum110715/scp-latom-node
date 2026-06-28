@@ -129,13 +129,16 @@ logs.get('/:id', async (c) => {
 logs.delete('/cleanup', async (c) => {
   const days = Math.max(1, parseInt(c.req.query('days') ?? '30', 10) || 30)
 
+  // Compute cutoff timestamp in JS to avoid SQL string interpolation
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString().replace('T', ' ').slice(0, 19)
+
   const countBefore = await c.env.DB.prepare(
-    `SELECT COUNT(*) as count FROM system_logs WHERE timestamp < datetime('now', '-${days} days')`
-  ).first<{ count: number }>()
+    'SELECT COUNT(*) as count FROM system_logs WHERE timestamp < ?'
+  ).bind(cutoff).first<{ count: number }>()
 
   await c.env.DB.prepare(
-    `DELETE FROM system_logs WHERE timestamp < datetime('now', '-${days} days')`
-  ).run()
+    'DELETE FROM system_logs WHERE timestamp < ?'
+  ).bind(cutoff).run()
 
   return c.json({
     success: true,

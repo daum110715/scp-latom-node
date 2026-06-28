@@ -56,13 +56,35 @@ function createMockDB(data: {
   }
 }
 
-function createEnv(dbOverrides?: Parameters<typeof createMockDB>[0]): Env {
+function createMockDo(statusData?: any, crawlData?: any) {
+  return {
+    idFromName: () => 'id' as any,
+    get: () => ({
+      fetch: async (url: string, init?: RequestInit) => {
+        const path = new URL(url).pathname
+        if (path.includes('/status')) {
+          return new Response(JSON.stringify(statusData ?? { success: true, state: { status: 'idle', lastCrawl: Date.now(), totalEntries: 100 } }))
+        }
+        if (path.includes('/crawl') && init?.method === 'POST') {
+          return new Response(JSON.stringify(crawlData ?? { success: true, language: 'en', message: 'Crawl triggered', state: { status: 'crawling' } }))
+        }
+        return new Response(JSON.stringify({ success: true }))
+      },
+    }),
+  }
+}
+
+function createEnv(dbOverrides?: Parameters<typeof createMockDB>[0], opts?: { doThrows?: boolean }): Env {
+  const doFactory = opts?.doThrows
+    ? { idFromName: () => 'id' as any, get: () => ({ fetch: async () => { throw new Error('DO unavailable') } }) }
+    : createMockDo()
+
   return {
     DB: createMockDB(dbOverrides) as any,
     JWT_SECRET: TEST_SECRET,
     CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: { idFromName: () => 'id', get: () => ({ fetch: async () => new Response(JSON.stringify({ success: true })) }) } as any,
-    SCP_CN_CRAWLER: { idFromName: () => 'id', get: () => ({ fetch: async () => new Response(JSON.stringify({ success: true })) }) } as any,
+    SCP_EN_CRAWLER: doFactory as any,
+    SCP_CN_CRAWLER: doFactory as any,
     AI_CHAT_DO: {} as DurableObjectNamespace,
     AI_QUEUE_DO: {} as DurableObjectNamespace,
     GLM_API_KEY: '',
@@ -243,6 +265,168 @@ describe('Admin Entry Routes', () => {
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.message).toContain('re-fetch triggered')
+    })
+
+    it('still succeeds when DO fetch fails', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entry: { id: 1, scp_number: 173, language: 'en' } }, { doThrows: true })
+      const res = await app.request('/api/admin/entries/1/refetch', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.message).toContain('re-fetch triggered')
+    })
+
+    it('returns 404 for nonexistent entry', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entry: null })
+      const res = await app.request('/api/admin/entries/999/refetch', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('PUT /api/admin/entries/:id — valid object class', () => {
+    it('updates object class to a valid value', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entry: mockEntry })
+      const res = await app.request('/api/admin/entries/1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ object_class: 'Keter' }),
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('returns 404 for nonexistent entry', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entry: null })
+      const res = await app.request('/api/admin/entries/999', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: 'Updated' }),
+      }, env)
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('GET /api/admin/entries — additional filters', () => {
+    it('supports series filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entries: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/entries?series=2', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('supports hasContent=true filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entries: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/entries?hasContent=true', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('supports hasContent=false filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entries: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/entries?hasContent=false', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('supports search by name', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entries: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/entries?q=Sculpture', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('ignores invalid language filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ entries: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/entries?language=xx', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+  })
+
+  describe('POST /api/admin/entries/crawl/:lang', () => {
+    it('triggers crawl for English', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/en', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.success).toBe(true)
+    })
+
+    it('triggers crawl for Chinese', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/cn', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('rejects invalid language', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/xx', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(400)
+      const body = await res.json<any>()
+      expect(body.error).toContain('Invalid language')
+    })
+
+    it('returns 401 without token', async () => {
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/en', { method: 'POST' }, env)
+      expect(res.status).toBe(401)
+    })
+  })
+
+  describe('GET /api/admin/entries/crawl/status', () => {
+    it('returns crawl status for both languages', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/status', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.success).toBe(true)
+      expect(body.en).toBeDefined()
+      expect(body.cn).toBeDefined()
+    })
+
+    it('returns 401 without token', async () => {
+      const env = createEnv()
+      const res = await app.request('/api/admin/entries/crawl/status', { method: 'GET' }, env)
+      expect(res.status).toBe(401)
     })
   })
 })

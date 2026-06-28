@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
+import { signToken } from '../../utils/jwt'
 import type { Env, CrawlState } from '../../types'
 import crawlerRoutes from '../crawler'
 
@@ -87,6 +88,14 @@ function createMockEnv(): Env {
     SCP_EN_CRAWLER: createMockNamespace(),
     SCP_CN_CRAWLER: createMockNamespace(),
   } as unknown as Env
+}
+
+async function signAdminToken() {
+  return signToken({ sub: 1, codename: 'admin_user', role: 'admin', clearance: 5 }, 'test-secret')
+}
+
+async function signUserToken() {
+  return signToken({ sub: 2, codename: 'regular_user', role: 'personnel', clearance: 1 }, 'test-secret')
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -224,8 +233,12 @@ describe('Crawler Routes', () => {
   })
 
   describe('POST /api/crawler/:lang/crawl', () => {
-    it('triggers crawl for English', async () => {
-      const res = await app.request('/api/crawler/en/crawl', { method: 'POST' }, createMockEnv())
+    it('triggers crawl for English with admin token', async () => {
+      const token = await signAdminToken()
+      const res = await app.request('/api/crawler/en/crawl', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, createMockEnv())
       const body = (await res.json()) as {
         success: boolean
         language: string
@@ -238,10 +251,37 @@ describe('Crawler Routes', () => {
       expect(body.message).toBe('Crawl triggered')
     })
 
-    it('rejects invalid language', async () => {
+    it('returns 401 without auth token', async () => {
+      const res = await app.request(
+        '/api/crawler/en/crawl',
+        { method: 'POST' },
+        createMockEnv()
+      )
+      const body = (await res.json()) as { success: boolean; error: string }
+
+      expect(res.status).toBe(401)
+      expect(body.success).toBe(false)
+      expect(body.error).toContain('Missing or invalid authorization header')
+    })
+
+    it('returns 403 for non-admin users', async () => {
+      const token = await signUserToken()
+      const res = await app.request('/api/crawler/en/crawl', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }, createMockEnv())
+      const body = (await res.json()) as { success: boolean; error: string }
+
+      expect(res.status).toBe(403)
+      expect(body.success).toBe(false)
+      expect(body.error).toContain('Admin access required')
+    })
+
+    it('rejects invalid language with admin token', async () => {
+      const token = await signAdminToken()
       const res = await app.request(
         '/api/crawler/xx/crawl',
-        { method: 'POST' },
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
         createMockEnv()
       )
       const body = (await res.json()) as { success: boolean }

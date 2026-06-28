@@ -21,8 +21,10 @@ function createMockDB(data: {
   user?: any
   countResult?: { total: number }
   activityCounts?: { history: number; bookmarks: number; proposals: number; votes: number }
+  historyRows?: any[]
+  bookmarkRows?: any[]
 } = {}) {
-  const { users = [], user = null, countResult, activityCounts } = data
+  const { users = [], user = null, countResult, activityCounts, historyRows = [], bookmarkRows = [] } = data
 
   return {
     prepare: (sql: string) => {
@@ -61,9 +63,9 @@ function createMockDB(data: {
           return null
         },
         all: async (): Promise<{ results: any[] }> => {
-          if (sql.includes('FROM users')) {
-            return { results: users }
-          }
+          if (sql.includes('FROM users')) return { results: users }
+          if (sql.includes('FROM browsing_history')) return { results: historyRows }
+          if (sql.includes('FROM bookmarks')) return { results: bookmarkRows }
           return { results: [] }
         },
         run: async () => ({ meta: { changes: 1 } }),
@@ -306,6 +308,163 @@ describe('Admin User Routes', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env)
       expect(res.status).toBe(400)
+    })
+
+    it('returns 404 for nonexistent user', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ user: null })
+      const res = await app.request('/api/admin/users/999', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('GET /api/admin/users/:id/history', () => {
+    it('returns user browsing history', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({
+        user: mockUser,
+        historyRows: [
+          { id: 1, user_id: 1, scp_number: 173, language: 'en', visited_at: '2026-06-26' },
+          { id: 2, user_id: 1, scp_number: 682, language: 'en', visited_at: '2026-06-25' },
+        ],
+      })
+      const res = await app.request('/api/admin/users/1/history', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.success).toBe(true)
+      expect(body.history).toHaveLength(2)
+    })
+
+    it('returns 400 for invalid user ID', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/users/abc/history', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(400)
+    })
+
+    it('returns empty history for user with no visits', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ user: mockUser, historyRows: [] })
+      const res = await app.request('/api/admin/users/1/history', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.history).toHaveLength(0)
+    })
+  })
+
+  describe('GET /api/admin/users/:id/bookmarks', () => {
+    it('returns user bookmarks', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({
+        user: mockUser,
+        bookmarkRows: [
+          { id: 1, user_id: 1, scp_number: 173, language: 'en', name: 'The Sculpture', object_class: 'Euclid' },
+        ],
+      })
+      const res = await app.request('/api/admin/users/1/bookmarks', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.success).toBe(true)
+      expect(body.bookmarks).toHaveLength(1)
+    })
+
+    it('returns 400 for invalid user ID', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/users/abc/bookmarks', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(400)
+    })
+  })
+
+  describe('PUT /api/admin/users/:id/role — additional validation', () => {
+    it('rejects role exceeding 32 characters', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const longRole = 'a'.repeat(33)
+      const res = await app.request('/api/admin/users/1/role', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role: longRole }),
+      }, env)
+      expect(res.status).toBe(400)
+      const body = await res.json<any>()
+      expect(body.error).toContain('32')
+    })
+
+    it('accepts role at exactly 32 characters', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ user: mockUser })
+      const maxRole = 'a'.repeat(32)
+      const res = await app.request('/api/admin/users/1/role', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role: maxRole }),
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('returns 404 for nonexistent user', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ user: null })
+      const res = await app.request('/api/admin/users/999/role', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role: 'researcher' }),
+      }, env)
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('PUT /api/admin/users/:id/clearance — additional validation', () => {
+    it('rejects non-integer clearance', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/users/1/clearance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clearance: 2.5 }),
+      }, env)
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects negative clearance', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/users/1/clearance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clearance: -1 }),
+      }, env)
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 404 for nonexistent user', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ user: null })
+      const res = await app.request('/api/admin/users/999/clearance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clearance: 3 }),
+      }, env)
+      expect(res.status).toBe(404)
     })
   })
 })

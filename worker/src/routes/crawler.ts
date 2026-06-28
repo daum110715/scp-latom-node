@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { adminMiddleware } from '../middleware/admin'
 import { getLoggerFromContext } from '../utils/logger'
 import type { Env } from '../types'
 
@@ -183,11 +184,12 @@ crawler.get('/:lang/entry/:scpNumber', async (c) => {
 /**
  * POST /api/crawler/:lang/crawl
  * Trigger a new crawl for a specific language.
+ * Requires admin authentication.
  *
  * Query parameters:
  *   - limit: Max entries to collect (0 or omit = unlimited)
  */
-crawler.post('/:lang/crawl', async (c) => {
+crawler.post('/:lang/crawl', adminMiddleware, async (c) => {
   const logger = getLoggerFromContext(c).child({ category: 'crawler' })
   const lang = c.req.param('lang')
   if (lang !== 'en' && lang !== 'cn') {

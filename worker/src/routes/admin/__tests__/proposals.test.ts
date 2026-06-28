@@ -117,6 +117,52 @@ describe('Admin Proposal Routes', () => {
       }, env)
       expect(res.status).toBe(200)
     })
+
+    it('supports category filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposals: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/proposals?category=research', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('supports userId filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposals: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/proposals?userId=1', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('ignores invalid category filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposals: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/proposals?category=invalid', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('ignores non-numeric userId filter', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposals: [], countResult: { total: 0 } })
+      const res = await app.request('/api/admin/proposals?userId=abc', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }, env)
+      expect(res.status).toBe(200)
+    })
+
+    it('returns 401 without token', async () => {
+      const env = createEnv()
+      const res = await app.request('/api/admin/proposals', { method: 'GET' }, env)
+      expect(res.status).toBe(401)
+    })
   })
 
   describe('GET /api/admin/proposals/:id', () => {
@@ -158,7 +204,7 @@ describe('Admin Proposal Routes', () => {
   })
 
   describe('PUT /api/admin/proposals/:id/status', () => {
-    it('updates proposal status', async () => {
+    it('updates proposal status to approved', async () => {
       const token = await signAdminToken()
       const env = createEnv({ proposal: mockProposal })
       const res = await app.request('/api/admin/proposals/1/status', {
@@ -171,6 +217,19 @@ describe('Admin Proposal Routes', () => {
       expect(body.message).toContain('approved')
     })
 
+    it('updates proposal status to rejected', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposal: mockProposal })
+      const res = await app.request('/api/admin/proposals/1/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'rejected' }),
+      }, env)
+      const body = await res.json<any>()
+      expect(res.status).toBe(200)
+      expect(body.message).toContain('rejected')
+    })
+
     it('rejects invalid status', async () => {
       const token = await signAdminToken()
       const env = createEnv()
@@ -180,6 +239,28 @@ describe('Admin Proposal Routes', () => {
         body: JSON.stringify({ status: 'invalid' }),
       }, env)
       expect(res.status).toBe(400)
+    })
+
+    it('rejects empty status', async () => {
+      const token = await signAdminToken()
+      const env = createEnv()
+      const res = await app.request('/api/admin/proposals/1/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: '' }),
+      }, env)
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 404 for nonexistent proposal', async () => {
+      const token = await signAdminToken()
+      const env = createEnv({ proposal: null })
+      const res = await app.request('/api/admin/proposals/999/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'approved' }),
+      }, env)
+      expect(res.status).toBe(404)
     })
   })
 

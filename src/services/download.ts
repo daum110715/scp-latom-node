@@ -114,7 +114,7 @@ export function downloadEntry(
       ${data.fetchedAt ? `<span>Cached: ${new Date(data.fetchedAt).toLocaleDateString()}</span>` : ''}
     </div>
   </div>
-  <div class="content">${data.content || '<p>No content available.</p>'}</div>
+  <div class="content">${data.content ? sanitizeHtml(data.content) : '<p>No content available.</p>'}</div>
   <div class="footer">
     Downloaded from SCP Foundation Latom Node · ${new Date().toISOString().slice(0, 10)}
   </div>
@@ -141,4 +141,23 @@ function escapeHtml(text: string): string {
     "'": '&#039;',
   }
   return text.replace(/[&<>"']/g, c => map[c])
+}
+
+/**
+ * Sanitize HTML content for safe insertion into a standalone document.
+ * Removes dangerous URL protocols (javascript:, data:, vbscript:) from
+ * href/src/action attributes — defense-in-depth against XSS.
+ */
+function sanitizeHtml(html: string): string {
+  // Neutralize dangerous protocol URLs in quoted attribute values
+  let safe = html.replace(
+    /\b(href|src|action)\s*=\s*(?:"(javascript|data|vbscript):[^"]*"|'(javascript|data|vbscript):[^']*')/gi,
+    (_match, attr) => `${attr}=""`,
+  )
+  // Handle unquoted values
+  safe = safe.replace(
+    /\b(href|src|action)\s*=\s*((?:javascript|data|vbscript):[^\s>]+)/gi,
+    (_match, attr) => `${attr}=""`,
+  )
+  return safe
 }
