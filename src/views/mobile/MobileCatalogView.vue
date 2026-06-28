@@ -53,8 +53,16 @@ function switchProtocol(mode: ProtocolMode) {
   protocol.setMode(mode)
 }
 
-onMounted(() => {
+onMounted(async () => {
   crawler.init()
+
+  // If auto mode was active before navigation, restart the timer
+  // and refresh entries (countdown resets, isPaused resets)
+  if (protocol.mode.value === 'auto') {
+    protocol.isPaused.value = false
+    await protocol.shuffle()
+    protocol.startAutoRotation()
+  }
 })
 </script>
 
