@@ -12,8 +12,32 @@ const STREAM_TIMEOUT_MS = 120_000
 // ─── Types ──────────────────────────────────────────────────
 
 export interface GlmMessage {
-  role: 'system' | 'user' | 'assistant'
+  role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
+  tool_calls?: GlmToolCall[]
+  tool_call_id?: string
+}
+
+export interface GlmToolCall {
+  id: string
+  type: 'function'
+  function: {
+    name: string
+    arguments: string
+  }
+}
+
+export interface GlmTool {
+  type: 'function'
+  function: {
+    name: string
+    description: string
+    parameters: {
+      type: 'object'
+      properties: Record<string, unknown>
+      required?: string[]
+    }
+  }
 }
 
 export interface GlmChatOptions {
@@ -23,6 +47,8 @@ export interface GlmChatOptions {
   temperature?: number
   maxTokens?: number
   stream?: boolean
+  tools?: GlmTool[]
+  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } }
 }
 
 export interface GlmChatResult {
@@ -33,6 +59,7 @@ export interface GlmChatResult {
     totalTokens: number
   }
   finishReason: string
+  toolCalls?: GlmToolCall[]
 }
 
 export interface GlmStreamChunk {
@@ -49,10 +76,25 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
     model = DEFAULT_MODEL,
     temperature = DEFAULT_TEMPERATURE,
     maxTokens = DEFAULT_MAX_TOKENS,
+    tools,
+    tool_choice,
   } = options
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  // Build request body — include tools only when provided
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    stream: false,
+  }
+  if (tools?.length) {
+    body.tools = tools
+    body.tool_choice = tool_choice ?? 'auto'
+  }
 
   try {
     const res = await fetch(GLM_API_URL, {
@@ -61,13 +103,7 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: false,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     })
 
@@ -77,7 +113,13 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
     }
 
     const json = await res.json() as {
-      choices?: { message?: { content?: string }; finish_reason?: string }[]
+      choices?: {
+        message?: {
+          content?: string
+          tool_calls?: GlmToolCall[]
+        }
+        finish_reason?: string
+      }[]
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
     }
 
@@ -94,6 +136,7 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
         totalTokens: json.usage?.total_tokens ?? 0,
       },
       finishReason: choice.finish_reason ?? 'stop',
+      toolCalls: choice.message?.tool_calls,
     }
   } finally {
     clearTimeout(timeout)
