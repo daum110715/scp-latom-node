@@ -176,7 +176,7 @@ describe('glmChatStream', () => {
   })
 
   it('throws on HTTP error before streaming', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response('Server Error', { status: 500 }))
+    fetchSpy.mockResolvedValue(new Response('Unauthorized', { status: 401 }))
 
     const collect = async () => {
       const chunks: unknown[] = []
@@ -189,7 +189,7 @@ describe('glmChatStream', () => {
       return chunks
     }
 
-    await expect(collect()).rejects.toThrow('GLM API stream error 500')
+    await expect(collect()).rejects.toThrow('GLM API stream error 401')
   })
 
   it('sends stream: true in request body', async () => {
@@ -208,5 +208,89 @@ describe('glmChatStream', () => {
 
     const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string)
     expect(body.stream).toBe(true)
+  })
+})
+
+describe('glmChat retry', () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch')
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    fetchSpy.mockRestore()
+    vi.useRealTimers()
+  })
+
+  function okResponse(content: string) {
+    return new Response(JSON.stringify({
+      choices: [{ message: { content }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+    }), { status: 200 })
+  }
+
+  it('retries on 429 and succeeds', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response('Rate limited', { status: 429 }))
+      .mockResolvedValueOnce(okResponse('Recovered'))
+
+    const resultPromise = glmChat({
+      apiKey: 'key',
+      messages: [{ role: 'user', content: 'Test' }],
+    })
+
+    // Advance past the retry delay
+    await vi.advanceTimersByTimeAsync(1100)
+
+    const result = await resultPromise
+    expect(result.content).toBe('Recovered')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries on 500 and succeeds', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response('Server Error', { status: 500 }))
+      .mockResolvedValueOnce(okResponse('OK'))
+
+    const resultPromise = glmChat({
+      apiKey: 'key',
+      messages: [{ role: 'user', content: 'Test' }],
+    })
+
+    await vi.advanceTimersByTimeAsync(1100)
+
+    const result = await resultPromise
+    expect(result.content).toBe('OK')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not retry on 401', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }))
+
+    await expect(glmChat({
+      apiKey: 'key',
+      messages: [{ role: 'user', content: 'Test' }],
+    })).rejects.toThrow('GLM API error 401')
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up after max retries', async () => {
+    fetchSpy.mockResolvedValue(new Response('Server Error', { status: 500 }))
+
+    const resultPromise = glmChat({
+      apiKey: 'key',
+      messages: [{ role: 'user', content: 'Test' }],
+    }).catch((e) => e) // Catch to prevent unhandled rejection
+
+    // Advance past all retry delays (1s + 2s + 4s = 7s)
+    await vi.advanceTimersByTimeAsync(8000)
+
+    const error = await resultPromise
+    expect(error).toBeInstanceOf(Error)
+    expect(error.message).toContain('GLM API error 500')
+    expect(fetchSpy).toHaveBeenCalledTimes(4) // initial + 3 retries
   })
 })

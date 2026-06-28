@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AiQueueDo } from '../ai-queue'
 import type { Env } from '../../types'
 
@@ -196,6 +196,43 @@ describe('AiQueueDo', () => {
       const doInstance = new AiQueueDo(createState(), env)
       const res = await doInstance.fetch(new Request('https://queue.ai/unknown'))
       expect(res.status).toBe(404)
+    })
+
+    it('returns 504 when task times out', async () => {
+      vi.useFakeTimers()
+
+      // Mock a DO that never resolves
+      env = createMockEnv({
+        AI_CHAT_DO: {
+          idFromName: vi.fn(() => 'mock-id' as unknown as DurableObjectId),
+          get: vi.fn(() => ({
+            fetch: vi.fn(() => new Promise(() => {})), // never resolves
+          })),
+        } as unknown as DurableObjectNamespace,
+      })
+
+      const doInstance = new AiQueueDo(createState(), env)
+
+      const resPromise = doInstance.fetch(new Request('https://queue.ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: 'conv-1',
+          message: 'Hello',
+          userId: 1,
+          stream: false,
+        }),
+      }))
+
+      // Advance past the 60s timeout
+      await vi.advanceTimersByTimeAsync(61_000)
+
+      const res = await resPromise
+      expect(res.status).toBe(504)
+      const data = await res.json() as any
+      expect(data.error).toContain('timed out')
+
+      vi.useRealTimers()
     })
   })
 })

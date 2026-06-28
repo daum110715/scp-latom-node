@@ -8,6 +8,8 @@ const DEFAULT_TEMPERATURE = 0.7
 const DEFAULT_MAX_TOKENS = 2048
 const REQUEST_TIMEOUT_MS = 30_000
 const STREAM_TIMEOUT_MS = 120_000
+const MAX_RETRIES = 3
+const INITIAL_RETRY_DELAY_MS = 1_000
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -67,6 +69,33 @@ export interface GlmStreamChunk {
   finishReason: string | null
 }
 
+// ─── Retry helper ──────────────────────────────────────────
+
+/**
+ * Determine if an error is retryable (transient failure).
+ * Retries on: HTTP 429, 5xx, network errors, and timeouts.
+ * Does NOT retry on: 4xx client errors (400, 401, 403, etc.).
+ */
+function isRetryableError(err: unknown): boolean {
+  if (err instanceof Error) {
+    // AbortController timeout
+    if (err.name === 'AbortError') return true
+    // Network errors
+    if (err instanceof TypeError) return true
+    // HTTP errors — check status code in message
+    const match = err.message.match(/GLM API (?:stream )?error (\d+)/)
+    if (match) {
+      const status = parseInt(match[1], 10)
+      return status === 429 || status >= 500
+    }
+  }
+  return false
+}
+
+function getRetryDelay(attempt: number): number {
+  return INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt)
+}
+
 // ─── Non-streaming ──────────────────────────────────────────
 
 export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
@@ -80,9 +109,6 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
     tool_choice,
   } = options
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
   // Build request body — include tools only when provided
   const body: Record<string, unknown> = {
     model,
@@ -93,54 +119,71 @@ export async function glmChat(options: GlmChatOptions): Promise<GlmChatResult> {
   }
   if (tools?.length) {
     body.tools = tools
-    body.tool_choice = tool_choice ?? 'auto'
+    body.tool_choice = tool_choice ?? 'none'
   }
 
-  try {
-    const res = await fetch(GLM_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    })
-
-    if (!res.ok) {
-      const errorBody = await res.text().catch(() => 'unknown')
-      throw new Error(`GLM API error ${res.status}: ${errorBody}`)
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, getRetryDelay(attempt - 1)))
     }
 
-    const json = await res.json() as {
-      choices?: {
-        message?: {
-          content?: string
-          tool_calls?: GlmToolCall[]
-        }
-        finish_reason?: string
-      }[]
-      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
-    }
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-    if (!json.choices?.length) {
-      throw new Error('GLM API returned no choices')
-    }
+    try {
+      const res = await fetch(GLM_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
 
-    const choice = json.choices[0]
-    return {
-      content: choice.message?.content ?? '',
-      tokenUsage: {
-        promptTokens: json.usage?.prompt_tokens ?? 0,
-        completionTokens: json.usage?.completion_tokens ?? 0,
-        totalTokens: json.usage?.total_tokens ?? 0,
-      },
-      finishReason: choice.finish_reason ?? 'stop',
-      toolCalls: choice.message?.tool_calls,
+      if (!res.ok) {
+        const errorBody = await res.text().catch(() => 'unknown')
+        throw new Error(`GLM API error ${res.status}: ${errorBody}`)
+      }
+
+      const json = await res.json() as {
+        choices?: {
+          message?: {
+            content?: string
+            tool_calls?: GlmToolCall[]
+          }
+          finish_reason?: string
+        }[]
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+      }
+
+      if (!json.choices?.length) {
+        throw new Error('GLM API returned no choices')
+      }
+
+      const choice = json.choices[0]
+      return {
+        content: choice.message?.content ?? '',
+        tokenUsage: {
+          promptTokens: json.usage?.prompt_tokens ?? 0,
+          completionTokens: json.usage?.completion_tokens ?? 0,
+          totalTokens: json.usage?.total_tokens ?? 0,
+        },
+        finishReason: choice.finish_reason ?? 'stop',
+        toolCalls: choice.message?.tool_calls,
+      }
+    } catch (err) {
+      lastError = err
+      clearTimeout(timeout)
+      if (!isRetryableError(err) || attempt === MAX_RETRIES) throw err
+      // Retry on transient errors
+    } finally {
+      clearTimeout(timeout)
     }
-  } finally {
-    clearTimeout(timeout)
   }
+
+  throw lastError
 }
 
 // ─── Streaming ──────────────────────────────────────────────
@@ -154,72 +197,91 @@ export async function* glmChatStream(options: GlmChatOptions): AsyncGenerator<Gl
     maxTokens = DEFAULT_MAX_TOKENS,
   } = options
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS)
+  const body = JSON.stringify({
+    model,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    stream: true,
+  })
 
-  try {
-    const res = await fetch(GLM_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: true,
-      }),
-      signal: controller.signal,
-    })
-
-    if (!res.ok) {
-      const errorBody = await res.text().catch(() => 'unknown')
-      throw new Error(`GLM API stream error ${res.status}: ${errorBody}`)
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, getRetryDelay(attempt - 1)))
     }
 
-    if (!res.body) {
-      throw new Error('GLM API stream returned no body')
-    }
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS)
 
     try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+      const res = await fetch(GLM_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body,
+        signal: controller.signal,
+      })
 
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
+      if (!res.ok) {
+        const errorBody = await res.text().catch(() => 'unknown')
+        throw new Error(`GLM API stream error ${res.status}: ${errorBody}`)
+      }
 
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed.startsWith('data: ')) continue
-          const data = trimmed.slice(6)
-          if (data === '[DONE]') return
+      if (!res.body) {
+        throw new Error('GLM API stream returned no body')
+      }
 
-          try {
-            const chunk = JSON.parse(data) as {
-              choices?: { delta?: { content?: string }; finish_reason?: string | null }[]
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed.startsWith('data: ')) continue
+            const data = trimmed.slice(6)
+            if (data === '[DONE]') return
+
+            try {
+              const chunk = JSON.parse(data) as {
+                choices?: { delta?: { content?: string }; finish_reason?: string | null }[]
+              }
+              const delta = chunk.choices?.[0]?.delta?.content
+              const finishReason = chunk.choices?.[0]?.finish_reason ?? null
+              if (delta || finishReason) {
+                yield { delta: delta ?? '', finishReason }
+              }
+            } catch {
+              // Skip malformed JSON chunks
             }
-            const delta = chunk.choices?.[0]?.delta?.content
-            const finishReason = chunk.choices?.[0]?.finish_reason ?? null
-            if (delta || finishReason) {
-              yield { delta: delta ?? '', finishReason }
-            }
-          } catch {
-            // Skip malformed JSON chunks
           }
         }
+      } finally {
+        reader.releaseLock()
       }
+
+      // Success — exit retry loop
+      return
+    } catch (err) {
+      lastError = err
+      clearTimeout(timeout)
+      // Only retry on the initial connection error, not mid-stream errors
+      if (!isRetryableError(err) || attempt === MAX_RETRIES) throw err
     } finally {
-      reader.releaseLock()
+      clearTimeout(timeout)
     }
-  } finally {
-    clearTimeout(timeout)
   }
+
+  throw lastError
 }

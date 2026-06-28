@@ -5,6 +5,8 @@ import type { Env, JwtPayload, AiChatRequest, AiConversationMeta } from '../type
 
 const ai = new Hono<{ Bindings: Env; Variables: { user: JwtPayload } }>()
 
+const MAX_MESSAGE_LENGTH = 4000
+
 const DEFAULT_SYSTEM_PROMPT = `## Role Statement
 
 You are participating in a role-playing collaboration. Your role is the terminal assistant of the "Latom Node" (SCP Foundation Latom Node), providing assistance and interaction within the fictional narrative framework of the SCP Foundation.
@@ -74,6 +76,9 @@ ai.post('/chat', async (c) => {
 
   if (!body.message?.trim()) {
     return c.json({ success: false, error: 'Message is required' }, 400)
+  }
+  if (body.message.length > MAX_MESSAGE_LENGTH) {
+    return c.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
   }
 
   let conversationId = body.conversationId

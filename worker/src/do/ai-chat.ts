@@ -7,6 +7,7 @@ import type { Env, AiMessage, AiConversationMeta } from '../types'
 
 const MAX_CONTEXT_MESSAGES = 50
 const MAX_TOOL_ROUNDS = 5
+const MAX_MESSAGE_LENGTH = 4000
 
 export class AiChatDo {
   private state: DurableObjectState
@@ -35,10 +36,28 @@ export class AiChatDo {
     try {
       // POST routes
       if (method === 'POST' && path === '/send') {
-        return await this.handleSendMessage(await request.json())
+        const body = await this.parseBody<{
+          message: string
+          userId?: number
+          systemPrompt?: string
+          title?: string
+          isNew?: boolean
+          conversationId?: string
+        }>(request)
+        if (!body) return this.json({ success: false, error: 'Invalid JSON body' }, 400)
+        return await this.handleSendMessage(body)
       }
       if (method === 'POST' && path === '/stream') {
-        return await this.handleStreamMessage(await request.json())
+        const body = await this.parseBody<{
+          message: string
+          userId?: number
+          systemPrompt?: string
+          title?: string
+          isNew?: boolean
+          conversationId?: string
+        }>(request)
+        if (!body) return this.json({ success: false, error: 'Invalid JSON body' }, 400)
+        return await this.handleStreamMessage(body)
       }
       if (method === 'POST' && path === '/regenerate') {
         return await this.handleRegenerate()
@@ -52,7 +71,9 @@ export class AiChatDo {
       }
       // PUT routes
       if (method === 'PUT' && path === '/meta') {
-        return await this.handleUpdateMeta(await request.json())
+        const body = await this.parseBody<{ title?: string; systemPrompt?: string }>(request)
+        if (!body) return this.json({ success: false, error: 'Invalid JSON body' }, 400)
+        return await this.handleUpdateMeta(body)
       }
       // DELETE routes
       if (method === 'DELETE' && path === '/') {
@@ -182,12 +203,10 @@ export class AiChatDo {
   }
 
   /**
-   * Chat with GLM using tool-use loop.
-   * If the model requests tool calls, execute them and feed results back.
-   * Repeats up to MAX_TOOL_ROUNDS times until the model produces a final response.
-   * Falls back to plain chat (no tools) if the tool-enabled call fails.
+   * Run the tool-use loop: call GLM with tools, execute any tool calls, feed results back.
+   * Returns the final GLM result and whether tools failed (requiring a plain fallback).
    */
-  private async chatWithTools(glmMessages: GlmMessage[]): Promise<GlmChatResult> {
+  private async runToolLoop(glmMessages: GlmMessage[]): Promise<{ result: GlmChatResult; toolsFailed: boolean }> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       let result: GlmChatResult
       try {
@@ -195,23 +214,24 @@ export class AiChatDo {
           apiKey: this.env.GLM_API_KEY,
           messages: glmMessages,
           tools: SCP_TOOLS,
-          tool_choice: 'auto',
+          tool_choice: 'none',
         })
       } catch (err) {
-        // If tool-enabled call fails, retry without tools
-        this.logger.warn('GLM tool-enabled call failed, retrying without tools', {
+        this.logger.warn('GLM tool-enabled call failed, falling back to plain call', {
           error: err instanceof Error ? err.message : String(err),
           round: round + 1,
         })
-        return glmChat({
+        // Tools failed — caller should fall back to plain (no-tool) call
+        const plainResult = await glmChat({
           apiKey: this.env.GLM_API_KEY,
           messages: glmMessages,
         })
+        return { result: plainResult, toolsFailed: true }
       }
 
       // No tool calls — final response
       if (!result.toolCalls?.length) {
-        return result
+        return { result, toolsFailed: false }
       }
 
       this.logger.info('GLM requested tool calls', {
@@ -234,9 +254,7 @@ export class AiChatDo {
         } catch {
           // malformed arguments
         }
-
         const output = await executeTool(this.env.DB, tc.function.name, args)
-
         glmMessages.push({
           role: 'tool',
           tool_call_id: tc.id,
@@ -245,16 +263,25 @@ export class AiChatDo {
       }
     }
 
-    // Fallback — make one final call without tools
-    return glmChat({
+    // Exhausted tool rounds — make one final call without tools
+    const plainResult = await glmChat({
       apiKey: this.env.GLM_API_KEY,
       messages: glmMessages,
     })
+    return { result: plainResult, toolsFailed: false }
   }
 
   private generateTitle(firstMessage: string): string {
     const cleaned = firstMessage.replace(/[\r\n]+/g, ' ').trim()
     return cleaned.length > 50 ? cleaned.slice(0, 50) + '…' : cleaned
+  }
+
+  private async parseBody<T>(request: Request): Promise<T | null> {
+    try {
+      return await request.json() as T
+    } catch {
+      return null
+    }
   }
 
   // ─── Handlers ──────────────────────────────────────────────
@@ -269,6 +296,13 @@ export class AiChatDo {
   }): Promise<Response> {
     const { message, userId, systemPrompt, title, isNew, conversationId } = body
 
+    if (!message?.trim()) {
+      return this.json({ success: false, error: 'Message is required' }, 400)
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return this.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
+    }
+
     // Initialize conversation meta if new
     if (isNew) {
       if (systemPrompt) await this.setMeta('systemPrompt', systemPrompt)
@@ -282,9 +316,9 @@ export class AiChatDo {
 
     // Build context and call GLM with tool-use loop
     const glmMessages = await this.buildGlmMessages()
-    let result
+    let result: GlmChatResult
     try {
-      result = await this.chatWithTools(glmMessages)
+      ({ result } = await this.runToolLoop(glmMessages))
     } catch (err) {
       this.logger.error('GLM API call failed', { error: err instanceof Error ? err.message : String(err) })
       return this.json({
@@ -321,6 +355,13 @@ export class AiChatDo {
   }): Promise<Response> {
     const { message, userId, systemPrompt, title, isNew, conversationId } = body
 
+    if (!message?.trim()) {
+      return this.json({ success: false, error: 'Message is required' }, 400)
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return this.json({ success: false, error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` }, 400)
+    }
+
     // Initialize conversation meta if new
     if (isNew) {
       if (systemPrompt) await this.setMeta('systemPrompt', systemPrompt)
@@ -344,94 +385,49 @@ export class AiChatDo {
       await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
     }
 
-    // Send initial metadata event
-    writeSse({
-      conversationId: conversationId ?? '',
-      title: meta.title ?? 'New Conversation',
-    }).then(() => {
-      // Run tool loop first (non-streamed), then stream the final response
-      ;(async () => {
-        let fullContent = ''
-        try {
-          // Run tool-use loop non-streamed to resolve any tool calls
-          let toolResult: GlmChatResult | null = null
-          let toolsFailed = false
-          for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            let result: GlmChatResult
-            try {
-              result = await glmChat({
-                apiKey: this.env.GLM_API_KEY,
-                messages: glmMessages,
-                tools: SCP_TOOLS,
-                tool_choice: 'auto',
-              })
-            } catch (err) {
-              this.logger.warn('GLM tool-enabled call failed in stream, falling back to plain stream', {
-                error: err instanceof Error ? err.message : String(err),
-                round: round + 1,
-              })
-              toolsFailed = true
-              break
-            }
+    // Run the async streaming pipeline
+    ;(async () => {
+      let fullContent = ''
+      try {
+        // Send initial metadata event
+        await writeSse({
+          conversationId: conversationId ?? '',
+          title: meta.title ?? 'New Conversation',
+        })
 
-            if (!result.toolCalls?.length) {
-              toolResult = result
-              break
-            }
+        // Run tool-use loop to resolve any tool calls
+        const { result: toolResult, toolsFailed } = await this.runToolLoop(glmMessages)
 
-            this.logger.info('GLM stream requested tool calls', {
-              round: round + 1,
-              tools: result.toolCalls.map((tc) => tc.function.name),
-            })
-
-            // Append assistant message with tool_calls
-            glmMessages.push({
-              role: 'assistant',
-              content: result.content,
-              tool_calls: result.toolCalls,
-            })
-
-            // Execute tools
-            for (const tc of result.toolCalls) {
-              let args: Record<string, unknown> = {}
-              try { args = JSON.parse(tc.function.arguments) } catch {}
-              const output = await executeTool(this.env.DB, tc.function.name, args)
-              glmMessages.push({ role: 'tool', tool_call_id: tc.id, content: output })
-            }
+        if (!toolsFailed && toolResult.content) {
+          // Tools resolved to a final answer — send it directly
+          fullContent = toolResult.content
+          await writeSse({ delta: fullContent })
+        } else {
+          // Tools failed or produced no content — stream a plain response
+          for await (const chunk of glmChatStream({
+            apiKey: this.env.GLM_API_KEY,
+            messages: glmMessages,
+          })) {
+            fullContent += chunk.delta
+            await writeSse({ delta: chunk.delta })
           }
-
-          // If tools resolved to a final answer without streaming, send it directly
-          if (toolResult) {
-            fullContent = toolResult.content
-            await writeSse({ delta: fullContent })
-          } else {
-            // toolsFailed or no tool result — stream plain response (no tools)
-            // Final call — stream the response
-            for await (const chunk of glmChatStream({
-              apiKey: this.env.GLM_API_KEY,
-              messages: glmMessages,
-            })) {
-              fullContent += chunk.delta
-              await writeSse({ delta: chunk.delta })
-            }
-          }
-
-          // Persist the complete message
-          const assistantMsg = await this.appendMessage('assistant', fullContent)
-          await this.setMeta('lastMessageAt', new Date().toISOString())
-          const count = await this.getMessageCount()
-          await this.setMeta('messageCount', String(count))
-
-          await writeSse({ message: assistantMsg, done: true })
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err)
-          this.logger.error('GLM stream failed', { error: errMsg })
-          await writeSse({ error: `Stream failed: ${errMsg}` })
-        } finally {
-          await writer.close()
         }
-      })()
-    })
+
+        // Persist the complete message
+        const assistantMsg = await this.appendMessage('assistant', fullContent)
+        await this.setMeta('lastMessageAt', new Date().toISOString())
+        const count = await this.getMessageCount()
+        await this.setMeta('messageCount', String(count))
+
+        await writeSse({ message: assistantMsg, done: true })
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        this.logger.error('GLM stream failed', { error: errMsg })
+        await writeSse({ error: `Stream failed: ${errMsg}` })
+      } finally {
+        await writer.close()
+      }
+    })()
 
     return new Response(readable, {
       headers: {
@@ -484,9 +480,9 @@ export class AiChatDo {
 
     // Re-call GLM with remaining history (with tool-use loop)
     const glmMessages = await this.buildGlmMessages()
-    let result
+    let result: GlmChatResult
     try {
-      result = await this.chatWithTools(glmMessages)
+      ({ result } = await this.runToolLoop(glmMessages))
     } catch (err) {
       this.logger.error('GLM regenerate failed', { error: err instanceof Error ? err.message : String(err) })
       return this.json({

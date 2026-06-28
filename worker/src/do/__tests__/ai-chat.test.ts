@@ -443,4 +443,64 @@ describe('AiChatDo', () => {
       expect(data.success).toBe(true)
     })
   })
+
+  describe('Input validation', () => {
+    it('rejects messages exceeding max length', async () => {
+      const state = createMockState()
+      const doInstance = new AiChatDo(state, env)
+      const longMessage = 'x'.repeat(4001)
+
+      const res = await doInstance.fetch(new Request('https://do.ai/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: longMessage,
+          userId: 1,
+          systemPrompt: 'SAGE',
+          isNew: true,
+          conversationId: 'test-id',
+        }),
+      }))
+
+      expect(res.status).toBe(400)
+      const data = await res.json() as any
+      expect(data.error).toContain('maximum length')
+    })
+
+    it('rejects malformed JSON body', async () => {
+      const state = createMockState()
+      const doInstance = new AiChatDo(state, env)
+
+      const res = await doInstance.fetch(new Request('https://do.ai/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'not valid json',
+      }))
+
+      expect(res.status).toBe(400)
+      const data = await res.json() as any
+      expect(data.error).toContain('Invalid JSON')
+    })
+
+    it('rejects empty messages', async () => {
+      const state = createMockState()
+      const doInstance = new AiChatDo(state, env)
+
+      const res = await doInstance.fetch(new Request('https://do.ai/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: '',
+          userId: 1,
+          systemPrompt: 'SAGE',
+          isNew: true,
+          conversationId: 'test-id',
+        }),
+      }))
+
+      expect(res.status).toBe(400)
+      const data = await res.json() as any
+      expect(data.error).toContain('required')
+    })
+  })
 })

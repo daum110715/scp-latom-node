@@ -1,6 +1,8 @@
 import { Logger } from '../utils/logger'
 import type { Env } from '../types'
 
+const QUEUE_TASK_TIMEOUT_MS = 60_000
+
 interface QueueTask {
   request: Request
   resolve: (response: Response) => void
@@ -60,13 +62,21 @@ export class AiQueueDo {
     while (this.queue.length > 0) {
       const task = this.queue.shift()!
       try {
-        const response = await this.processTask(task.request)
+        const response = await Promise.race([
+          this.processTask(task.request),
+          new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error('Queue task timeout')), QUEUE_TASK_TIMEOUT_MS)
+          ),
+        ])
         task.resolve(response)
       } catch (err) {
-        this.logger.error('Queue task failed', { error: err instanceof Error ? err.message : String(err) })
-        task.resolve(
-          Response.json({ success: false, error: 'Internal queue error' }, { status: 500 })
-        )
+        const errMsg = err instanceof Error ? err.message : String(err)
+        this.logger.error('Queue task failed', { error: errMsg })
+        const status = errMsg === 'Queue task timeout' ? 504 : 500
+        const error = errMsg === 'Queue task timeout'
+          ? 'Request timed out. Please try again.'
+          : 'Internal queue error'
+        task.resolve(Response.json({ success: false, error }, { status }))
       }
     }
 
