@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import {
   sendChatMessage,
   sendChatMessageStream,
@@ -15,6 +16,7 @@ import AiMessageBubble from './AiMessageBubble.vue'
 import AiConversationList from './AiConversationList.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const conversations = ref<AiConversationMeta[]>([])
 const currentId = ref<string | null>(null)
@@ -130,12 +132,19 @@ async function sendMessage() {
       onError(error) {
         const idx = messages.value.findIndex((m) => m.id === 'streaming')
         if (idx >= 0) {
+          const content = error === 'ERR-401-CLEARANCE'
+            ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}`
+            : `Error: ${error}`
           messages.value[idx] = {
             ...messages.value[idx],
-            content: `Error: ${error}`,
+            content,
           }
         }
         isStreaming.value = false
+        if (error === 'ERR-401-CLEARANCE') {
+          localStorage.removeItem('scp-auth-token')
+          router.push('/login')
+        }
       },
     },
   )
@@ -156,9 +165,16 @@ async function handleRegenerate() {
   if (res.ok) {
     messages.value[idx] = res.data.message
   } else {
+    const content = res.code === 'ERR-401-CLEARANCE'
+      ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}`
+      : `Error: ${res.error}`
     messages.value[idx] = {
       ...messages.value[idx],
-      content: `Error: ${res.error}`,
+      content,
+    }
+    if (res.code === 'ERR-401-CLEARANCE') {
+      localStorage.removeItem('scp-auth-token')
+      router.push('/login')
     }
   }
   isStreaming.value = false

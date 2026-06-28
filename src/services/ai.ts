@@ -1,5 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api'
-import { API_URL } from './config'
+import { apiGet, apiPost, apiPut, apiDelete, apiStream } from './api'
 import type { ApiResult } from './response'
 
 // ─── Types ──────────────────────────────────────────────────
@@ -103,19 +102,16 @@ export async function sendChatMessageStream(
   },
   callbacks: AiStreamCallbacks
 ): Promise<void> {
-  const token = localStorage.getItem('scp-auth-token')
+  const result = await apiStream('/ai/chat', { ...data, stream: true })
 
-  const res = await fetch(`${API_URL}/ai/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ ...data, stream: true }),
-  })
+  if (!result.ok) {
+    callbacks.onError?.(result.code)
+    return
+  }
 
-  if (!res.ok || !res.body) {
-    callbacks.onError?.(`HTTP ${res.status}`)
+  const { response: res } = result
+  if (!res.body) {
+    callbacks.onError?.('STREAM_NO_BODY')
     return
   }
 
