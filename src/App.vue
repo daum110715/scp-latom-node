@@ -3,6 +3,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import SearchModal from '@/components/layout/SearchModal.vue'
+import BackToTop from '@/components/common/BackToTop.vue'
 import MobileLayout from '@/components/mobile/MobileLayout.vue'
 import MobileSearchModal from '@/components/mobile/MobileSearchModal.vue'
 import { useDevice } from '@/composables/useDevice'
@@ -44,6 +45,8 @@ const route = useRoute()
   </MobileLayout>
 
   <MobileSearchModal v-if="isMobile" />
+
+  <BackToTop />
 </template>
 
 <style>
