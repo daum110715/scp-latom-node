@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProposalsStore } from '@/stores/proposals'
@@ -25,13 +25,6 @@ const categoryVariant: Record<string, string> = {
   containment: 'euclid',
   general: 'safe',
 }
-
-const dailyUsed = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
-  return store.proposals.filter(
-    (p) => p.createdAt.slice(0, 10) === today && p.authorCodename === auth.user?.codename
-  ).length
-})
 
 function toggleForm() {
   showForm.value = !showForm.value
@@ -115,12 +108,16 @@ onMounted(() => {
         />
       </div>
 
-      <p class="daily-info">{{ t('proposals.dailyLimit', { max: 2, used: dailyUsed }) }}</p>
+      <p class="daily-info">{{ t('proposals.dailyLimit', { max: store.dailyLimit, used: store.dailyUsed }) }}</p>
+
+      <p v-if="store.dailyUsed >= store.dailyLimit" class="form-error">
+        {{ t('proposals.dailyLimitReached', { max: store.dailyLimit }) }}
+      </p>
 
       <div class="form-actions">
         <button
           class="submit-btn"
-          :disabled="store.creating || formTitle.trim().length < 5 || formContent.trim().length < 20"
+          :disabled="store.creating || store.dailyUsed >= store.dailyLimit || formTitle.trim().length < 5 || formContent.trim().length < 20"
           @click="submitProposal"
         >
           {{ store.creating ? '...' : t('proposals.submit') }}

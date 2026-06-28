@@ -17,6 +17,8 @@ export const useProposalsStore = defineStore('proposals', () => {
   const total = ref(0)
   const page = ref(1)
   const totalPages = ref(0)
+  const dailyUsed = ref(0)
+  const dailyLimit = ref(2)
 
   async function loadProposals(p = 1, status?: string, category?: string) {
     loading.value = true
@@ -29,6 +31,8 @@ export const useProposalsStore = defineStore('proposals', () => {
       total.value = res.data.total
       page.value = res.data.page
       totalPages.value = res.data.totalPages
+      dailyUsed.value = res.data.dailyUsed
+      dailyLimit.value = res.data.dailyLimit
     } else {
       error.value = res.error
     }
@@ -55,6 +59,7 @@ export const useProposalsStore = defineStore('proposals', () => {
 
     if (res.ok) {
       proposals.value.unshift(res.data.proposal)
+      dailyUsed.value++
       return true
     }
     error.value = res.error
@@ -96,6 +101,8 @@ export const useProposalsStore = defineStore('proposals', () => {
     total,
     page,
     totalPages,
+    dailyUsed,
+    dailyLimit,
     loadProposals,
     loadProposal,
     submitProposal,

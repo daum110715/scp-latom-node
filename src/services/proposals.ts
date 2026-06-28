@@ -22,6 +22,8 @@ export interface ProposalsListResponse {
   page: number
   limit: number
   totalPages: number
+  dailyUsed: number
+  dailyLimit: number
 }
 
 export interface ProposalResponse {

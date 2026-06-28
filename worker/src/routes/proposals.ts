@@ -55,6 +55,15 @@ proposals.get('/', async (c) => {
     }
   }
 
+  // Get daily proposal count for authenticated user (all statuses, not just filtered)
+  let dailyUsed = 0
+  if (currentUserId) {
+    const dailyRow = await c.env.DB.prepare(
+      "SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND created_at >= date('now')"
+    ).bind(currentUserId).first<{ count: number }>()
+    dailyUsed = dailyRow?.count ?? 0
+  }
+
   // Build query
   let where = 'WHERE p.status = ?'
   const params: unknown[] = [statusFilter]
@@ -117,6 +126,8 @@ proposals.get('/', async (c) => {
     page,
     limit,
     totalPages: Math.ceil(total / limit),
+    dailyUsed,
+    dailyLimit: MAX_PROPOSALS_PER_DAY,
   })
 })
 
