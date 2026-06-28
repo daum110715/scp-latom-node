@@ -614,7 +614,9 @@ describe('cleanEntryHtml', () => {
     </div>`
     const result = cleanEntryHtml(html, baseUrl)
 
-    expect(result).toContain('href="https://scp-wiki.wikidot.com/scp-999"')
+    // SCP links are converted to in-platform links
+    expect(result).toContain('href="/entry/en/999"')
+    // Non-SCP URLs (images) are converted to absolute
     expect(result).toContain('src="https://scp-wiki.wikidot.com/local--files/scp-173/image.jpg"')
   })
 
@@ -642,9 +644,9 @@ describe('cleanEntryHtml', () => {
     const html = `<div id="page-content">
       <a href="/scp-173">SCP-173</a>
     </div>`
-    const result = cleanEntryHtml(html, cnBaseUrl)
+    const result = cleanEntryHtml(html, cnBaseUrl, 'cn')
 
-    expect(result).toContain('href="https://scp-wiki-cn.wikidot.com/scp-173"')
+    expect(result).toContain('href="/entry/cn/173"')
   })
 
   it('falls back to body content when no #page-content found', () => {
@@ -727,5 +729,73 @@ describe('cleanEntryHtml', () => {
 
     // Wrapped in container
     expect(result).toContain('class="scp-content"')
+  })
+
+  // ─── SCP entry link conversion ───────────────────────────
+
+  it('converts relative SCP links to in-platform links', () => {
+    const html = `<div id="page-content">
+      <p>See <a href="/scp-173">SCP-173</a> for details.</p>
+      <p>Also <a href="/scp-500">SCP-500</a>.</p>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('href="/entry/en/173"')
+    expect(result).toContain('href="/entry/en/500"')
+    expect(result).not.toContain('scp-wiki.wikidot.com/scp-')
+  })
+
+  it('converts absolute Wikidot SCP links to in-platform links', () => {
+    const html = `<div id="page-content">
+      <a href="https://scp-wiki.wikidot.com/scp-682">SCP-682</a>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('href="/entry/en/682"')
+    expect(result).not.toContain('scp-wiki.wikidot.com/scp-682')
+  })
+
+  it('converts CN wiki links to in-platform CN links', () => {
+    const cnBaseUrl = 'https://scp-wiki-cn.wikidot.com'
+    const html = `<div id="page-content">
+      <a href="/scp-173">SCP-173</a>
+      <a href="https://scp-wiki-cn.wikidot.com/scp-500">SCP-500</a>
+    </div>`
+    const result = cleanEntryHtml(html, cnBaseUrl, 'cn')
+
+    expect(result).toContain('href="/entry/cn/173"')
+    expect(result).toContain('href="/entry/cn/500"')
+  })
+
+  it('handles SCP variant links like scp-500-j', () => {
+    const html = `<div id="page-content">
+      <a href="/scp-500-j">SCP-500-J</a>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    // Should extract the numeric part: 500
+    expect(result).toContain('href="/entry/en/500"')
+  })
+
+  it('does not convert non-SCP wiki links', () => {
+    const html = `<div id="page-content">
+      <a href="/guide-for-newbies">Guide</a>
+      <a href="https://scp-wiki.wikidot.com/system:join">Join</a>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    // Non-SCP links should remain as absolute Wikidot URLs
+    expect(result).toContain('href="https://scp-wiki.wikidot.com/guide-for-newbies"')
+    expect(result).toContain('href="https://scp-wiki.wikidot.com/system:join"')
+    expect(result).not.toContain('/entry/')
+  })
+
+  it('preserves non-SCP external links unchanged', () => {
+    const html = `<div id="page-content">
+      <a href="https://example.com/page">External</a>
+    </div>`
+    const result = cleanEntryHtml(html, baseUrl)
+
+    expect(result).toContain('href="https://example.com/page"')
   })
 })

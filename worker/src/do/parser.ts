@@ -549,9 +549,10 @@ function extractPageContent(html: string): string | null {
  * 4. Remove on* event handler attributes
  * 5. Remove style="..." attributes
  * 6. Convert relative URLs to absolute
- * 7. Wrap in .scp-content container
+ * 7. Convert Wikidot SCP entry links to in-platform links
+ * 8. Wrap in .scp-content container
  */
-export function cleanEntryHtml(html: string, baseUrl: string): string {
+export function cleanEntryHtml(html: string, baseUrl: string, language: 'en' | 'cn' = 'en'): string {
   // 1. Extract page content
   let content = extractPageContent(html)
   if (!content) {
@@ -593,14 +594,28 @@ export function cleanEntryHtml(html: string, baseUrl: string): string {
   content = content.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
   content = content.replace(/\bsrc="\/(?!\/)/g, `src="${baseUrl}/`)
 
-  // 8. Append collapsible copyright notice if licensebox was found
+  // 8. Convert Wikidot SCP entry links to in-platform links
+  //    Matches: href="https://scp-wiki.wikidot.com/scp-173"
+  //         and href="https://scp-wiki-cn.wikidot.com/scp-500-j"
+  //    Converts to: href="/entry/en/173" or href="/entry/cn/500"
+  const wikiDomain = language === 'cn' ? 'scp-wiki-cn\\.wikidot\\.com' : 'scp-wiki\\.wikidot\\.com'
+  const scpLinkPattern = new RegExp(`href="https?://${wikiDomain}/scp-(\\d+)[a-z\\-]*"`, 'gi')
+  content = content.replace(scpLinkPattern, (_match, scpNum) => {
+    return `href="/entry/${language}/${scpNum}"`
+  })
+
+  // 9. Append collapsible copyright notice if licensebox was found
   if (licenseboxHtml) {
     // Clean the licensebox HTML with the same URL conversion
     licenseboxHtml = licenseboxHtml.replace(/\bhref="\/(?!\/)/g, `href="${baseUrl}/`)
     licenseboxHtml = licenseboxHtml.replace(/\bsrc="\/(?!\/)/g, `src="${baseUrl}/`)
+    // Also convert SCP links in licensebox
+    licenseboxHtml = licenseboxHtml.replace(scpLinkPattern, (_match: string, scpNum: string) => {
+      return `href="/entry/${language}/${scpNum}"`
+    })
     content += `\n<details class="scp-copyright"><summary>Copyright / Attribution</summary><div class="scp-copyright-body">${licenseboxHtml}</div></details>`
   }
 
-  // 9. Wrap in container
+  // 10. Wrap in container
   return `<div class="scp-content">${content}</div>`
 }

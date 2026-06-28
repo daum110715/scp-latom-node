@@ -355,7 +355,7 @@ export class ScpCrawlerDo {
         return
       }
 
-      const cleaned = cleanEntryHtml(result.html, baseUrl)
+      const cleaned = cleanEntryHtml(result.html, baseUrl, language)
 
       await this.env.DB.prepare(
         `UPDATE scp_entries SET content = ?, content_error = NULL, content_fetched_at = datetime('now') WHERE scp_number = ? AND language = ?`
