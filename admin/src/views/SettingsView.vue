@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fetchAdminSettings, type AdminSettings } from '@/services/settings'
 import { fetchCorsOrigins, addCorsOrigin, removeCorsOrigin, type CorsOrigin } from '@/services/cors'
 
+const { t } = useI18n()
 const settings = ref<AdminSettings | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -64,8 +66,8 @@ onMounted(async () => {
 <template>
   <div class="settings-view">
     <div class="page-header">
-      <h2>Settings</h2>
-      <p class="page-desc">System configuration (read-only)</p>
+      <h2>{{ t('settings.title') }}</h2>
+      <p class="page-desc">{{ t('settings.desc') }}</p>
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -81,7 +83,7 @@ onMounted(async () => {
       <!-- Totals -->
       <div class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Database Totals</span>
+          <span class="admin-card-title">{{ t('settings.databaseTotals') }}</span>
         </div>
         <div class="detail-grid">
           <div v-for="(count, table) in settings.database.tables" :key="table" class="detail-item">
@@ -94,42 +96,36 @@ onMounted(async () => {
       <!-- CORS -->
       <div class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Allowed Origins (CORS)</span>
+          <span class="admin-card-title">{{ t('settings.allowedOrigins') }}</span>
         </div>
 
-        <div class="cors-group-label">Static (wrangler.toml)</div>
         <div class="cors-list">
           <code v-for="origin in corsStatic" :key="origin" class="cors-item">{{ origin }}</code>
         </div>
 
-        <div class="cors-group-label">Dynamic (admin-managed)</div>
         <div v-if="corsDynamic.length" class="cors-list">
           <div v-for="o in corsDynamic" :key="o.id" class="cors-item cors-item-dynamic">
             <code>{{ o.origin }}</code>
             <button
               class="cors-remove"
               :disabled="corsBusy"
-              title="Remove"
               @click="removeOrigin(o.id)"
             >
               ×
             </button>
           </div>
         </div>
-        <p v-else class="cors-empty">No dynamic origins configured.</p>
 
         <form class="cors-add-form" @submit.prevent="submitAddOrigin">
           <input
             v-model="newOrigin"
             class="input"
-            placeholder="https://example.com or https://*.example.com"
           />
           <button
             class="btn btn-primary btn-sm"
             type="submit"
             :disabled="corsBusy || !newOrigin.trim()"
           >
-            Add
           </button>
         </form>
         <p v-if="corsError" class="cors-error">{{ corsError }}</p>
@@ -138,17 +134,17 @@ onMounted(async () => {
       <!-- Crawl States -->
       <div v-if="settings.crawlStates?.length" class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Crawl States</span>
+          <span class="admin-card-title">{{ t('settings.crawlStates') }}</span>
         </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Language</th>
-                <th>Status</th>
-                <th>Total Entries</th>
-                <th>Last Crawl</th>
-                <th>Error</th>
+                <th>{{ t('settings.colLanguage') }}</th>
+                <th>{{ t('settings.colStatus') }}</th>
+                <th>{{ t('settings.colTotalEntries') }}</th>
+                <th>{{ t('settings.colLastCrawl') }}</th>
+                <th>{{ t('settings.colError') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -168,9 +164,13 @@ onMounted(async () => {
                 </td>
                 <td class="cell-mono">{{ cs.total_entries?.toLocaleString() }}</td>
                 <td class="cell-mono">
-                  {{ cs.last_crawl ? new Date(cs.last_crawl * 1000).toLocaleString() : '—' }}
+                  {{
+                    cs.last_crawl
+                      ? new Date(cs.last_crawl * 1000).toLocaleString()
+                      : t('common.none')
+                  }}
                 </td>
-                <td style="color: var(--color-danger)">{{ cs.error || '—' }}</td>
+                <td style="color: var(--color-danger)">{{ cs.error || t('common.none') }}</td>
               </tr>
             </tbody>
           </table>
@@ -180,15 +180,15 @@ onMounted(async () => {
       <!-- System Info -->
       <div class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">System Info</span>
+          <span class="admin-card-title">{{ t('settings.systemInfo') }}</span>
         </div>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Log Level</span>
+            <span class="detail-label">{{ t('settings.logLevel') }}</span>
             <span class="detail-value">{{ settings.logLevel }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">API Version</span>
+            <span class="detail-label">{{ t('settings.apiVersion') }}</span>
             <span class="detail-value cell-mono">v1</span>
           </div>
         </div>

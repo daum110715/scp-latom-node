@@ -2,9 +2,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
+import { Fingerprint, TriangleAlert } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
 
 const codename = ref('')
 const password = ref('')
@@ -21,36 +24,36 @@ async function handleLogin() {
   <div class="login-page">
     <div class="login-card">
       <div class="login-brand">
-        <div class="brand-icon">◈</div>
-        <h1 class="login-title">Admin Access Terminal</h1>
-        <p class="login-subtitle">Level 5 clearance required</p>
+        <div class="brand-icon"><Fingerprint :size="48" :stroke-width="1.75" /></div>
+        <h1 class="login-title">{{ t('login.title') }}</h1>
+        <p class="login-subtitle">{{ t('login.subtitle') }}</p>
       </div>
 
       <form class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
-          <label class="form-label">CODENAME</label>
+          <label class="form-label">{{ t('login.codename') }}</label>
           <input
             v-model="codename"
             type="text"
             class="input form-input"
-            placeholder="Enter codename"
+            :placeholder="t('login.codenamePlaceholder')"
             autocomplete="username"
           />
         </div>
 
         <div class="form-group">
-          <label class="form-label">PASSWORD</label>
+          <label class="form-label">{{ t('login.password') }}</label>
           <input
             v-model="password"
             type="password"
             class="input form-input"
-            placeholder="Enter password"
+            :placeholder="t('login.passwordPlaceholder')"
             autocomplete="current-password"
           />
         </div>
 
         <div v-if="auth.error" class="login-error">
-          <span class="error-icon">⚠</span>
+          <TriangleAlert class="error-icon" :size="18" />
           {{ auth.error }}
         </div>
 
@@ -59,12 +62,12 @@ async function handleLogin() {
           class="btn btn-primary login-btn"
           :disabled="auth.loading || !codename || !password"
         >
-          {{ auth.loading ? 'Authenticating...' : 'Authenticate' }}
+          {{ auth.loading ? t('login.authenticating') : t('login.button') }}
         </button>
       </form>
 
       <div class="login-footer">
-        <span class="footer-text">SCP FOUNDATION — INTERNAL USE ONLY</span>
+        <span class="footer-text">{{ t('login.footer') }}</span>
       </div>
     </div>
   </div>
@@ -96,9 +99,11 @@ async function handleLogin() {
 }
 
 .brand-icon {
-  font-size: 3rem;
   color: var(--color-primary);
   margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-title {

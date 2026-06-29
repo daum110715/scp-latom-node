@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useEntriesStore } from '@/stores/entries'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const store = useEntriesStore()
 const entryId = Number(route.params.id)
 const editing = ref(false)
@@ -44,7 +46,7 @@ function formatDate(d: string | null | undefined) {
   <div class="entry-detail">
     <div class="page-header">
       <nav class="breadcrumb">
-        <router-link to="/entries">Entries</router-link>
+        <router-link to="/entries">{{ t('entryDetail.breadcrumbEntries') }}</router-link>
         <span class="breadcrumb-sep">/</span>
         <span class="breadcrumb-current"
           >SCP-{{
@@ -73,11 +75,11 @@ function formatDate(d: string | null | undefined) {
           <template v-if="editing">
             <div class="edit-form">
               <div class="form-group">
-                <label class="form-label">Name</label>
+                <label class="form-label">{{ t('entryDetail.name') }}</label>
                 <input v-model="editName" class="input" />
               </div>
               <div class="form-group">
-                <label class="form-label">Object Class</label>
+                <label class="form-label">{{ t('entryDetail.objectClass') }}</label>
                 <select v-model="editClass" class="select">
                   <option
                     v-for="cls in [
@@ -97,53 +99,59 @@ function formatDate(d: string | null | undefined) {
                 </select>
               </div>
               <div class="edit-actions">
-                <button class="btn btn-primary btn-sm" @click="saveEdit">Save</button>
-                <button class="btn btn-ghost btn-sm" @click="editing = false">Cancel</button>
+                <button class="btn btn-primary btn-sm" @click="saveEdit">
+                  {{ t('common.save') }}
+                </button>
+                <button class="btn btn-ghost btn-sm" @click="editing = false">
+                  {{ t('common.cancel') }}
+                </button>
               </div>
             </div>
           </template>
           <template v-else>
-            <p class="entry-name">{{ store.currentEntry.name || 'No name' }}</p>
+            <p class="entry-name">{{ store.currentEntry.name || t('entryDetail.noName') }}</p>
           </template>
         </div>
 
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Entry ID</span>
+            <span class="detail-label">{{ t('entryDetail.entryId') }}</span>
             <span class="detail-value">{{ store.currentEntry.id }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Series</span>
+            <span class="detail-label">{{ t('entryDetail.series') }}</span>
             <span class="detail-value">{{ store.currentEntry.series }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">URL</span>
+            <span class="detail-label">{{ t('entryDetail.url') }}</span>
             <span class="detail-value"
               ><a :href="store.currentEntry.url" target="_blank" rel="noopener">{{
-                store.currentEntry.url || '—'
+                store.currentEntry.url || t('common.none')
               }}</a></span
             >
           </div>
           <div class="detail-item">
-            <span class="detail-label">Content Fetched</span>
+            <span class="detail-label">{{ t('entryDetail.contentFetched') }}</span>
             <span class="detail-value">{{
               formatDate(store.currentEntry.content_fetched_at)
             }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Created</span>
+            <span class="detail-label">{{ t('entryDetail.created') }}</span>
             <span class="detail-value">{{ formatDate(store.currentEntry.created_at) }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Updated</span>
+            <span class="detail-label">{{ t('entryDetail.updated') }}</span>
             <span class="detail-value">{{ formatDate(store.currentEntry.updated_at) }}</span>
           </div>
         </div>
 
         <div class="entry-actions">
-          <button v-if="!editing" class="btn btn-ghost" @click="startEdit">Edit</button>
+          <button v-if="!editing" class="btn btn-ghost" @click="startEdit">
+            {{ t('common.edit') }}
+          </button>
           <button class="btn btn-ghost" :disabled="refetching" @click="refetchContent">
-            {{ refetching ? 'Refetching...' : 'Refetch Content' }}
+            {{ refetching ? t('entryDetail.refetching') : t('entryDetail.refetch') }}
           </button>
         </div>
       </div>
@@ -151,29 +159,26 @@ function formatDate(d: string | null | undefined) {
       <!-- Content Preview -->
       <div v-if="store.currentEntry.content" class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Content Preview</span>
+          <span class="admin-card-title">{{ t('entryDetail.contentPreview') }}</span>
           <span class="cell-mono"
             >{{ (store.currentEntry.content.length / 1024).toFixed(1) }} KB</span
           >
         </div>
-        <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="scp-content content-preview" v-html="store.currentEntry.content" />
       </div>
 
       <div v-else-if="store.currentEntry.content_error" class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Content Error</span>
+          <span class="admin-card-title">{{ t('entryDetail.contentErrorTitle') }}</span>
         </div>
         <p style="color: var(--color-danger)">{{ store.currentEntry.content_error }}</p>
       </div>
 
       <div v-else class="admin-card">
         <div class="admin-card-header">
-          <span class="admin-card-title">Content</span>
+          <span class="admin-card-title">{{ t('entryDetail.contentTitle') }}</span>
         </div>
-        <p style="color: var(--text-tertiary)">
-          No content cached. Click "Refetch Content" to load.
-        </p>
+        <p style="color: var(--text-tertiary)">{{ t('entryDetail.noContent') }}</p>
       </div>
     </template>
   </div>

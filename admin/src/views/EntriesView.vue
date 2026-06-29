@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEntriesStore } from '@/stores/entries'
 import SearchInput from '@/components/common/SearchInput.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -7,6 +8,7 @@ import Pagination from '@/components/common/Pagination.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const store = useEntriesStore()
+const { t } = useI18n()
 const deleteTarget = ref<number | null>(null)
 const crawlLang = ref<string | null>(null)
 
@@ -43,21 +45,21 @@ async function triggerCrawl(lang: string) {
 <template>
   <div class="entries-view">
     <div class="page-header">
-      <h2>Content Management</h2>
-      <p class="page-desc">Manage SCP entries and trigger data crawls</p>
+      <h2>{{ t('entries.title') }}</h2>
+      <p class="page-desc">{{ t('entries.desc') }}</p>
     </div>
 
     <!-- Crawl Controls -->
     <div class="admin-card crawl-card">
       <div class="admin-card-header">
-        <span class="admin-card-title">Crawler Status</span>
+        <span class="admin-card-title">{{ t('entries.crawlerStatus') }}</span>
       </div>
       <div class="crawl-controls">
         <button class="btn btn-primary" :disabled="!!crawlLang" @click="triggerCrawl('en')">
-          {{ crawlLang === 'en' ? 'Crawling EN...' : 'Crawl EN' }}
+          {{ crawlLang === 'en' ? t('entries.crawlingEn') : t('entries.crawlEn') }}
         </button>
         <button class="btn btn-primary" :disabled="!!crawlLang" @click="triggerCrawl('cn')">
-          {{ crawlLang === 'cn' ? 'Crawling CN...' : 'Crawl CN' }}
+          {{ crawlLang === 'cn' ? t('entries.crawlingCn') : t('entries.crawlCn') }}
         </button>
       </div>
     </div>
@@ -65,16 +67,16 @@ async function triggerCrawl(lang: string) {
     <div class="filter-bar">
       <SearchInput
         :model-value="store.searchQuery"
-        placeholder="Search by SCP number or name..."
+        :placeholder="t('entries.searchPlaceholder')"
         @update:model-value="onSearch"
       />
       <select class="select" @change="onLangFilter">
-        <option value="">All Languages</option>
+        <option value="">{{ t('entries.allLanguages') }}</option>
         <option value="en">EN</option>
         <option value="cn">CN</option>
       </select>
       <select class="select" @change="onClassFilter">
-        <option value="">All Classes</option>
+        <option value="">{{ t('entries.allClasses') }}</option>
         <option value="Safe">Safe</option>
         <option value="Euclid">Euclid</option>
         <option value="Keter">Keter</option>
@@ -82,7 +84,7 @@ async function triggerCrawl(lang: string) {
         <option value="Apollyon">Apollyon</option>
         <option value="Neutralized">Neutralized</option>
       </select>
-      <span class="results-count">{{ store.total }} entries</span>
+      <span class="results-count">{{ t('entries.resultsCount', { n: store.total }) }}</span>
     </div>
 
     <div v-if="store.loading && !store.entries.length" class="loading-state">
@@ -94,20 +96,20 @@ async function triggerCrawl(lang: string) {
         <table class="data-table">
           <thead>
             <tr>
-              <th>SCP</th>
-              <th>Lang</th>
-              <th>Name</th>
-              <th>Class</th>
-              <th>Series</th>
-              <th>Content</th>
-              <th>Actions</th>
+              <th>{{ t('entries.colScp') }}</th>
+              <th>{{ t('entries.colLang') }}</th>
+              <th>{{ t('entries.colName') }}</th>
+              <th>{{ t('entries.colClass') }}</th>
+              <th>{{ t('entries.colSeries') }}</th>
+              <th>{{ t('entries.colContent') }}</th>
+              <th>{{ t('entries.colActions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="entry in store.entries" :key="entry.id">
               <td class="cell-mono">SCP-{{ String(entry.scp_number).padStart(3, '0') }}</td>
               <td>{{ entry.language.toUpperCase() }}</td>
-              <td>{{ entry.name || '—' }}</td>
+              <td>{{ entry.name || t('common.none') }}</td>
               <td>
                 <StatusBadge
                   :variant="entry.object_class?.toLowerCase() || 'unknown'"
@@ -118,16 +120,16 @@ async function triggerCrawl(lang: string) {
               <td>
                 <StatusBadge
                   :variant="entry.has_content ? 'approved' : 'rejected'"
-                  :label="entry.has_content ? 'Cached' : 'None'"
+                  :label="entry.has_content ? t('entries.cached') : t('entries.none')"
                 />
               </td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/entries/${entry.id}`" class="btn btn-ghost btn-sm"
-                    >View</router-link
-                  >
+                  <router-link :to="`/entries/${entry.id}`" class="btn btn-ghost btn-sm">{{
+                    t('common.view')
+                  }}</router-link>
                   <button class="btn btn-danger btn-sm" @click="deleteTarget = entry.id">
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -141,9 +143,9 @@ async function triggerCrawl(lang: string) {
 
     <ConfirmModal
       v-if="deleteTarget !== null"
-      title="Delete Entry"
-      message="This will permanently delete this SCP entry from the database. This action cannot be undone."
-      confirm-label="Delete Entry"
+      :title="t('entries.deleteTitle')"
+      :message="t('entries.deleteMessage')"
+      :confirm-label="t('entries.deleteConfirm')"
       :loading="store.loading"
       @confirm="confirmDelete"
       @cancel="deleteTarget = null"

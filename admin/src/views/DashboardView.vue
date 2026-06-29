@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useDashboardStore } from '@/stores/dashboard'
+import { useI18n } from 'vue-i18n'
 import StatsCard from '@/components/common/StatsCard.vue'
 
 const dashboard = useDashboardStore()
+const { t } = useI18n()
 
 onMounted(() => dashboard.fetchStats())
 </script>
@@ -11,8 +13,8 @@ onMounted(() => dashboard.fetchStats())
 <template>
   <div class="dashboard">
     <div class="page-header">
-      <h2>Dashboard</h2>
-      <p class="page-desc">System overview and statistics</p>
+      <h2>{{ t('dashboard.title') }}</h2>
+      <p class="page-desc">{{ t('dashboard.desc') }}</p>
     </div>
 
     <div v-if="dashboard.loading && !dashboard.stats" class="loading-state">
@@ -22,27 +24,31 @@ onMounted(() => dashboard.fetchStats())
     <div v-else-if="dashboard.error" class="error-state">
       <span class="error-icon">⚠</span>
       <p>{{ dashboard.error }}</p>
-      <button class="btn btn-ghost" @click="dashboard.fetchStats()">Retry</button>
+      <button class="btn btn-ghost" @click="dashboard.fetchStats()">{{ t('common.retry') }}</button>
     </div>
 
     <template v-else-if="dashboard.stats">
       <!-- Stats Cards -->
       <div class="stats-grid">
-        <StatsCard label="Total Personnel" :value="dashboard.stats.totalUsers" icon="◉" />
         <StatsCard
-          label="Total Entries"
+          :label="t('dashboard.totalPersonnel')"
+          :value="dashboard.stats.totalUsers"
+          icon="◉"
+        />
+        <StatsCard
+          :label="t('dashboard.totalEntries')"
           :value="(dashboard.stats.entriesByLanguage || []).reduce((s, e) => s + e.count, 0)"
           icon="☰"
         />
         <StatsCard
-          label="Open Proposals"
+          :label="t('dashboard.openProposals')"
           :value="
             (dashboard.stats.proposalsByStatus || []).find((p) => p.status === 'open')?.count || 0
           "
           icon="◇"
         />
         <StatsCard
-          label="Errors (24h)"
+          :label="t('dashboard.errors24h')"
           :value="dashboard.stats.recentActivity?.errorsLast24h || 0"
           icon="⚠"
         />
@@ -52,29 +58,29 @@ onMounted(() => dashboard.fetchStats())
       <div class="dashboard-grid">
         <div class="admin-card">
           <div class="admin-card-header">
-            <span class="admin-card-title">Recent Activity</span>
+            <span class="admin-card-title">{{ t('dashboard.recentActivity') }}</span>
           </div>
           <div class="activity-list">
             <div class="activity-item">
-              <span class="activity-label">New users today</span>
+              <span class="activity-label">{{ t('dashboard.newUsersToday') }}</span>
               <span class="activity-value">{{
                 dashboard.stats.recentActivity?.newUsersToday || 0
               }}</span>
             </div>
             <div class="activity-item">
-              <span class="activity-label">New proposals today</span>
+              <span class="activity-label">{{ t('dashboard.newProposalsToday') }}</span>
               <span class="activity-value">{{
                 dashboard.stats.recentActivity?.newProposalsToday || 0
               }}</span>
             </div>
             <div class="activity-item">
-              <span class="activity-label">Votes today</span>
+              <span class="activity-label">{{ t('dashboard.votesToday') }}</span>
               <span class="activity-value">{{
                 dashboard.stats.recentActivity?.newVotesToday || 0
               }}</span>
             </div>
             <div class="activity-item">
-              <span class="activity-label">Error rate (7d)</span>
+              <span class="activity-label">{{ t('dashboard.errorRate7d') }}</span>
               <span class="activity-value"
                 >{{ dashboard.stats.logErrorRate?.rate?.toFixed(1) || 0 }}%</span
               >
@@ -84,7 +90,7 @@ onMounted(() => dashboard.fetchStats())
 
         <div class="admin-card">
           <div class="admin-card-header">
-            <span class="admin-card-title">Entries by Language</span>
+            <span class="admin-card-title">{{ t('dashboard.entriesByLanguage') }}</span>
           </div>
           <div class="activity-list">
             <div
@@ -100,7 +106,7 @@ onMounted(() => dashboard.fetchStats())
 
         <div class="admin-card">
           <div class="admin-card-header">
-            <span class="admin-card-title">Proposals by Status</span>
+            <span class="admin-card-title">{{ t('dashboard.proposalsByStatus') }}</span>
           </div>
           <div class="activity-list">
             <div
@@ -112,9 +118,9 @@ onMounted(() => dashboard.fetchStats())
               <span class="activity-value">{{ p.count }}</span>
             </div>
             <div v-if="!(dashboard.stats.proposalsByStatus || []).length" class="activity-item">
-              <span class="activity-label" style="color: var(--text-tertiary)"
-                >No proposals yet</span
-              >
+              <span class="activity-label" style="color: var(--text-tertiary)">{{
+                t('dashboard.noProposals')
+              }}</span>
             </div>
           </div>
         </div>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProposalsStore } from '@/stores/proposals'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const store = useProposalsStore()
+const { t } = useI18n()
 const deleteTarget = ref<number | null>(null)
 
 onMounted(() => store.fetchProposals())
@@ -33,25 +35,25 @@ function formatDate(d: string) {
 <template>
   <div class="proposals-view">
     <div class="page-header">
-      <h2>Proposal Moderation</h2>
-      <p class="page-desc">Review, approve, or reject user proposals</p>
+      <h2>{{ t('proposals.title') }}</h2>
+      <p class="page-desc">{{ t('proposals.desc') }}</p>
     </div>
 
     <div class="filter-bar">
       <select class="select" @change="onStatusFilter">
-        <option value="">All Statuses</option>
+        <option value="">{{ t('proposals.allStatuses') }}</option>
         <option value="open">Open</option>
         <option value="approved">Approved</option>
         <option value="rejected">Rejected</option>
       </select>
       <select class="select" @change="onCategoryFilter">
-        <option value="">All Categories</option>
+        <option value="">{{ t('proposals.allCategories') }}</option>
         <option value="protocol">Protocol</option>
         <option value="research">Research</option>
         <option value="containment">Containment</option>
         <option value="general">General</option>
       </select>
-      <span class="results-count">{{ store.total }} proposals</span>
+      <span class="results-count">{{ t('proposals.resultsCount', { n: store.total }) }}</span>
     </div>
 
     <div v-if="store.loading && !store.proposals.length" class="loading-state">
@@ -63,14 +65,14 @@ function formatDate(d: string) {
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Author</th>
-              <th>Votes</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{{ t('proposals.colId') }}</th>
+              <th>{{ t('proposals.colTitle') }}</th>
+              <th>{{ t('proposals.colCategory') }}</th>
+              <th>{{ t('proposals.colStatus') }}</th>
+              <th>{{ t('proposals.colAuthor') }}</th>
+              <th>{{ t('proposals.colVotes') }}</th>
+              <th>{{ t('proposals.colCreated') }}</th>
+              <th>{{ t('proposals.colActions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -92,31 +94,33 @@ function formatDate(d: string) {
               <td class="cell-mono">{{ formatDate(p.createdAt) }}</td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/proposals/${p.id}`" class="btn btn-ghost btn-sm"
-                    >View</router-link
-                  >
+                  <router-link :to="`/proposals/${p.id}`" class="btn btn-ghost btn-sm">{{
+                    t('common.view')
+                  }}</router-link>
                   <button
                     v-if="p.status === 'open'"
                     class="btn btn-success btn-sm"
                     @click="store.changeStatus(p.id, 'approved')"
                   >
-                    Approve
+                    {{ t('proposals.approve') }}
                   </button>
                   <button
                     v-if="p.status === 'open'"
                     class="btn btn-danger btn-sm"
                     @click="store.changeStatus(p.id, 'rejected')"
                   >
-                    Reject
+                    {{ t('proposals.reject') }}
                   </button>
                   <button
                     v-if="p.status !== 'open'"
                     class="btn btn-ghost btn-sm"
                     @click="store.changeStatus(p.id, 'open')"
                   >
-                    Reopen
+                    {{ t('proposals.reopen') }}
                   </button>
-                  <button class="btn btn-danger btn-sm" @click="deleteTarget = p.id">Delete</button>
+                  <button class="btn btn-danger btn-sm" @click="deleteTarget = p.id">
+                    {{ t('common.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -129,9 +133,9 @@ function formatDate(d: string) {
 
     <ConfirmModal
       v-if="deleteTarget !== null"
-      title="Delete Proposal"
-      message="This will permanently delete the proposal and all its votes. This action cannot be undone."
-      confirm-label="Delete Proposal"
+      :title="t('proposals.deleteTitle')"
+      :message="t('proposals.deleteMessage')"
+      :confirm-label="t('proposalDetail.deleteProposal')"
       :loading="store.loading"
       @confirm="confirmDelete"
       @cancel="deleteTarget = null"

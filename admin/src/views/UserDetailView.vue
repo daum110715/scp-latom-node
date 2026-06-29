@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUsersStore } from '@/stores/users'
 import { fetchAdminUserHistory, fetchAdminUserBookmarks } from '@/services/users'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const store = useUsersStore()
 const userId = Number(route.params.id)
 
 const activeTab = ref<'info' | 'history' | 'bookmarks'>('info')
-const history = ref<unknown[]>([])
-const bookmarks = ref<unknown[]>([])
+const history = ref<any[]>([])
+const bookmarks = ref<any[]>([])
 const loadingTab = ref(false)
 const showRoleEdit = ref(false)
 const showClearanceEdit = ref(false)
@@ -58,9 +61,11 @@ function formatDate(d: string) {
   <div class="user-detail">
     <div class="page-header">
       <nav class="breadcrumb">
-        <router-link to="/users">Users</router-link>
+        <router-link to="/users">{{ t('userDetail.breadcrumbUsers') }}</router-link>
         <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">{{ store.currentUser?.codename || 'Loading...' }}</span>
+        <span class="breadcrumb-current">{{
+          store.currentUser?.codename || t('userDetail.loadingPlaceholder')
+        }}</span>
       </nav>
     </div>
 
@@ -76,34 +81,36 @@ function formatDate(d: string) {
             <h3>{{ store.currentUser.codename }}</h3>
             <div class="user-badges">
               <StatusBadge :variant="store.currentUser.role" :label="store.currentUser.role" />
-              <span class="clearance-badge">Level {{ store.currentUser.clearance }}</span>
+              <span class="clearance-badge">{{
+                t('common.level', { n: store.currentUser.clearance })
+              }}</span>
             </div>
           </div>
         </div>
 
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">User ID</span>
+            <span class="detail-label">{{ t('userDetail.userId') }}</span>
             <span class="detail-value">{{ store.currentUser.id }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Joined</span>
+            <span class="detail-label">{{ t('userDetail.joined') }}</span>
             <span class="detail-value">{{ formatDate(store.currentUser.created_at) }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">History Entries</span>
+            <span class="detail-label">{{ t('userDetail.historyEntries') }}</span>
             <span class="detail-value">{{ store.currentUser.historyCount || 0 }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Bookmarks</span>
+            <span class="detail-label">{{ t('userDetail.bookmarks') }}</span>
             <span class="detail-value">{{ store.currentUser.bookmarkCount || 0 }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Proposals</span>
+            <span class="detail-label">{{ t('userDetail.proposals') }}</span>
             <span class="detail-value">{{ store.currentUser.proposalCount || 0 }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Votes Cast</span>
+            <span class="detail-label">{{ t('userDetail.votesCast') }}</span>
             <span class="detail-value">{{ store.currentUser.voteCount || 0 }}</span>
           </div>
         </div>
@@ -111,14 +118,18 @@ function formatDate(d: string) {
         <!-- Edit Controls -->
         <div v-if="store.currentUser.role !== 'admin'" class="edit-controls">
           <div class="edit-section">
-            <span class="edit-label">Role:</span>
+            <span class="edit-label">{{ t('userDetail.roleLabel') }}</span>
             <template v-if="showRoleEdit">
               <select v-model="newRole" class="select">
                 <option value="personnel">Personnel</option>
                 <option value="banned">Banned</option>
               </select>
-              <button class="btn btn-primary btn-sm" @click="saveRole">Save</button>
-              <button class="btn btn-ghost btn-sm" @click="showRoleEdit = false">Cancel</button>
+              <button class="btn btn-primary btn-sm" @click="saveRole">
+                {{ t('common.save') }}
+              </button>
+              <button class="btn btn-ghost btn-sm" @click="showRoleEdit = false">
+                {{ t('common.cancel') }}
+              </button>
             </template>
             <template v-else>
               <button
@@ -128,19 +139,23 @@ function formatDate(d: string) {
                   showRoleEdit = true
                 "
               >
-                Edit
+                {{ t('common.edit') }}
               </button>
             </template>
           </div>
           <div class="edit-section">
-            <span class="edit-label">Clearance:</span>
+            <span class="edit-label">{{ t('userDetail.clearanceLabel') }}</span>
             <template v-if="showClearanceEdit">
               <select v-model.number="newClearance" class="select">
-                <option v-for="n in 6" :key="n - 1" :value="n - 1">Level {{ n - 1 }}</option>
+                <option v-for="n in 6" :key="n - 1" :value="n - 1">
+                  {{ t('common.level', { n: n - 1 }) }}
+                </option>
               </select>
-              <button class="btn btn-primary btn-sm" @click="saveClearance">Save</button>
+              <button class="btn btn-primary btn-sm" @click="saveClearance">
+                {{ t('common.save') }}
+              </button>
               <button class="btn btn-ghost btn-sm" @click="showClearanceEdit = false">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
             </template>
             <template v-else>
@@ -151,7 +166,7 @@ function formatDate(d: string) {
                   showClearanceEdit = true
                 "
               >
-                Edit
+                {{ t('common.edit') }}
               </button>
             </template>
           </div>
@@ -161,21 +176,21 @@ function formatDate(d: string) {
       <!-- Tabs -->
       <div class="tabs">
         <button class="tab" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
-          Info
+          {{ t('userDetail.tabInfo') }}
         </button>
         <button
           class="tab"
           :class="{ active: activeTab === 'history' }"
           @click="loadTab('history')"
         >
-          History
+          {{ t('userDetail.tabHistory') }}
         </button>
         <button
           class="tab"
           :class="{ active: activeTab === 'bookmarks' }"
           @click="loadTab('bookmarks')"
         >
-          Bookmarks
+          {{ t('userDetail.tabBookmarks') }}
         </button>
       </div>
 
@@ -187,11 +202,11 @@ function formatDate(d: string) {
         <table v-if="history.length" class="data-table">
           <thead>
             <tr>
-              <th>SCP</th>
-              <th>Language</th>
-              <th>Name</th>
-              <th>Class</th>
-              <th>Visited</th>
+              <th>{{ t('userDetail.colScp') }}</th>
+              <th>{{ t('userDetail.colLanguage') }}</th>
+              <th>{{ t('userDetail.colName') }}</th>
+              <th>{{ t('userDetail.colClass') }}</th>
+              <th>{{ t('userDetail.colVisited') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -209,18 +224,20 @@ function formatDate(d: string) {
             </tr>
           </tbody>
         </table>
-        <div v-else class="empty-state"><p>No history entries</p></div>
+        <div v-else class="empty-state">
+          <p>{{ t('userDetail.noHistory') }}</p>
+        </div>
       </div>
 
       <div v-else-if="activeTab === 'bookmarks'" class="table-wrap">
         <table v-if="bookmarks.length" class="data-table">
           <thead>
             <tr>
-              <th>SCP</th>
-              <th>Language</th>
-              <th>Name</th>
-              <th>Class</th>
-              <th>Added</th>
+              <th>{{ t('userDetail.colScp') }}</th>
+              <th>{{ t('userDetail.colLanguage') }}</th>
+              <th>{{ t('userDetail.colName') }}</th>
+              <th>{{ t('userDetail.colClass') }}</th>
+              <th>{{ t('userDetail.colAdded') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -238,7 +255,9 @@ function formatDate(d: string) {
             </tr>
           </tbody>
         </table>
-        <div v-else class="empty-state"><p>No bookmarks</p></div>
+        <div v-else class="empty-state">
+          <p>{{ t('userDetail.noBookmarks') }}</p>
+        </div>
       </div>
     </div>
   </div>
