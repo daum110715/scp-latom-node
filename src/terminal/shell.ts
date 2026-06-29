@@ -242,8 +242,8 @@ export function createShell(options: ShellOptions) {
     }
     state.historyIndex = -1
 
-    // Write the entered line (echo the input)
-    options.onWrite(getPrompt() + input + '\r\n')
+    // Move to next line (prompt+input already visible from onKey echo)
+    options.onWrite('\r\n')
 
     // Handle exit specially
     if (trimmed === 'exit') {
