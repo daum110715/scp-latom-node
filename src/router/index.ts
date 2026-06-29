@@ -84,6 +84,16 @@ const routes: RouteRecordRaw[] = [
     redirect: '/activity',
   },
   {
+    path: '/terminal',
+    name: 'terminal',
+    component: DeviceView,
+    props: {
+      desktop: () => import('@/views/TerminalView.vue'),
+      mobile: () => import('@/views/mobile/MobileTerminalView.vue'),
+    },
+    meta: { titleKey: 'nav.terminal' },
+  },
+  {
     path: '/about',
     name: 'about',
     component: DeviceView,

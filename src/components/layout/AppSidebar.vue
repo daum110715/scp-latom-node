@@ -13,6 +13,7 @@ const navItems = [
   { path: '/documents', labelKey: 'nav.documents', icon: '◫' },
   { path: '/proposals', labelKey: 'nav.proposals', icon: '◇' },
   { path: '/activity', labelKey: 'nav.activity', icon: '◧' },
+  { path: '/terminal', labelKey: 'nav.terminal', icon: '⏣' },
   { path: '/about', labelKey: 'nav.about', icon: '◎' },
 ]
 </script>

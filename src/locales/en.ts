@@ -11,6 +11,7 @@ export default {
     dashboard: 'Dashboard',
     proposals: 'Proposals',
     activity: 'Activity',
+    terminal: 'Terminal',
   },
   header: {
     searchPlaceholder: 'Search',
@@ -798,6 +799,22 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
       disclaimer:
         'The SCP Foundation is a fictional organization from the collaborative writing project at scpwiki.com. This documentation system is a fan-created thematic interface. All SCP content is licensed under CC BY-SA 3.0.',
     },
+  },
+  terminal: {
+    status: 'CONNECTED',
+    heroBadge: 'SECURE SESSION ACTIVE',
+    heroDesc:
+      'Interactive documentation terminal for the Latom Node archival system. All commands are sandboxed and monitored.',
+    statNode: 'NODE',
+    statUser: 'USER',
+    statStatus: 'STATUS',
+    chromeSecure: 'SECURE',
+    statusConnected: 'CONNECTED',
+    statusSecure: 'ENCRYPTED',
+    hintHelp: 'commands',
+    hintHistory: 'history',
+    hintTab: 'complete',
+    hintClear: 'clear',
   },
   notFound: {
     accessDenied: 'ACCESS DENIED',

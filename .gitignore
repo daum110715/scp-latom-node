@@ -43,3 +43,6 @@ coverage/
 
 # ESLint
 .eslintcache
+
+# Generated docs
+TECHNICAL_OVERVIEW.md

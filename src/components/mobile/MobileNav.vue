@@ -11,6 +11,7 @@ const navItems = [
   { path: '/documents', icon: 'documents', labelKey: 'nav.documents' },
   { path: '/proposals', icon: 'proposals', labelKey: 'nav.proposals' },
   { path: '/activity', icon: 'activity', labelKey: 'nav.activity' },
+  { path: '/terminal', icon: 'terminal', labelKey: 'nav.terminal' },
   { path: '/about', icon: 'about', labelKey: 'nav.about' },
   { path: '/profile', icon: 'profile', labelKey: 'auth.profile' },
 ]
@@ -99,6 +100,19 @@ function isActive(path: string): boolean {
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+      <!-- Terminal -->
+      <svg
+        v-else-if="item.icon === 'terminal'"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <polyline points="4 17 10 11 4 5" />
+        <line x1="12" y1="19" x2="20" y2="19" />
       </svg>
       <!-- About -->
       <svg
