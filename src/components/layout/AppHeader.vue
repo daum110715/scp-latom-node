@@ -739,6 +739,11 @@ kbd span {
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   transform-origin: top center;
+  scrollbar-width: none;
+}
+
+.search-dropdown::-webkit-scrollbar {
+  display: none;
 }
 
 .dropdown-enter-active {
