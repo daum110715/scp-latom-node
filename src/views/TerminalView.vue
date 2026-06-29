@@ -182,7 +182,8 @@ watch(theme, async () => {
 
 <style scoped>
 .terminal-page {
-  height: 100%;
+  /* 100vh minus header (60px) minus .main top+bottom padding (48px×2) */
+  height: calc(100vh - var(--header-height) - var(--space-2xl) * 2);
   display: flex;
   flex-direction: column;
   padding: var(--space-lg);

@@ -127,7 +127,8 @@ watch(theme, async () => {
 .m-terminal {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  /* 100dvh minus mobile header (52px) minus mobile nav (56px) minus content padding */
+  height: calc(100dvh - 52px - 56px - var(--space-lg) * 2);
   padding: var(--space-md);
   position: relative;
   opacity: 0;
