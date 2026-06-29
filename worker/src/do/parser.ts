@@ -324,26 +324,8 @@ const TAG_CLASS_MAP: Record<string, string> = {
 /** Base fetch options shared across class map requests */
 const CLASS_MAP_FETCH_TIMEOUT_MS = 15_000
 const CLASS_MAP_CRAWL_DELAY_MS = 1200
-/** Max tag pages to fetch per class (caps total class map time) */
-const CLASS_MAP_MAX_PAGES_PER_CLASS = 3
-
-/** Regex to detect Wikidot pager links for pagination (supports both /p/N and ?p=N formats) */
-const PAGER_PATTERN = /class="pager"[^>]*>[\s\S]*?<a[^>]*href="[^"]*(?:\/p\/|\?p=)(\d+)"/gi
-
-/**
- * Detect the total number of pages on a Wikidot tag page
- * by looking for the highest page number in the pager element.
- */
-function detectPageCount(html: string): number {
-  let maxPage = 1
-  let match: RegExpExecArray | null
-  PAGER_PATTERN.lastIndex = 0
-  while ((match = PAGER_PATTERN.exec(html)) !== null) {
-    const pageNum = parseInt(match[1], 10)
-    if (pageNum > maxPage) maxPage = pageNum
-  }
-  return maxPage
-}
+/** Absolute max pages to fetch per class — safety limit to prevent infinite loops */
+const CLASS_MAP_ABSOLUTE_MAX_PAGES = 50
 
 /**
  * Parse a single tag page HTML and extract all SCP numbers found in links.
@@ -407,9 +389,8 @@ export async function buildClassMap(options: BuildClassMapOptions): Promise<Map<
         }
       }
 
-      // Check for additional pages (capped to avoid excessive fetching)
-      const totalPages = Math.min(detectPageCount(firstPage.html), CLASS_MAP_MAX_PAGES_PER_CLASS)
-      for (let p = 2; p <= totalPages; p++) {
+      // Fetch subsequent pages dynamically until empty result or 404
+      for (let p = 2; p <= CLASS_MAP_ABSOLUTE_MAX_PAGES; p++) {
         await new Promise((r) => setTimeout(r, humanDelay(CLASS_MAP_CRAWL_DELAY_MS)))
 
         const page = await fetchPageLikeBrowser(`${tagUrl}/p/${p}`, {
@@ -419,9 +400,13 @@ export async function buildClassMap(options: BuildClassMapOptions): Promise<Map<
           timeoutMs,
         })
 
-        if (!page.ok || !page.html) continue
+        // Stop if the page returns a non-OK status (e.g. 404) or has no content
+        if (!page.ok || !page.html) break
 
         const numbers = extractScpNumbersFromPage(page.html)
+        // Stop if no SCP numbers found — end of pagination
+        if (numbers.length === 0) break
+
         for (const num of numbers) {
           if (!classMap.has(num)) {
             classMap.set(num, TAG_CLASS_MAP[cls])

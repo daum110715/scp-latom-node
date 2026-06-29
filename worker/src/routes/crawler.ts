@@ -221,4 +221,28 @@ crawler.post('/:lang/crawl', adminMiddleware, async (c) => {
   }
 })
 
+/**
+ * DELETE /api/crawler/:lang/checkpoint
+ * Clear the seed checkpoint for a language, allowing a fresh seed run.
+ * Requires admin authentication.
+ */
+crawler.delete('/:lang/checkpoint', adminMiddleware, async (c) => {
+  const logger = getLoggerFromContext(c).child({ category: 'crawler' })
+  const lang = c.req.param('lang')
+  if (lang !== 'en' && lang !== 'cn') {
+    return c.json({ success: false, error: "Invalid language. Use 'en' or 'cn'" }, 400)
+  }
+
+  try {
+    logger.info(`Resetting seed checkpoint for language: ${lang}`)
+    const response = await forwardToDo(c.env, lang, '/checkpoint', { method: 'DELETE' })
+    const data = await response.json()
+    return c.json(data, response.status as 200)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    logger.error(`Failed to reset checkpoint for ${lang}`, { error: message })
+    return c.json({ success: false, error: `Failed to reset checkpoint: ${message}` }, 503)
+  }
+})
+
 export default crawler

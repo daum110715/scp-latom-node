@@ -338,12 +338,23 @@ describe('buildClassMap', () => {
   }
 
   it('builds map from single-page tag pages', async () => {
+    const emptyPage = { ok: true, status: 200, html: tagPageHtml([], 'x') }
     mockedFetch
+      // Safe: page 1 with entries, page 2 empty → stops
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([173, 999], 'safe') })
+      .mockResolvedValueOnce(emptyPage)
+      // Euclid: page 1 with entries, page 2 empty → stops
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([682], 'euclid') })
+      .mockResolvedValueOnce(emptyPage)
+      // Keter: page 1 with entries, page 2 empty → stops
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([2317], 'keter') })
+      .mockResolvedValueOnce(emptyPage)
+      // Thaumiel: page 1 with entries, page 2 empty → stops
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([999], 'thaumiel') })
+      .mockResolvedValueOnce(emptyPage)
+      // Apollyon: page 1 empty → no page 2 fetch (first page has 0 results)
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([], 'apollyon') })
+      // Neutralized: page 1 empty → no page 2 fetch
       .mockResolvedValueOnce({ ok: true, status: 200, html: tagPageHtml([], 'neutralized') })
 
     const classMap = await buildClassMap({ language: 'en' })

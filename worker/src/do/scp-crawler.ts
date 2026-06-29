@@ -4,18 +4,19 @@ import {
   SERIES_PAGES,
   getWikiBaseUrl,
   cleanEntryHtml,
-  extractObjectClassFromEntryPage,
   buildClassMap,
   applyClassMap,
 } from './parser'
 import { fetchPageLikeBrowser, humanDelay } from './http-client'
 import { Logger } from '../utils/logger'
 import { autoTagEntry } from '../utils/auto-tagger'
+import { runBackfillBatch, type BackfillCheckpoint } from './backfill'
 
 // ─── Constants ──────────────────────────────────────────────
 
 const STORAGE_KEY_CURSOR = 'crawl_cursor'
 const STORAGE_KEY_LAST_CRAWL_MAP = 'last_crawl_map'
+const STORAGE_KEY_BACKFILL_CHECKPOINT = 'backfill_checkpoint'
 
 const BASE_CRAWL_DELAY_MS = 1200
 const FETCH_TIMEOUT_MS = 15_000
@@ -91,6 +92,9 @@ export class ScpCrawlerDo {
       if (method === 'POST' && path.endsWith('/crawl')) {
         return await this.handleTriggerCrawl(language, url)
       }
+      if (method === 'DELETE' && path.endsWith('/checkpoint')) {
+        return await this.handleResetCheckpoint(language)
+      }
       if (method === 'GET' && /\/entry\/\d+$/.test(path)) {
         const scpNumber = parseInt(path.match(/\/entry\/(\d+)$/)![1], 10)
         return await this.handleEntryContent(language, scpNumber)
@@ -105,11 +109,28 @@ export class ScpCrawlerDo {
 
   async alarm(): Promise<void> {
     try {
-      // Daily crawl: process both languages sequentially
-      for (const language of ['en', 'cn'] as const) {
-        const state = await this.getStateFromD1(language)
-        if (state.status !== 'crawling') {
-          await this.crawlDaily(language)
+      // Resume pending backfill if one exists (decoupled from daily crawl)
+      const checkpoint = await this.state.storage.get<BackfillCheckpoint>(
+        STORAGE_KEY_BACKFILL_CHECKPOINT,
+      )
+      if (checkpoint) {
+        this.logger.info('Resuming backfill from checkpoint', {
+          language: checkpoint.language,
+          offset: checkpoint.offset,
+        })
+        const hasMore = await runBackfillBatch(this.state, this.env.DB, this.fetcher, this.logger)
+        if (hasMore) {
+          // Backfill re-armed its own alarm (15-minute interval)
+          return
+        }
+        // Backfill complete — fall through to re-arm daily alarm
+      } else {
+        // No pending backfill — run daily crawl for both languages
+        for (const language of ['en', 'cn'] as const) {
+          const state = await this.getStateFromD1(language)
+          if (state.status !== 'crawling') {
+            await this.crawlDaily(language)
+          }
         }
       }
 
@@ -146,6 +167,14 @@ export class ScpCrawlerDo {
     const lastCrawlMap =
       (await this.state.storage.get<Record<number, number>>(STORAGE_KEY_LAST_CRAWL_MAP)) ?? {}
     const classDistribution = await this.getClassDistribution(language)
+    const backfillCheckpoint = await this.state.storage.get<BackfillCheckpoint>(
+      STORAGE_KEY_BACKFILL_CHECKPOINT,
+    )
+    const seedCheckpoint = await this.env.DB.prepare(
+      'SELECT max_scp_number, total_entries FROM seed_checkpoint WHERE language = ?',
+    )
+      .bind(language)
+      .first<{ max_scp_number: number; total_entries: number }>()
 
     return jsonResponse({
       success: true,
@@ -153,7 +182,26 @@ export class ScpCrawlerDo {
       state,
       classDistribution,
       incremental: { nextSeries: cursor, seriesLastCrawl: lastCrawlMap },
+      backfill: backfillCheckpoint
+        ? {
+            pending: true,
+            language: backfillCheckpoint.language,
+            offset: backfillCheckpoint.offset,
+          }
+        : { pending: false },
+      seedCheckpoint: seedCheckpoint
+        ? {
+            maxScpNumber: seedCheckpoint.max_scp_number,
+            totalEntries: seedCheckpoint.total_entries,
+          }
+        : null,
     })
+  }
+
+  private async handleResetCheckpoint(language: 'en' | 'cn'): Promise<Response> {
+    await this.env.DB.prepare('DELETE FROM seed_checkpoint WHERE language = ?').bind(language).run()
+    this.logger.info(`Seed checkpoint reset for ${language}`, { language })
+    return jsonResponse({ success: true, language, message: 'Checkpoint cleared' })
   }
 
   private async handleEntries(language: 'en' | 'cn', url: URL): Promise<Response> {
@@ -441,92 +489,27 @@ export class ScpCrawlerDo {
   }
 
   /**
-   * Backfill entries that still have "Unknown" object class by fetching
-   * their individual wiki pages and extracting the class from the full page.
-   *
-   * Uses parallel batched fetching: processes `batchSize` entries concurrently
-   * per batch, with a short delay between batches for rate limiting.
+   * Schedule a backfill for Unknown entries by saving a checkpoint.
+   * The alarm handler will pick it up and run it as a separate task.
+   * No-op if there are no Unknown entries for this language.
    */
-  private async backfillUnknownClasses(
-    language: 'en' | 'cn',
-    maxEntries = 2000,
-    batchSize = 5,
-  ): Promise<number> {
-    const baseUrl = getWikiBaseUrl(language)
-
-    // Find entries still marked Unknown
-    const rows = await this.env.DB.prepare(
-      'SELECT scp_number FROM scp_entries WHERE language = ? AND object_class = ? ORDER BY scp_number ASC LIMIT ?',
+  private async scheduleBackfill(language: 'en' | 'cn'): Promise<void> {
+    const unknownRow = await this.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM scp_entries WHERE language = ? AND object_class = ?',
     )
-      .bind(language, 'Unknown', maxEntries)
-      .all<{ scp_number: number }>()
+      .bind(language, 'Unknown')
+      .first<{ count: number }>()
 
-    if (rows.results.length === 0) return 0
+    if (!unknownRow || unknownRow.count === 0) return
 
-    let updated = 0
-    const entries = rows.results
-
-    // Process in parallel batches
-    for (let i = 0; i < entries.length; i += batchSize) {
-      const batch = entries.slice(i, i + batchSize)
-
-      const results = await Promise.allSettled(
-        batch.map(async (row) => {
-          const scpNumber = row.scp_number
-          const padded = String(scpNumber).padStart(3, '0')
-          const url = `${baseUrl}/scp-${padded}`
-
-          const result = await fetchPageLikeBrowser(url, {
-            baseUrl,
-            language,
-            fetcher: this.fetcher,
-            timeoutMs: FETCH_TIMEOUT_MS,
-          })
-
-          if (!result.ok || !result.html) return null
-
-          const objectClass = extractObjectClassFromEntryPage(result.html, language)
-          if (objectClass && objectClass !== 'Unknown') {
-            return { scpNumber, objectClass }
-          }
-          return null
-        }),
-      )
-
-      // Batch update D1 with resolved classes
-      const updates: { scpNumber: number; objectClass: string }[] = []
-      let _fetchFailed = 0
-      let _classNotFound = 0
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) {
-          updates.push(r.value)
-        } else if (r.status === 'fulfilled') {
-          _classNotFound++
-        } else {
-          _fetchFailed++
-        }
-      }
-
-      if (updates.length > 0) {
-        const stmt = this.env.DB.prepare(
-          `UPDATE scp_entries SET object_class = ?, updated_at = datetime('now') WHERE scp_number = ? AND language = ?`,
-        )
-        await this.env.DB.batch(updates.map((u) => stmt.bind(u.objectClass, u.scpNumber, language)))
-        updated += updates.length
-      }
-
-      // Delay between batches for rate limiting
-      if (i + batchSize < entries.length) {
-        await delay(humanDelay(150))
-      }
-    }
-
-    this.logger.info(`Backfill ${language}: ${updated}/${entries.length} entries updated`, {
+    await this.state.storage.put(STORAGE_KEY_BACKFILL_CHECKPOINT, {
       language,
-      updated,
-      total: entries.length,
+      offset: 0,
+    } satisfies BackfillCheckpoint)
+    this.logger.info(`Backfill ${language}: scheduled (${unknownRow.count} Unknown entries)`, {
+      language,
+      unknownCount: unknownRow.count,
     })
-    return updated
   }
 
   // ─── D1 Helpers ─────────────────────────────────────────
@@ -775,8 +758,8 @@ export class ScpCrawlerDo {
       await this.upsertEntriesToD1(language, toUpsert)
     }
 
-    // Backfill entries that still have Unknown class by fetching individual pages
-    await this.backfillUnknownClasses(language)
+    // Schedule backfill for Unknown entries (runs as a separate alarm-driven task)
+    await this.scheduleBackfill(language)
 
     // Update crawl state in D1
     const totalRow = await this.env.DB.prepare(
@@ -911,8 +894,8 @@ export class ScpCrawlerDo {
       await this.upsertEntriesToD1(language, collected)
     }
 
-    // Backfill entries that still have Unknown class by fetching individual pages
-    await this.backfillUnknownClasses(language)
+    // Schedule backfill for Unknown entries (runs as a separate alarm-driven task)
+    await this.scheduleBackfill(language)
 
     // Get total count from D1
     const totalRow = await this.env.DB.prepare(
@@ -943,6 +926,25 @@ export class ScpCrawlerDo {
 
     await this.state.storage.put(STORAGE_KEY_CURSOR, 0)
     await this.state.storage.put(STORAGE_KEY_LAST_CRAWL_MAP, lastCrawlMap)
+
+    // Update seed checkpoint when running in batch mode (limit > 0)
+    if (limit > 0) {
+      const maxRow = await this.env.DB.prepare(
+        'SELECT MAX(scp_number) as max_num FROM scp_entries WHERE language = ?',
+      )
+        .bind(language)
+        .first<{ max_num: number | null }>()
+      await this.env.DB.prepare(
+        `INSERT INTO seed_checkpoint (language, max_scp_number, total_entries, updated_at)
+         VALUES (?, ?, ?, datetime('now'))
+         ON CONFLICT(language) DO UPDATE SET
+           max_scp_number = excluded.max_scp_number,
+           total_entries = excluded.total_entries,
+           updated_at = excluded.updated_at`,
+      )
+        .bind(language, maxRow?.max_num ?? 0, totalRow?.total ?? 0)
+        .run()
+    }
 
     await this.upsertStateToD1(language, {
       status: errors.length > 0 && collected.length === 0 ? 'error' : 'idle',

@@ -219,6 +219,15 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 CREATE INDEX IF NOT EXISTS idx_rate_limits_key ON rate_limits(key, created_at);
 CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup ON rate_limits(created_at);
 
+-- ─── Seed Checkpoint ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS seed_checkpoint (
+  language         TEXT PRIMARY KEY CHECK (language IN ('en', 'cn')),
+  max_scp_number   INTEGER NOT NULL DEFAULT 0,
+  total_entries    INTEGER NOT NULL DEFAULT 0,
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ─── Tag Seed Data ────────────────────────────────────────
 
 -- Categories
