@@ -8,6 +8,7 @@ export const useSearchStore = defineStore('search', () => {
   const query = ref('')
   const isOpen = ref(false)
   const classFilter = ref<ObjectClass | null>(null)
+  const locksScroll = ref(false)
 
   const filteredEntries = computed(() => {
     let result = entries
@@ -41,19 +42,28 @@ export const useSearchStore = defineStore('search', () => {
     documents: filteredDocuments.value,
   }))
 
-  function open() {
+  function open(options: { lockScroll?: boolean } = {}) {
     isOpen.value = true
-    document.body.style.overflow = 'hidden'
+    locksScroll.value = options.lockScroll === true
+    if (locksScroll.value) {
+      document.body.style.overflow = 'hidden'
+    }
   }
 
   function close() {
     isOpen.value = false
-    document.body.style.overflow = ''
+    if (locksScroll.value) {
+      document.body.style.overflow = ''
+      locksScroll.value = false
+    }
   }
 
-  function toggle() {
-    if (isOpen.value) close()
-    else open()
+  function toggle(options: { lockScroll?: boolean } = {}) {
+    if (isOpen.value) {
+      close()
+    } else {
+      open(options)
+    }
   }
 
   function setClassFilter(cls: ObjectClass | null) {
