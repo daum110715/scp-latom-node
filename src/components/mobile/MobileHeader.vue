@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Search } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const search = useSearchStore()
@@ -34,18 +35,8 @@ const pageTitle = computed(() => {
     <h1 class="header-title">{{ pageTitle }}</h1>
 
     <div class="header-actions">
-      <button class="action-btn" :title="t('header.searchTitle')" @click="search.open">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+      <button class="action-btn" @click="search.open({ lockScroll: true })" :title="t('header.searchTitle')">
+        <Search :size="20" />
       </button>
 
       <router-link v-if="auth.isAuthenticated" to="/profile" class="avatar-btn">

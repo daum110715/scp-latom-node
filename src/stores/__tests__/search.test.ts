@@ -100,6 +100,13 @@ describe('useSearchStore', () => {
       store.toggle()
       expect(store.isOpen).toBe(false)
     })
+
+    it('toggle({ lockScroll: true }) hides body overflow (mobile fullscreen path)', () => {
+      const store = useSearchStore()
+      store.toggle({ lockScroll: true })
+      expect(store.isOpen).toBe(true)
+      expect(document.body.style.overflow).toBe('hidden')
+    })
   })
 
   describe('setClassFilter', () => {

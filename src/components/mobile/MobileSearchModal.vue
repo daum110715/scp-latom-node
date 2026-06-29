@@ -65,7 +65,7 @@ function navigate(route: string) {
 function globalKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
-    search.toggle()
+    search.toggle({ lockScroll: true })
   }
 }
 
