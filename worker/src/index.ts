@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { requestLogger } from './middleware/logger'
 import { Logger } from './utils/logger'
+import { getDynamicOrigins } from './utils/cors-origins'
 import authRoutes from './routes/auth'
 import crawlerRoutes from './routes/crawler'
 import historyRoutes from './routes/history'
@@ -31,13 +32,21 @@ function isOriginAllowed(origin: string, allowed: string): boolean {
 app.use(
   '/api/*',
   cors({
-    origin: (origin, c) => {
+    origin: async (origin, c) => {
       if (!origin) return ''
-      const allowedList = (c.env.CORS_ORIGINS || '')
+      const staticList = (c.env.CORS_ORIGINS || '')
         .split(',')
         .map((s: string) => s.trim())
         .filter(Boolean)
-      const allowed = allowedList.some((pattern: string) => isOriginAllowed(origin, pattern))
+      let dynamicList: string[] = []
+      try {
+        dynamicList = await getDynamicOrigins(c.env.DB)
+      } catch {
+        // D1 unavailable — fall back to the static list rather than failing the request
+      }
+      const allowed = [...staticList, ...dynamicList].some((pattern: string) =>
+        isOriginAllowed(origin, pattern),
+      )
       return allowed ? origin : ''
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

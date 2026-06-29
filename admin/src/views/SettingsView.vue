@@ -1,10 +1,52 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { fetchAdminSettings, type AdminSettings } from '@/services/settings'
+import { fetchCorsOrigins, addCorsOrigin, removeCorsOrigin, type CorsOrigin } from '@/services/cors'
 
 const settings = ref<AdminSettings | null>(null)
 const loading = ref(false)
 const error = ref('')
+
+const corsStatic = ref<string[]>([])
+const corsDynamic = ref<CorsOrigin[]>([])
+const newOrigin = ref('')
+const corsBusy = ref(false)
+const corsError = ref('')
+
+async function loadCors() {
+  const res = await fetchCorsOrigins()
+  if (res.ok) {
+    corsStatic.value = res.data.static
+    corsDynamic.value = res.data.dynamic
+  }
+}
+
+async function submitAddOrigin() {
+  const origin = newOrigin.value.trim()
+  if (!origin) return
+  corsBusy.value = true
+  corsError.value = ''
+  const res = await addCorsOrigin(origin)
+  corsBusy.value = false
+  if (res.ok) {
+    newOrigin.value = ''
+    await loadCors()
+  } else {
+    corsError.value = res.error
+  }
+}
+
+async function removeOrigin(id: number) {
+  corsBusy.value = true
+  corsError.value = ''
+  const res = await removeCorsOrigin(id)
+  corsBusy.value = false
+  if (res.ok) {
+    await loadCors()
+  } else {
+    corsError.value = res.error
+  }
+}
 
 onMounted(async () => {
   loading.value = true
@@ -15,6 +57,7 @@ onMounted(async () => {
   } else {
     error.value = res.error
   }
+  loadCors()
 })
 </script>
 
@@ -53,9 +96,43 @@ onMounted(async () => {
         <div class="admin-card-header">
           <span class="admin-card-title">Allowed Origins (CORS)</span>
         </div>
+
+        <div class="cors-group-label">Static (wrangler.toml)</div>
         <div class="cors-list">
-          <code v-for="origin in settings.cors" :key="origin" class="cors-item">{{ origin }}</code>
+          <code v-for="origin in corsStatic" :key="origin" class="cors-item">{{ origin }}</code>
         </div>
+
+        <div class="cors-group-label">Dynamic (admin-managed)</div>
+        <div v-if="corsDynamic.length" class="cors-list">
+          <div v-for="o in corsDynamic" :key="o.id" class="cors-item cors-item-dynamic">
+            <code>{{ o.origin }}</code>
+            <button
+              class="cors-remove"
+              :disabled="corsBusy"
+              title="Remove"
+              @click="removeOrigin(o.id)"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <p v-else class="cors-empty">No dynamic origins configured.</p>
+
+        <form class="cors-add-form" @submit.prevent="submitAddOrigin">
+          <input
+            v-model="newOrigin"
+            class="input"
+            placeholder="https://example.com or https://*.example.com"
+          />
+          <button
+            class="btn btn-primary btn-sm"
+            type="submit"
+            :disabled="corsBusy || !newOrigin.trim()"
+          >
+            Add
+          </button>
+        </form>
+        <p v-if="corsError" class="cors-error">{{ corsError }}</p>
       </div>
 
       <!-- Crawl States -->
@@ -148,6 +225,70 @@ onMounted(async () => {
 
 .cors-item {
   font-size: var(--text-sm);
+}
+
+.cors-group-label {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--space-md) 0 var(--space-xs);
+}
+
+.cors-group-label:first-of-type {
+  margin-top: 0;
+}
+
+.cors-item-dynamic {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.cors-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.cors-remove:hover {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
+}
+
+.cors-empty {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.cors-add-form {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.cors-add-form .input {
+  flex: 1;
+}
+
+.cors-error {
+  margin-top: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
 }
 
 .table-wrap {

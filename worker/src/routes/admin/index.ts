@@ -8,6 +8,7 @@ import proposalRoutes from './proposals'
 import logRoutes from './logs'
 import settingsRoutes from './settings'
 import tagAdminRoutes from './tags'
+import corsRoutes from './cors'
 
 const admin = new Hono<{ Bindings: Env; Variables: { user: JwtPayload } }>()
 
@@ -21,5 +22,6 @@ admin.route('/proposals', proposalRoutes)
 admin.route('/logs', logRoutes)
 admin.route('/settings', settingsRoutes)
 admin.route('/tags', tagAdminRoutes)
+admin.route('/cors', corsRoutes)
 
 export default admin

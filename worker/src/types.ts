@@ -215,6 +215,12 @@ export interface AdminEntry {
   updated_at: string
 }
 
+export interface CorsOriginRecord {
+  id: number
+  origin: string
+  created_at: string
+}
+
 export interface AdminLogEntry {
   id: number
   timestamp: string

@@ -3,7 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
 [vars]
-JWT_SECRET = "scp-latom-node-change-me-in-production"
+# JWT_SECRET is intentionally NOT defined here. A plaintext [vars] entry would be
+# redeployed (and would clobber a same-named `wrangler secret put` value) on every
+# `wrangler deploy`. Local dev reads it from .dev.vars (gitignored, see .dev.vars.example);
+# production sets it via `wrangler secret put JWT_SECRET` — see SECURITY.md.
 CORS_ORIGINS = "https://node.scp.lat,https://api.scp.lat,https://scp-docs.pages.dev,https://*.scp-docs.pages.dev,https://admin.scp.lat,https://admin.scp-docs.pages.dev,http://localhost:5173,http://localhost:8085,http://localhost:8086"
 
 [[d1_databases]]

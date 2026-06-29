@@ -27,7 +27,7 @@ You should receive a response within 48 hours. We will work with you to understa
 
 - **Password hashing**: PBKDF2 with SHA-256, 100,000 iterations, 16-byte random salt, 32-byte hash. Stored as `hex(salt).hex(hash)`.
 - **JWT tokens**: HS256 algorithm via the jose library, 24-hour expiry. Payload contains user ID, codename, role, and clearance level.
-- **JWT_SECRET**: The default value in `wrangler.toml` is a placeholder. You **must** change it before deploying to production.
+- **JWT_SECRET**: Not defined in `wrangler.toml` — a plaintext `[vars]` entry would be redeployed (and would clobber a same-named secret) on every `wrangler deploy`. Local dev reads it from `worker/.dev.vars` (gitignored, copy from `.dev.vars.example`). Production **must** set it via `wrangler secret put JWT_SECRET`, run once against the deployed Worker — never commit the real value anywhere.
 
 ### CORS
 
@@ -55,7 +55,7 @@ All user input is validated server-side before database operations:
 
 Before deploying to production:
 
-1. [ ] Change `JWT_SECRET` in `wrangler.toml` to a strong, unique secret
+1. [ ] Set a strong, unique `JWT_SECRET` via `wrangler secret put JWT_SECRET` (cd `worker/`) — do not put it in `wrangler.toml`
 2. [ ] Set `GLM_API_KEY` for AI chat functionality
 3. [ ] Verify `CORS_ORIGINS` only includes your actual domains
 4. [ ] Ensure D1 database bindings are correctly configured
