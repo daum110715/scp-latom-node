@@ -3,7 +3,6 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
-import { useAuthStore } from './stores/auth'
 import { logger, startLogFlusher } from './services/logger'
 
 const app = createApp(App)
@@ -28,10 +27,6 @@ app.config.errorHandler = (err, instance, info) => {
 window.addEventListener('unhandledrejection', (event) => {
   logger.error('Unhandled promise rejection', { reason: event.reason })
 })
-
-// Restore auth session from stored token
-const auth = useAuthStore()
-auth.init()
 
 // Start periodic log flushing to server
 startLogFlusher()

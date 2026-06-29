@@ -1,0 +1,12 @@
+# ─── SCP Docs — Worker Local Development Secrets ────────────
+# Copy this file to .dev.vars for local Wrangler development.
+# For production, set these via: wrangler secret put <NAME>
+
+# JWT secret for signing/verifying tokens (change in production!)
+JWT_SECRET=change-me-in-production
+
+# ZhipuAI / GLM API key for AI chat functionality
+GLM_API_KEY=
+
+# Comma-separated allowed CORS origins
+CORS_ORIGINS=http://localhost:8085,http://localhost:8086

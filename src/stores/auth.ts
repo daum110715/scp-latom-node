@@ -26,6 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref('')
   const errorCode = ref<ErrorCode | null>(null)
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
@@ -110,10 +111,22 @@ export const useAuthStore = defineStore('auth', () => {
     clearError()
   }
 
+  let initPromise: Promise<void> | null = null
+
   async function init() {
-    if (token.value) {
-      await fetchProfile()
+    if (initialized.value) return
+    if (!initPromise) {
+      initPromise = (async () => {
+        try {
+          if (token.value) {
+            await fetchProfile()
+          }
+        } finally {
+          initialized.value = true
+        }
+      })()
     }
+    return initPromise
   }
 
   return {
@@ -122,6 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     errorCode,
+    initialized,
     isAuthenticated,
     register,
     login,

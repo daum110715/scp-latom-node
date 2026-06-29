@@ -5,6 +5,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
+// Derive the API host from VITE_API_BASE for the PWA cache rule.
+// Falls back to the production domain when the env var is not set.
+const apiBase = process.env.VITE_API_BASE || 'https://api.scp.lat'
+const apiHost = new URL(apiBase).host.replace(/\./g, '\\.')
+const apiCachePattern = new RegExp(`^https://${apiHost}/.*`, 'i')
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -15,7 +21,8 @@ export default defineConfig({
       manifest: {
         name: 'SCP Foundation Latom Node',
         short_name: 'SCP Docs',
-        description: 'SCP Foundation documentation and archival system for anomalous objects and entities.',
+        description:
+          'SCP Foundation documentation and archival system for anomalous objects and entities.',
         theme_color: '#0a0a0f',
         background_color: '#0a0a0f',
         display: 'standalone',
@@ -41,7 +48,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.scp\.lat\/.*/i,
+            urlPattern: apiCachePattern,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',

@@ -427,19 +427,12 @@ export class AiChatDo {
           title: meta.title ?? 'New Conversation',
         })
 
-        // Run tool-use loop to resolve any tool calls
-        const { result: toolResult, toolsFailed } = await this.runToolLoop(glmMessages)
-
-        if (!toolsFailed && toolResult.content) {
-          // Tools resolved to a final answer — send it directly
-          fullContent = toolResult.content
-          await writeSse({ delta: fullContent })
-        } else {
-          // Tools failed or produced no content — stream a plain response
-          for await (const chunk of glmChatStream({
-            apiKey: this.env.GLM_API_KEY,
-            messages: glmMessages,
-          })) {
+        // Stream the response token-by-token via GLM streaming API
+        for await (const chunk of glmChatStream({
+          apiKey: this.env.GLM_API_KEY,
+          messages: glmMessages,
+        })) {
+          if (chunk.delta) {
             fullContent += chunk.delta
             await writeSse({ delta: chunk.delta })
           }

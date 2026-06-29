@@ -158,8 +158,13 @@ router.beforeEach((to) => {
 })
 
 // Enforce auth guards: requiresAuth → must be logged in, requiresGuest → must NOT be logged in
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
+  // Wait for session restoration from localStorage before checking auth state
+  if (!auth.initialized) {
+    await auth.init()
+  }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login' }
