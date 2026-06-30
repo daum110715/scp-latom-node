@@ -19,6 +19,9 @@ watch(
       selectedIndex.value = 0
       await nextTick()
       inputRef.value?.focus()
+    } else {
+      // Clear any stale query so the next open starts fresh.
+      search.query = ''
     }
   },
 )
@@ -72,6 +75,7 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
             ref="inputRef"
             v-model="search.query"
             type="text"
+            :aria-label="t('header.searchTitle')"
             :placeholder="t('search.placeholder')"
             class="search-input"
             spellcheck="false"

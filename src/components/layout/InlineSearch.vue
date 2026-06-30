@@ -114,6 +114,7 @@ function collapseSearch() {
   }, SEARCH_ROUND_DURATION)
   searchCloseTimer = window.setTimeout(() => {
     search.close()
+    search.query = ''
     isSearchExpanding.value = false
     isSearchClosing.value = false
     emit('closing-change', false)
@@ -221,6 +222,16 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
         ref="searchInputRef"
         v-model="search.query"
         type="text"
+        role="combobox"
+        :aria-label="t('header.searchTitle')"
+        :aria-expanded="search.isOpen && !isSearchClosing && showSearchDropdown"
+        aria-controls="search-results-listbox"
+        :aria-activedescendant="
+          searchResults[selectedIndex]
+            ? `search-result-${searchResults[selectedIndex].id}`
+            : undefined
+        "
+        aria-autocomplete="list"
         :placeholder="
           useCompactSearchLabel ? t('header.searchPlaceholder') : t('search.placeholder')
         "
@@ -238,7 +249,13 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
     </div>
 
     <Transition name="dropdown">
-      <div v-if="search.isOpen && !isSearchClosing && showSearchDropdown" class="search-dropdown">
+      <div
+        v-if="search.isOpen && !isSearchClosing && showSearchDropdown"
+        id="search-results-listbox"
+        class="search-dropdown"
+        role="listbox"
+        :aria-label="t('header.searchTitle')"
+      >
         <div v-if="searchResults.length > 0" class="results">
           <div class="results-header">
             <span class="results-count">{{
@@ -248,9 +265,12 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
           <div class="results-list">
             <button
               v-for="(item, i) in searchResults"
+              :id="`search-result-${item.id}`"
               :key="item.id"
               class="result-item"
               :class="{ selected: i === selectedIndex }"
+              role="option"
+              :aria-selected="i === selectedIndex"
               @click="navigate(item.route)"
               @mouseenter="selectedIndex = i"
             >
