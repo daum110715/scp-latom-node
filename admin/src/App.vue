@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AdminSidebar from '@/components/layout/AdminSidebar.vue'
 import AdminHeader from '@/components/layout/AdminHeader.vue'
+import ErrorBoundary from '@/components/common/ErrorBoundary.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
@@ -15,20 +16,22 @@ const showShell = computed(
 </script>
 
 <template>
-  <template v-if="showShell">
-    <AdminHeader />
-    <AdminSidebar />
-    <main class="admin-main">
-      <RouterView v-slot="{ Component }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" :key="route.fullPath" />
-        </Transition>
-      </RouterView>
-    </main>
-  </template>
-  <template v-else>
-    <RouterView />
-  </template>
+  <ErrorBoundary>
+    <template v-if="showShell">
+      <AdminHeader />
+      <AdminSidebar />
+      <main class="admin-main">
+        <RouterView v-slot="{ Component }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
+        </RouterView>
+      </main>
+    </template>
+    <template v-else>
+      <RouterView />
+    </template>
+  </ErrorBoundary>
 </template>
 
 <style>

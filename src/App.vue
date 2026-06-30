@@ -4,6 +4,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import SearchModal from '@/components/layout/SearchModal.vue'
 import BackToTop from '@/components/common/BackToTop.vue'
+import ErrorBoundary from '@/components/common/ErrorBoundary.vue'
 import MobileLayout from '@/components/mobile/MobileLayout.vue'
 import MobileSearchModal from '@/components/mobile/MobileSearchModal.vue'
 import { useDevice } from '@/composables/useDevice'
@@ -16,37 +17,39 @@ const route = useRoute()
 </script>
 
 <template>
-  <!-- Desktop Layout -->
-  <template v-if="!isMobile">
-    <AppHeader />
-    <AppSidebar />
+  <ErrorBoundary>
+    <!-- Desktop Layout -->
+    <template v-if="!isMobile">
+      <AppHeader />
+      <AppSidebar />
 
-    <main class="main" :class="{ 'sidebar-collapsed': collapsed }">
-      <div class="main-content">
-        <RouterView v-slot="{ Component }">
-          <Transition name="page" mode="out-in">
-            <component :is="Component" :key="route.fullPath" />
-          </Transition>
-        </RouterView>
-        <AppFooter />
-      </div>
-    </main>
+      <main class="main" :class="{ 'sidebar-collapsed': collapsed }">
+        <div class="main-content">
+          <RouterView v-slot="{ Component }">
+            <Transition name="page" mode="out-in">
+              <component :is="Component" :key="route.fullPath" />
+            </Transition>
+          </RouterView>
+          <AppFooter />
+        </div>
+      </main>
 
-    <SearchModal />
-  </template>
+      <SearchModal />
+    </template>
 
-  <!-- Mobile Layout -->
-  <MobileLayout v-else>
-    <RouterView v-slot="{ Component }">
-      <Transition name="page" mode="out-in">
-        <component :is="Component" :key="route.fullPath" />
-      </Transition>
-    </RouterView>
-  </MobileLayout>
+    <!-- Mobile Layout -->
+    <MobileLayout v-else>
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </RouterView>
+    </MobileLayout>
 
-  <MobileSearchModal v-if="isMobile" />
+    <MobileSearchModal v-if="isMobile" />
 
-  <BackToTop />
+    <BackToTop />
+  </ErrorBoundary>
 </template>
 
 <style>

@@ -69,13 +69,26 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// Recover from stale chunk loads after deployments
+router.onError((err) => {
+  const msg = err.message
+  if (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('ChunkLoadError')
+  ) {
+    window.location.reload()
+  }
 })
 
 router.beforeEach((to) => {
