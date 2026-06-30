@@ -141,8 +141,30 @@ export function bootstrapTerminal(
   terminal.open(container)
   fitAddon.fit()
 
-  // Shell setup
+  // Shell setup — track input buffer and cursor position within it
   let currentInput = ''
+  let cursorPos = 0
+
+  /** Redraw the input line from the cursor position to the end, then reposition. */
+  function redrawFromCursor() {
+    // Write the text from cursor to end, then backspace to cursor position
+    const tail = currentInput.slice(cursorPos)
+    terminal.write(tail)
+    if (tail.length > 0) {
+      terminal.write('\b'.repeat(tail.length))
+    }
+  }
+
+  /** Move the internal cursor to an absolute position within the input. */
+  function moveCursorTo(pos: number) {
+    const clamped = Math.max(0, Math.min(pos, currentInput.length))
+    if (clamped < cursorPos) {
+      terminal.write('\x1b[' + (cursorPos - clamped) + 'D')
+    } else if (clamped > cursorPos) {
+      terminal.write('\x1b[' + (clamped - cursorPos) + 'C')
+    }
+    cursorPos = clamped
+  }
 
   const shell = createShell({
     onWrite: (text: string) => {
@@ -154,6 +176,7 @@ export function bootstrapTerminal(
     onPrompt: () => {
       shell.writePrompt()
       currentInput = ''
+      cursorPos = 0
     },
     storage: storage ?? undefined,
   })
@@ -177,6 +200,7 @@ export function bootstrapTerminal(
       terminal.write('^C\r\n')
       shell.writePrompt()
       currentInput = ''
+      cursorPos = 0
       return
     }
 
@@ -185,46 +209,62 @@ export function bootstrapTerminal(
       terminal.clear()
       shell.writePrompt()
       terminal.write(currentInput)
+      moveCursorTo(cursorPos) // restore cursor position within input
       return
     }
 
     // Ctrl+A — move to beginning of line
     if (ev.ctrlKey && ev.key === 'a') {
-      terminal.write('\x1b[' + currentInput.length + 'D')
+      moveCursorTo(0)
       return
     }
 
     // Ctrl+E — move to end of line
     if (ev.ctrlKey && ev.key === 'e') {
-      terminal.write('\x1b[' + currentInput.length + 'C')
+      moveCursorTo(currentInput.length)
       return
     }
 
     // Ctrl+U — clear line before cursor
     if (ev.ctrlKey && ev.key === 'u') {
-      terminal.write('\r\x1b[K')
-      shell.writePrompt()
-      currentInput = ''
+      const before = currentInput.slice(0, cursorPos)
+      const after = currentInput.slice(cursorPos)
+      // Move back to prompt, rewrite prompt + after, reposition cursor
+      terminal.write('\b'.repeat(cursorPos) + ' '.repeat(cursorPos) + '\b'.repeat(cursorPos))
+      // Now cursor is at prompt end, write the remaining text
+      terminal.write(after + ' '.repeat(before.length) + '\b'.repeat(before.length + after.length))
+      // Move to end of after text
+      terminal.write(after)
+      currentInput = after
+      cursorPos = 0
       return
     }
 
     // Ctrl+W — delete word before cursor
     if (ev.ctrlKey && ev.key === 'w') {
-      const trimmed = currentInput.trimEnd()
+      const before = currentInput.slice(0, cursorPos)
+      const trimmed = before.trimEnd()
       const lastSpace = trimmed.lastIndexOf(' ')
-      const newInput = lastSpace >= 0 ? trimmed.slice(0, lastSpace + 1) : ''
-      const charsToRemove = currentInput.length - newInput.length
-      currentInput = newInput
-      terminal.write(
-        '\b'.repeat(charsToRemove) + ' '.repeat(charsToRemove) + '\b'.repeat(charsToRemove),
-      )
+      const newBefore = lastSpace >= 0 ? trimmed.slice(0, lastSpace + 1) : ''
+      const charsToRemove = before.length - newBefore.length
+      if (charsToRemove === 0) return
+      // Move back, write the tail, clear the deleted chars, reposition
+      const after = currentInput.slice(cursorPos)
+      terminal.write('\b'.repeat(charsToRemove))
+      terminal.write(after + ' '.repeat(charsToRemove) + '\b'.repeat(charsToRemove + after.length))
+      terminal.write(after)
+      currentInput = newBefore + after
+      cursorPos -= charsToRemove
       return
     }
 
     // Enter — process command
     if (ev.key === 'Enter') {
+      // Move cursor to end first so the full input is visible in the output
+      moveCursorTo(currentInput.length)
       const result = shell.processInput(currentInput)
       currentInput = ''
+      cursorPos = 0
       if (result === 'exit') {
         terminal.write('\r\n\x1b[90m[Process completed]\x1b[0m\r\n')
         terminal.options.disableStdin = true
@@ -236,9 +276,16 @@ export function bootstrapTerminal(
 
     // Backspace
     if (ev.key === 'Backspace') {
-      if (currentInput.length > 0) {
-        currentInput = currentInput.slice(0, -1)
-        terminal.write('\b \b')
+      if (cursorPos > 0) {
+        const before = currentInput.slice(0, cursorPos - 1)
+        const after = currentInput.slice(cursorPos)
+        // Move back one, rewrite tail, clear trailing char, reposition
+        terminal.write('\b' + after + ' \b')
+        if (after.length > 0) {
+          terminal.write('\b'.repeat(after.length))
+        }
+        currentInput = before + after
+        cursorPos--
       }
       return
     }
@@ -246,31 +293,39 @@ export function bootstrapTerminal(
     // Tab — completion
     if (ev.key === 'Tab') {
       ev.preventDefault()
-      const completions = shell.getCompletionsFor(currentInput)
+      // Complete based on text before cursor
+      const textBeforeCursor = currentInput.slice(0, cursorPos)
+      const completions = shell.getCompletionsFor(textBeforeCursor)
       if (completions.length === 0) return
 
       if (completions.length === 1) {
-        const parts = currentInput.trimStart().split(/\s+/)
+        const parts = textBeforeCursor.trimStart().split(/\s+/)
         const isFirstWord = parts.length <= 1
         const completed = completions[0]
 
         if (isFirstWord) {
+          currentInput = completed + ' ' + currentInput.slice(cursorPos)
+          cursorPos = completed.length + 1
           terminal.write('\r\x1b[K')
           shell.writePrompt()
-          currentInput = completed + ' '
           terminal.write(currentInput)
+          moveCursorTo(cursorPos)
         } else {
-          const lastSpace = currentInput.lastIndexOf(' ')
-          const prefix = currentInput.slice(0, lastSpace + 1)
-          currentInput = prefix + completed
+          const lastSpace = textBeforeCursor.lastIndexOf(' ')
+          const prefix = textBeforeCursor.slice(0, lastSpace + 1)
+          const newText = prefix + completed
+          currentInput = newText + currentInput.slice(cursorPos)
+          cursorPos = newText.length
           terminal.write('\r\x1b[K')
           shell.writePrompt()
           terminal.write(currentInput)
+          moveCursorTo(cursorPos)
         }
       } else {
         terminal.write('\r\n\x1b[90m' + completions.join('  ') + '\x1b[0m\r\n')
         shell.writePrompt()
         terminal.write(currentInput)
+        moveCursorTo(cursorPos)
       }
       return
     }
@@ -283,6 +338,7 @@ export function bootstrapTerminal(
         terminal.write('\r\x1b[K')
         shell.writePrompt()
         currentInput = prev
+        cursorPos = currentInput.length
         terminal.write(currentInput)
       }
       return
@@ -296,20 +352,39 @@ export function bootstrapTerminal(
         terminal.write('\r\x1b[K')
         shell.writePrompt()
         currentInput = next
+        cursorPos = currentInput.length
         terminal.write(currentInput)
       }
       return
     }
 
-    // Left/Right arrows — let xterm handle cursor movement naturally
-    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+    // Left/Right arrows — move cursor within the input line
+    if (ev.key === 'ArrowLeft') {
+      if (cursorPos > 0) {
+        cursorPos--
+        terminal.write('\x1b[D')
+      }
+      return
+    }
+    if (ev.key === 'ArrowRight') {
+      if (cursorPos < currentInput.length) {
+        cursorPos++
+        terminal.write('\x1b[C')
+      }
       return
     }
 
-    // Regular printable character
+    // Regular printable character — insert at cursor position
     if (printable && key.length === 1) {
-      currentInput += key
-      terminal.write(key)
+      const before = currentInput.slice(0, cursorPos)
+      const after = currentInput.slice(cursorPos)
+      currentInput = before + key + after
+      cursorPos++
+      // Rewrite from cursor to end, then backspace to cursor
+      terminal.write(key + after)
+      if (after.length > 0) {
+        terminal.write('\b'.repeat(after.length))
+      }
     }
   })
 

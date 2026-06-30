@@ -3,7 +3,12 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
 import { useAuthStore } from '@/stores/auth'
-import { bootstrapTerminal, type BootstrapResult } from '@/terminal/bootstrap'
+import {
+  bootstrapTerminal,
+  getDarkTheme,
+  getLightTheme,
+  type BootstrapResult,
+} from '@/terminal/bootstrap'
 import { createTerminalStorage, type TerminalStorage } from '@/terminal/storage'
 
 const { t } = useI18n()
@@ -24,13 +29,6 @@ async function initTerminal() {
   // Initialize storage once (survives theme toggles)
   if (!storage) {
     storage = await createTerminalStorage()
-  }
-
-  // Save state before disposing (theme toggle destroys the terminal)
-  if (result) {
-    await result.save()
-    result.dispose()
-    result = null
   }
 
   terminalReady.value = false
@@ -56,9 +54,11 @@ onBeforeUnmount(async () => {
   }
 })
 
-watch(theme, async () => {
-  await nextTick()
-  await initTerminal()
+// Smooth theme transition — update xterm theme in-place without recreating
+watch(theme, () => {
+  if (!result) return
+  const newTheme = theme.value === 'dark' ? getDarkTheme() : getLightTheme()
+  result.terminal.options.theme = newTheme
 })
 </script>
 

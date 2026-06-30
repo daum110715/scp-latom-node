@@ -72,6 +72,11 @@ describe('commands', () => {
     mkdir: vi.fn(() => 'Permission denied (read-only filesystem)'),
     rm: vi.fn(() => 'Permission denied (read-only filesystem)'),
     touch: vi.fn(() => 'Permission denied (read-only filesystem)'),
+    copy: vi.fn(() => 'Permission denied (read-only filesystem)'),
+    move: vi.fn(() => 'Permission denied (read-only filesystem)'),
+    rmrf: vi.fn(() => 'Permission denied (read-only filesystem)'),
+    writeFile: vi.fn(() => 'Permission denied (read-only filesystem)'),
+    appendFile: vi.fn(() => 'Permission denied (read-only filesystem)'),
     onFsMutate: vi.fn(),
   }
 

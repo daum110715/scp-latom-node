@@ -472,14 +472,26 @@ Status: READ-ONLY
 /**
  * Resolve a path relative to the current working directory.
  * Returns the FSNode at the resolved path, or null if not found.
+ * Supports ~ expansion when homeDir is provided.
  */
-export function resolvePath(root: FSNode, cwd: string, target: string): FSNode | null {
+export function resolvePath(
+  root: FSNode,
+  cwd: string,
+  target: string,
+  homeDir?: string,
+): FSNode | null {
+  // Expand ~ to home directory
+  let expanded = target
+  if (homeDir && target.startsWith('~')) {
+    expanded = target === '~' ? homeDir : homeDir + target.slice(1)
+  }
+
   // Determine starting point
   let pathParts: string[]
-  if (target.startsWith('/')) {
-    pathParts = target.split('/').filter(Boolean)
+  if (expanded.startsWith('/')) {
+    pathParts = expanded.split('/').filter(Boolean)
   } else {
-    pathParts = [...cwd.split('/').filter(Boolean), ...target.split('/').filter(Boolean)]
+    pathParts = [...cwd.split('/').filter(Boolean), ...expanded.split('/').filter(Boolean)]
   }
 
   // Resolve . and ..
@@ -507,10 +519,17 @@ export function resolvePath(root: FSNode, cwd: string, target: string): FSNode |
 
 /**
  * Get the absolute path string from a resolved node traversal.
+ * Supports ~ expansion when homeDir is provided.
  */
-export function resolvePathString(cwd: string, target: string): string {
-  if (target.startsWith('/')) {
-    const parts = target.split('/').filter(Boolean)
+export function resolvePathString(cwd: string, target: string, homeDir?: string): string {
+  // Expand ~ to home directory
+  let expanded = target
+  if (homeDir && target.startsWith('~')) {
+    expanded = target === '~' ? homeDir : homeDir + target.slice(1)
+  }
+
+  if (expanded.startsWith('/')) {
+    const parts = expanded.split('/').filter(Boolean)
     const resolved: string[] = []
     for (const part of parts) {
       if (part === '.') continue
@@ -520,7 +539,7 @@ export function resolvePathString(cwd: string, target: string): string {
     return '/' + resolved.join('/')
   }
 
-  const parts = [...cwd.split('/').filter(Boolean), ...target.split('/').filter(Boolean)]
+  const parts = [...cwd.split('/').filter(Boolean), ...expanded.split('/').filter(Boolean)]
   const resolved: string[] = []
   for (const part of parts) {
     if (part === '.') continue

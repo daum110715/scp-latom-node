@@ -6,12 +6,29 @@
 import type { FSNode } from './filesystem'
 import { resolvePath, resolvePathString } from './filesystem'
 
+/** Helper: resolve path with ~ expansion from env.HOME. */
+function rp(
+  root: FSNode,
+  cwd: string,
+  target: string,
+  env?: Record<string, string>,
+): FSNode | null {
+  return resolvePath(root, cwd, target, env?.HOME)
+}
+
+/** Helper: resolve path string with ~ expansion from env.HOME. */
+function rps(cwd: string, target: string, env?: Record<string, string>): string {
+  return resolvePathString(cwd, target, env?.HOME)
+}
+
 export interface CommandContext {
   args: string[]
   cwd: string
   root: FSNode
   history: string[]
   env: Record<string, string>
+  /** Lines from the previous command in a pipe chain. */
+  stdin?: string[]
   setcwd: (path: string) => void
   setenv: (key: string, value: string) => void
   clear: () => void
@@ -21,6 +38,16 @@ export interface CommandContext {
   rm: (path: string) => string | null
   /** Create a file. Returns error message or null on success. */
   touch: (path: string) => string | null
+  /** Copy a file or directory. Returns error message or null on success. */
+  copy: (src: string, dest: string) => string | null
+  /** Move/rename a file or directory. Returns error message or null on success. */
+  move: (src: string, dest: string) => string | null
+  /** Remove a directory recursively. Returns error message or null on success. */
+  rmrf: (path: string) => string | null
+  /** Write content to a file (create or overwrite). Returns error message or null on success. */
+  writeFile: (path: string, content: string) => string | null
+  /** Append content to a file. Returns error message or null on success. */
+  appendFile: (path: string, content: string) => string | null
   /** Signal that filesystem was mutated (triggers persistence). */
   onFsMutate: () => void
 }
@@ -87,6 +114,7 @@ register('date', 'Display the current date and time', 'date', () => {
 
 // ── echo ──
 register('echo', 'Display text to the terminal', 'echo [text...]', (ctx) => {
+  if (ctx.args.length === 0 && ctx.stdin && ctx.stdin.length > 0) return ctx.stdin
   return [ctx.args.join(' ')]
 })
 
@@ -99,40 +127,101 @@ register('uname', 'Print system information', 'uname [-a]', (ctx) => {
 })
 
 // ── ls ──
-register('ls', 'List directory contents', 'ls [path]', (ctx) => {
-  const target = ctx.args[0] || '.'
-  const node = resolvePath(ctx.root, ctx.cwd, target)
+register('ls', 'List directory contents', 'ls [-la] [path]', (ctx) => {
+  let flags = ''
+  let target = '.'
+  for (const arg of ctx.args) {
+    if (arg.startsWith('-') && arg.length > 1) {
+      flags += arg.slice(1)
+    } else {
+      target = arg
+    }
+  }
+  const showAll = flags.includes('a')
+  const longFormat = flags.includes('l')
+  const node = rp(ctx.root, ctx.cwd, target, ctx.env)
   if (!node) return [`ls: cannot access '${target}': No such file or directory`]
-  if (node.type === 'file') return [node.name]
-  if (!node.children || node.children.size === 0) return ['(empty)']
-  const entries = [...node.children.values()].map((child) => {
+  if (node.type === 'file') {
+    if (longFormat) {
+      const size = (node.content || '').length
+      return [`-rw-r--r--  1 researcher  researcher  ${String(size).padStart(6)}  ${node.name}`]
+    }
+    return [node.name]
+  }
+  if (!node.children || node.children.size === 0) return showAll ? ['.', '..'] : ['(empty)']
+  let entries = [...node.children.values()]
+  if (!showAll) {
+    entries = entries.filter((child) => !child.name.startsWith('.'))
+  }
+  if (entries.length === 0 && !showAll) return ['(empty)']
+  if (longFormat) {
+    const lines: string[] = []
+    if (showAll) {
+      lines.push('drwxr-xr-x  2 researcher  researcher  4096  .')
+      lines.push('drwxr-xr-x  2 researcher  researcher  4096  ..')
+    }
+    for (const child of entries) {
+      if (child.type === 'dir') {
+        lines.push(`drwxr-xr-x  2 researcher  researcher  4096  ${child.name}/`)
+      } else {
+        const size = (child.content || '').length
+        lines.push(
+          `-rw-r--r--  1 researcher  researcher  ${String(size).padStart(6)}  ${child.name}`,
+        )
+      }
+    }
+    return lines
+  }
+  const names = entries.map((child) => {
     const suffix = child.type === 'dir' ? '/' : ''
     return child.name + suffix
   })
-  return [entries.join('  ')]
+  if (showAll) names.unshift('.', '..')
+  return [names.join('  ')]
 })
 
 // ── cd ──
-register('cd', 'Change the current directory', 'cd <path>', (ctx) => {
+register('cd', 'Change the current directory', 'cd [path|-]', (ctx) => {
+  const homeDir = ctx.env.HOME || '/home/researcher'
   if (ctx.args.length === 0) {
-    ctx.setcwd('/home/researcher')
+    ctx.setcwd(homeDir)
     return
   }
   const target = ctx.args[0]
-  const node = resolvePath(ctx.root, ctx.cwd, target)
+  // cd - returns to previous directory
+  if (target === '-') {
+    const prev = ctx.env.OLDPWD || homeDir
+    const node = rp(ctx.root, '/', prev, ctx.env)
+    if (!node || node.type !== 'dir') return [`cd: ${prev}: No such file or directory`]
+    ctx.setcwd(prev)
+    return [prev]
+  }
+  const node = rp(ctx.root, ctx.cwd, target, ctx.env)
   if (!node) return [`cd: ${target}: No such file or directory`]
   if (node.type !== 'dir') return [`cd: ${target}: Not a directory`]
-  ctx.setcwd(resolvePathString(ctx.cwd, target))
+  const newPath = rps(ctx.cwd, target, ctx.env)
+  // Save OLDPWD before changing
+  ctx.setenv('OLDPWD', ctx.cwd)
+  ctx.setcwd(newPath)
 })
 
 // ── cat ──
-register('cat', 'Display file contents', 'cat <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['cat: missing operand']
-  const target = ctx.args[0]
-  const node = resolvePath(ctx.root, ctx.cwd, target)
-  if (!node) return [`cat: ${target}: No such file or directory`]
-  if (node.type === 'dir') return [`cat: ${target}: Is a directory`]
-  return (node.content || '').split('\n').filter((_, i, arr) => i < arr.length - 1 || arr[i] !== '')
+register('cat', 'Display file contents', 'cat [file...]', (ctx) => {
+  // With stdin (piped input) and no file args, echo stdin
+  if (ctx.args.length === 0) {
+    if (ctx.stdin && ctx.stdin.length > 0) return ctx.stdin
+    return ['cat: missing operand']
+  }
+  const lines: string[] = []
+  for (const arg of ctx.args) {
+    const node = rp(ctx.root, ctx.cwd, arg, ctx.env)
+    if (!node) return [`cat: ${arg}: No such file or directory`]
+    if (node.type === 'dir') return [`cat: ${arg}: Is a directory`]
+    lines.push(...(node.content || '').split('\n'))
+  }
+  // Remove trailing empty line if last file had a trailing newline
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+  return lines
 })
 
 // ── history ──
@@ -204,7 +293,7 @@ register('scp', 'Look up an SCP entry by number', 'scp <number>', (ctx) => {
   const num = ctx.args[0].replace(/^0+/, '') || '0'
   const padded = num.padStart(3, '0')
   const filePath = `/scp/scp-${padded}.txt`
-  const node = resolvePath(ctx.root, '/', filePath)
+  const node = rp(ctx.root, '/', filePath, ctx.env)
   if (!node || !node.content) {
     return [
       `SCP-${padded}: FILE NOT FOUND`,
@@ -244,7 +333,7 @@ register('about', 'Display information about the SCP Foundation', 'about', () =>
 // ── tree ──
 register('tree', 'Display directory tree structure', 'tree [path]', (ctx) => {
   const target = ctx.args[0] || '.'
-  const node = resolvePath(ctx.root, ctx.cwd, target)
+  const node = rp(ctx.root, ctx.cwd, target, ctx.env)
   if (!node) return [`tree: '${target}': No such file or directory`]
   if (node.type !== 'dir') return [node.name]
 
@@ -271,85 +360,157 @@ register('tree', 'Display directory tree structure', 'tree [path]', (ctx) => {
 })
 
 // ── grep (simplified) ──
-register('grep', 'Search for a pattern in a file', 'grep <pattern> <file>', (ctx) => {
-  if (ctx.args.length < 2) return ['Usage: grep <pattern> <file>']
+register('grep', 'Search for a pattern in a file', 'grep <pattern> [file]', (ctx) => {
+  if (ctx.args.length < 1) return ['Usage: grep <pattern> [file]']
   const pattern = ctx.args[0]
-  const target = ctx.args[1]
-  const node = resolvePath(ctx.root, ctx.cwd, target)
-  if (!node) return [`grep: ${target}: No such file or directory`]
-  if (node.type === 'dir') return [`grep: ${target}: Is a directory`]
-  const content = node.content || ''
-  const matches = content
-    .split('\n')
-    .filter((line) => line.toLowerCase().includes(pattern.toLowerCase()))
+  let lines: string[]
+  if (ctx.args.length >= 2) {
+    const target = ctx.args[1]
+    const node = rp(ctx.root, ctx.cwd, target, ctx.env)
+    if (!node) return [`grep: ${target}: No such file or directory`]
+    if (node.type === 'dir') return [`grep: ${target}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['Usage: grep <pattern> [file]']
+  }
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const matches = lines.filter((line) => line.toLowerCase().includes(pattern.toLowerCase()))
   if (matches.length === 0) return [`(no matches for '${pattern}')`]
   return matches.map((line) =>
-    line.replace(new RegExp(`(${pattern})`, 'gi'), `\x1b[1;31m$1\x1b[0m`),
+    line.replace(new RegExp(`(${escaped})`, 'gi'), `\x1b[1;31m$1\x1b[0m`),
   )
 })
 
 // ── wc ──
-register('wc', 'Count lines, words, and characters in a file', 'wc <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['wc: missing operand']
-  const target = ctx.args[0]
-  const node = resolvePath(ctx.root, ctx.cwd, target)
-  if (!node) return [`wc: ${target}: No such file or directory`]
-  if (node.type === 'dir') return [`wc: ${target}: Is a directory`]
-  const content = node.content || ''
+register('wc', 'Count lines, words, and characters in a file', 'wc [file]', (ctx) => {
+  let content: string
+  let label: string
+  if (ctx.args.length > 0) {
+    const target = ctx.args[0]
+    const node = rp(ctx.root, ctx.cwd, target, ctx.env)
+    if (!node) return [`wc: ${target}: No such file or directory`]
+    if (node.type === 'dir') return [`wc: ${target}: Is a directory`]
+    content = node.content || ''
+    label = target
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    content = ctx.stdin.join('\n')
+    label = ''
+  } else {
+    return ['wc: missing operand']
+  }
   const lines = content.split('\n').length
   const words = content.split(/\s+/).filter(Boolean).length
   const chars = content.length
-  return [`  ${lines}  ${words}  ${chars} ${target}`]
+  return [`  ${lines}  ${words}  ${chars} ${label}`]
 })
 
 // ── head ──
-register('head', 'Display the first lines of a file', 'head [-n N] <file>', (ctx) => {
+register('head', 'Display the first lines of a file', 'head [-n N] [file]', (ctx) => {
   let count = 10
-  let fileArg = ctx.args[0]
-  if (ctx.args[0] === '-n' && ctx.args.length >= 3) {
-    count = parseInt(ctx.args[1], 10) || 10
-    fileArg = ctx.args[2]
+  let fileArg: string | undefined
+  for (let i = 0; i < ctx.args.length; i++) {
+    if (ctx.args[i] === '-n' && i + 1 < ctx.args.length) {
+      count = parseInt(ctx.args[i + 1], 10) || 10
+      i++
+    } else if (!ctx.args[i].startsWith('-')) {
+      fileArg = ctx.args[i]
+    }
   }
-  if (!fileArg) return ['head: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`head: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`head: ${fileArg}: Is a directory`]
-  const lines = (node.content || '').split('\n')
+  let lines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`head: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`head: ${fileArg}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['head: missing operand']
+  }
   return lines.slice(0, count)
 })
 
 // ── tail ──
-register('tail', 'Display the last lines of a file', 'tail [-n N] <file>', (ctx) => {
+register('tail', 'Display the last lines of a file', 'tail [-n N] [file]', (ctx) => {
   let count = 10
-  let fileArg = ctx.args[0]
-  if (ctx.args[0] === '-n' && ctx.args.length >= 3) {
-    count = parseInt(ctx.args[1], 10) || 10
-    fileArg = ctx.args[2]
+  let fileArg: string | undefined
+  for (let i = 0; i < ctx.args.length; i++) {
+    if (ctx.args[i] === '-n' && i + 1 < ctx.args.length) {
+      count = parseInt(ctx.args[i + 1], 10) || 10
+      i++
+    } else if (!ctx.args[i].startsWith('-')) {
+      fileArg = ctx.args[i]
+    }
   }
-  if (!fileArg) return ['tail: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`tail: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`tail: ${fileArg}: Is a directory`]
-  const lines = (node.content || '').split('\n')
+  let lines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`tail: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`tail: ${fileArg}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['tail: missing operand']
+  }
   return lines.slice(-count)
 })
 
 // ── mkdir ──
-register('mkdir', 'Create a new directory', 'mkdir <name>', (ctx) => {
-  if (ctx.args.length === 0) return ['mkdir: missing operand']
-  const target = ctx.args[0]
-  const error = ctx.mkdir(target)
-  if (error) return [error]
+register('mkdir', 'Create a new directory', 'mkdir [-p] <name>', (ctx) => {
+  let parents = false
+  const targets: string[] = []
+  for (const arg of ctx.args) {
+    if (arg === '-p') parents = true
+    else targets.push(arg)
+  }
+  if (targets.length === 0) return ['mkdir: missing operand']
+  const errors: string[] = []
+  for (const target of targets) {
+    if (parents) {
+      // Create each path component
+      const parts = target.split('/').filter(Boolean)
+      let current = target.startsWith('/') ? '' : '.'
+      for (const part of parts) {
+        current = current ? `${current}/${part}` : part
+        const error = ctx.mkdir(current)
+        // Ignore "File exists" for -p
+        if (error && !error.includes('File exists')) {
+          errors.push(error)
+          break
+        }
+      }
+    } else {
+      const error = ctx.mkdir(target)
+      if (error) errors.push(error)
+    }
+  }
+  if (errors.length > 0) return errors
   ctx.onFsMutate()
   return []
 })
 
 // ── rm ──
-register('rm', 'Remove a file or empty directory', 'rm <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['rm: missing operand']
-  const target = ctx.args[0]
-  const error = ctx.rm(target)
-  if (error) return [error]
+register('rm', 'Remove a file or directory', 'rm [-rf] <file>', (ctx) => {
+  let recursive = false
+  const targets: string[] = []
+  for (const arg of ctx.args) {
+    if (arg.startsWith('-')) {
+      if (arg.includes('r')) recursive = true
+      // -f is silently accepted (force, no error on missing)
+    } else {
+      targets.push(arg)
+    }
+  }
+  if (targets.length === 0) return ['rm: missing operand']
+  const errors: string[] = []
+  for (const target of targets) {
+    const error = recursive ? ctx.rmrf(target) : ctx.rm(target)
+    if (error) errors.push(error)
+  }
+  if (errors.length > 0) return errors
   ctx.onFsMutate()
   return []
 })
@@ -359,6 +520,65 @@ register('touch', 'Create an empty file', 'touch <file>', (ctx) => {
   if (ctx.args.length === 0) return ['touch: missing operand']
   const target = ctx.args[0]
   const error = ctx.touch(target)
+  if (error) return [error]
+  ctx.onFsMutate()
+  return []
+})
+
+// ── cp ──
+register('cp', 'Copy a file or directory', 'cp <source> <dest>', (ctx) => {
+  if (ctx.args.length < 2) return ['cp: missing operand', 'Usage: cp <source> <dest>']
+  const error = ctx.copy(ctx.args[0], ctx.args[1])
+  if (error) return [error]
+  ctx.onFsMutate()
+  return []
+})
+
+// ── mv ──
+register('mv', 'Move or rename a file or directory', 'mv <source> <dest>', (ctx) => {
+  if (ctx.args.length < 2) return ['mv: missing operand', 'Usage: mv <source> <dest>']
+  const error = ctx.move(ctx.args[0], ctx.args[1])
+  if (error) return [error]
+  ctx.onFsMutate()
+  return []
+})
+
+// ── write ──
+register(
+  'write',
+  'Write content to a file (create or overwrite)',
+  'write <file> <content>',
+  (ctx) => {
+    if (ctx.args.length < 1) return ['write: missing operand', 'Usage: write <file> <content>']
+    const file = ctx.args[0]
+    let content: string
+    if (ctx.args.length > 1) {
+      content = ctx.args.slice(1).join(' ')
+    } else if (ctx.stdin && ctx.stdin.length > 0) {
+      content = ctx.stdin.join('\n')
+    } else {
+      return ['write: missing content']
+    }
+    const error = ctx.writeFile(file, content + '\n')
+    if (error) return [error]
+    ctx.onFsMutate()
+    return []
+  },
+)
+
+// ── append ──
+register('append', 'Append content to a file', 'append <file> <content>', (ctx) => {
+  if (ctx.args.length < 1) return ['append: missing operand', 'Usage: append <file> <content>']
+  const file = ctx.args[0]
+  let content: string
+  if (ctx.args.length > 1) {
+    content = ctx.args.slice(1).join(' ')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    content = ctx.stdin.join('\n')
+  } else {
+    return ['append: missing content']
+  }
+  const error = ctx.appendFile(file, content + '\n')
   if (error) return [error]
   ctx.onFsMutate()
   return []
@@ -424,7 +644,7 @@ register('who', 'Show logged-in users', 'who', () => {
 
 // ── last ──
 register('last', 'Show last login entries', 'last', (ctx) => {
-  const node = resolvePath(ctx.root, '/', '/var/log/lastlog')
+  const node = rp(ctx.root, '/', '/var/log/lastlog', ctx.env)
   if (!node || !node.content) return ['(no login records)']
   return node.content.split('\n').filter(Boolean)
 })
@@ -481,7 +701,7 @@ register('df', 'Display filesystem disk usage', 'df [-h]', (ctx) => {
 register('du', 'Display directory disk usage', 'du [-h] [path]', (ctx) => {
   const human = ctx.args.includes('-h')
   const path = ctx.args.find((a) => !a.startsWith('-')) || '.'
-  const node = resolvePath(ctx.root, ctx.cwd, path)
+  const node = rp(ctx.root, ctx.cwd, path, ctx.env)
   if (!node) return [`du: cannot access '${path}': No such file or directory`]
   if (node.type === 'file') {
     const size = (node.content || '').length
@@ -501,7 +721,7 @@ register('du', 'Display directory disk usage', 'du [-h] [path]', (ctx) => {
 // ── stat ──
 register('stat', 'Display file status', 'stat <file>', (ctx) => {
   if (ctx.args.length === 0) return ['stat: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
+  const node = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
   if (!node) return [`stat: cannot stat '${ctx.args[0]}': No such file or directory`]
   const size = node.type === 'file' ? (node.content || '').length : 4096
   const type = node.type === 'dir' ? 'directory' : 'regular file'
@@ -517,7 +737,7 @@ register('stat', 'Display file status', 'stat <file>', (ctx) => {
 // ── file ──
 register('file', 'Determine file type', 'file <path>', (ctx) => {
   if (ctx.args.length === 0) return ['file: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
+  const node = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
   if (!node) return [`file: cannot open '${ctx.args[0]}' (No such file or directory)`]
   if (node.type === 'dir') return [`${ctx.args[0]}: directory`]
   const ext = node.name.split('.').pop()?.toLowerCase()
@@ -539,77 +759,7 @@ register('file', 'Determine file type', 'file <path>', (ctx) => {
 register('which', 'Show command location', 'which <command>', (ctx) => {
   if (ctx.args.length === 0) return ['which: missing operand']
   const cmd = ctx.args[0]
-  const builtins = [
-    'help',
-    'clear',
-    'pwd',
-    'whoami',
-    'hostname',
-    'date',
-    'echo',
-    'uname',
-    'ls',
-    'cd',
-    'cat',
-    'history',
-    'env',
-    'export',
-    'neofetch',
-    'matrix',
-    'scp',
-    'about',
-    'tree',
-    'grep',
-    'wc',
-    'head',
-    'tail',
-    'mkdir',
-    'rm',
-    'touch',
-    'exit',
-    'find',
-    'sort',
-    'uniq',
-    'diff',
-    'rev',
-    'nl',
-    'tr',
-    'cut',
-    'fmt',
-    'seq',
-    'yes',
-    'tee',
-    'strings',
-    'fold',
-    'uptime',
-    'id',
-    'groups',
-    'tty',
-    'true',
-    'false',
-    'who',
-    'last',
-    'ps',
-    'free',
-    'df',
-    'du',
-    'stat',
-    'file',
-    'which',
-    'type',
-    'man',
-    'alias',
-    'unalias',
-    'classify',
-    'clearance',
-    'incident',
-    'protocol',
-    'status',
-    'audit',
-    'alert',
-    'staff',
-  ]
-  if (builtins.includes(cmd)) return [`${cmd}: shell built-in command`]
+  if (commands.has(cmd)) return [`${cmd}: shell built-in command`]
   return [`${cmd} not found`]
 })
 
@@ -617,77 +767,7 @@ register('which', 'Show command location', 'which <command>', (ctx) => {
 register('type', 'Describe command type', 'type <command>', (ctx) => {
   if (ctx.args.length === 0) return ['type: missing operand']
   const cmd = ctx.args[0]
-  const builtins = [
-    'help',
-    'clear',
-    'pwd',
-    'whoami',
-    'hostname',
-    'date',
-    'echo',
-    'uname',
-    'ls',
-    'cd',
-    'cat',
-    'history',
-    'env',
-    'export',
-    'neofetch',
-    'matrix',
-    'scp',
-    'about',
-    'tree',
-    'grep',
-    'wc',
-    'head',
-    'tail',
-    'mkdir',
-    'rm',
-    'touch',
-    'exit',
-    'find',
-    'sort',
-    'uniq',
-    'diff',
-    'rev',
-    'nl',
-    'tr',
-    'cut',
-    'fmt',
-    'seq',
-    'yes',
-    'tee',
-    'strings',
-    'fold',
-    'uptime',
-    'id',
-    'groups',
-    'tty',
-    'true',
-    'false',
-    'who',
-    'last',
-    'ps',
-    'free',
-    'df',
-    'du',
-    'stat',
-    'file',
-    'which',
-    'type',
-    'man',
-    'alias',
-    'unalias',
-    'classify',
-    'clearance',
-    'incident',
-    'protocol',
-    'status',
-    'audit',
-    'alert',
-    'staff',
-  ]
-  if (builtins.includes(cmd)) return [`${cmd} is a shell builtin`]
+  if (commands.has(cmd)) return [`${cmd} is a shell builtin`]
   return [`-bash: type: ${cmd}: not found`]
 })
 
@@ -809,7 +889,7 @@ register('incident', 'Look up incident reports', 'incident [id]', (ctx) => {
   }
   const id = ctx.args[0].toUpperCase()
   if (id.includes('2024-0312')) {
-    const node = resolvePath(ctx.root, '/', '/documents/incident-report-2024-03.txt')
+    const node = rp(ctx.root, '/', '/documents/incident-report-2024-03.txt', ctx.env)
     if (node?.content) return node.content.split('\n')
   }
   return [`incident: report '${ctx.args[0]}' not found or access denied`]
@@ -834,7 +914,7 @@ register('protocol', 'Look up Foundation protocols', 'protocol [name]', (ctx) =>
   }
   const name = ctx.args[0].toUpperCase()
   if (name.includes('OMEGA')) {
-    const node = resolvePath(ctx.root, '/', '/documents/protocol-omega.txt')
+    const node = rp(ctx.root, '/', '/documents/protocol-omega.txt', ctx.env)
     if (node?.content) return node.content.split('\n')
   }
   return [
@@ -865,7 +945,7 @@ register('status', 'Display system and containment status', 'status', () => {
 
 // ── audit ──
 register('audit', 'Display audit log', 'audit', (ctx) => {
-  const node = resolvePath(ctx.root, '/', '/logs/access.log')
+  const node = rp(ctx.root, '/', '/logs/access.log', ctx.env)
   if (!node?.content) return ['(no audit records)']
   const lines = node.content.split('\n').filter(Boolean)
   return [
@@ -953,7 +1033,7 @@ register('find', 'Find files by name pattern', 'find [path] -name <pattern>', (c
     }
   }
   if (!pattern) return ['find: missing -name pattern']
-  const node = resolvePath(ctx.root, ctx.cwd, searchPath)
+  const node = rp(ctx.root, ctx.cwd, searchPath, ctx.env)
   if (!node) return [`find: '${searchPath}': No such file or directory`]
   if (node.type !== 'dir') return [searchPath]
   const results: string[] = []
@@ -973,61 +1053,72 @@ register('find', 'Find files by name pattern', 'find [path] -name <pattern>', (c
 })
 
 // ── sort ──
-register('sort', 'Sort lines of a file', 'sort [-r] <file>', (ctx) => {
+register('sort', 'Sort lines of a file', 'sort [-r] [file]', (ctx) => {
   let reverse = false
   let fileArg = ''
   for (let i = 0; i < ctx.args.length; i++) {
     if (ctx.args[i] === '-r') reverse = true
     else if (!ctx.args[i].startsWith('-') && !fileArg) fileArg = ctx.args[i]
   }
-  if (!fileArg) return ['sort: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`sort: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`sort: ${fileArg}: Is a directory`]
-  const lines = (node.content || '').split('\n')
+  let lines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`sort: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`sort: ${fileArg}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['sort: missing operand']
+  }
   const sorted = [...lines].sort((a, b) => a.localeCompare(b))
   if (reverse) sorted.reverse()
   return sorted
 })
 
 // ── uniq ──
-register('uniq', 'Filter duplicate lines', 'uniq [-c] <file>', (ctx) => {
+register('uniq', 'Filter duplicate lines', 'uniq [-c] [file]', (ctx) => {
   let countMode = false
   let fileArg = ''
   for (let i = 0; i < ctx.args.length; i++) {
     if (ctx.args[i] === '-c') countMode = true
     else if (!ctx.args[i].startsWith('-') && !fileArg) fileArg = ctx.args[i]
   }
-  if (!fileArg) return ['uniq: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`uniq: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`uniq: ${fileArg}: Is a directory`]
-  const lines = (node.content || '').split('\n')
+  let lines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`uniq: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`uniq: ${fileArg}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['uniq: missing operand']
+  }
+  if (lines.length === 0) return []
   const result: string[] = []
-  let prev = ''
-  let count = 0
-  for (const line of lines) {
-    if (line === prev) {
+  let prev = lines[0]
+  let count = 1
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === prev) {
       count++
     } else {
-      if (prev !== '' || result.length === 0) {
-        result.push(countMode ? `  ${String(count).padStart(4)}  ${prev}` : prev)
-      }
-      prev = line
+      result.push(countMode ? `  ${String(count).padStart(4)}  ${prev}` : prev)
+      prev = lines[i]
       count = 1
     }
   }
-  if (prev !== '') result.push(countMode ? `  ${String(count).padStart(4)}  ${prev}` : prev)
+  result.push(countMode ? `  ${String(count).padStart(4)}  ${prev}` : prev)
   return result
 })
 
 // ── diff ──
 register('diff', 'Compare two files', 'diff <file1> <file2>', (ctx) => {
   if (ctx.args.length < 2) return ['diff: missing operand']
-  const node1 = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
+  const node1 = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
   if (!node1) return [`diff: ${ctx.args[0]}: No such file or directory`]
   if (node1.type === 'dir') return [`diff: ${ctx.args[0]}: Is a directory`]
-  const node2 = resolvePath(ctx.root, ctx.cwd, ctx.args[1])
+  const node2 = rp(ctx.root, ctx.cwd, ctx.args[1], ctx.env)
   if (!node2) return [`diff: ${ctx.args[1]}: No such file or directory`]
   if (node2.type === 'dir') return [`diff: ${ctx.args[1]}: Is a directory`]
   const lines1 = (node1.content || '').split('\n')
@@ -1048,47 +1139,68 @@ register('diff', 'Compare two files', 'diff <file1> <file2>', (ctx) => {
 })
 
 // ── rev ──
-register('rev', 'Reverse lines of a file', 'rev <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['rev: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
-  if (!node) return [`rev: ${ctx.args[0]}: No such file or directory`]
-  if (node.type === 'dir') return [`rev: ${ctx.args[0]}: Is a directory`]
-  return (node.content || '').split('\n').map((line) => line.split('').reverse().join(''))
+register('rev', 'Reverse lines of a file', 'rev [file]', (ctx) => {
+  let lines: string[]
+  if (ctx.args.length > 0) {
+    const node = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
+    if (!node) return [`rev: ${ctx.args[0]}: No such file or directory`]
+    if (node.type === 'dir') return [`rev: ${ctx.args[0]}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['rev: missing operand']
+  }
+  return lines.map((line) => line.split('').reverse().join(''))
 })
 
 // ── nl (number lines) ──
-register('nl', 'Number lines of a file', 'nl <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['nl: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
-  if (!node) return [`nl: ${ctx.args[0]}: No such file or directory`]
-  if (node.type === 'dir') return [`nl: ${ctx.args[0]}: Is a directory`]
-  return (node.content || '')
-    .split('\n')
-    .map((line, i) => `  ${String(i + 1).padStart(4)}  ${line}`)
+register('nl', 'Number lines of a file', 'nl [file]', (ctx) => {
+  let lines: string[]
+  if (ctx.args.length > 0) {
+    const node = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
+    if (!node) return [`nl: ${ctx.args[0]}: No such file or directory`]
+    if (node.type === 'dir') return [`nl: ${ctx.args[0]}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['nl: missing operand']
+  }
+  return lines.map((line, i) => `  ${String(i + 1).padStart(4)}  ${line}`)
 })
 
 // ── tr ──
 register(
   'tr',
   'Translate or squeeze characters',
-  'tr <from> <to> < <file> (inline: tr <from> <to> <text>)',
+  'tr <from> <to> [text] | cmd | tr <from> <to>',
   (ctx) => {
-    if (ctx.args.length < 2) return ['Usage: tr <from> <to>']
+    if (ctx.args.length < 2) return ['Usage: tr <from> <to> [text]']
     const from = ctx.args[0]
     const to = ctx.args[1]
+    let lines: string[]
     const text = ctx.args.slice(2).join(' ')
-    if (!text) return ['tr: missing input text (pipe not supported in this shell)']
-    let result = ''
-    for (const ch of text) {
-      const idx = from.indexOf(ch)
-      result += idx >= 0 ? (to[idx] ?? '') : ch
+    if (text) {
+      lines = [text]
+    } else if (ctx.stdin && ctx.stdin.length > 0) {
+      lines = ctx.stdin
+    } else {
+      return ['tr: missing input text']
     }
-    return [result]
+    return lines.map((line) => {
+      let result = ''
+      for (const ch of line) {
+        const idx = from.indexOf(ch)
+        result += idx >= 0 ? (to[idx] ?? '') : ch
+      }
+      return result
+    })
   },
 )
 
 // ── cut ──
-register('cut', 'Extract fields from lines', 'cut -d <delim> -f <field> <file>', (ctx) => {
+register('cut', 'Extract fields from lines', 'cut -d <delim> -f <field> [file]', (ctx) => {
   let delim = '\t'
   let field = 1
   let fileArg = ''
@@ -1101,18 +1213,25 @@ register('cut', 'Extract fields from lines', 'cut -d <delim> -f <field> <file>',
       i++
     } else if (!ctx.args[i].startsWith('-') && !fileArg) fileArg = ctx.args[i]
   }
-  if (!fileArg) return ['cut: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`cut: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`cut: ${fileArg}: Is a directory`]
-  return (node.content || '').split('\n').map((line) => {
+  let lines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`cut: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`cut: ${fileArg}: Is a directory`]
+    lines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    lines = ctx.stdin
+  } else {
+    return ['cut: missing operand']
+  }
+  return lines.map((line) => {
     const fields = line.split(delim)
     return fields[field - 1] ?? ''
   })
 })
 
 // ── fmt ──
-register('fmt', 'Format text to specified width', 'fmt [-w WIDTH] <file>', (ctx) => {
+register('fmt', 'Format text to specified width', 'fmt [-w WIDTH] [file]', (ctx) => {
   let width = 75
   let fileArg = ''
   for (let i = 0; i < ctx.args.length; i++) {
@@ -1121,11 +1240,17 @@ register('fmt', 'Format text to specified width', 'fmt [-w WIDTH] <file>', (ctx)
       i++
     } else if (!ctx.args[i].startsWith('-') && !fileArg) fileArg = ctx.args[i]
   }
-  if (!fileArg) return ['fmt: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`fmt: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`fmt: ${fileArg}: Is a directory`]
-  const content = node.content || ''
+  let content: string
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`fmt: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`fmt: ${fileArg}: Is a directory`]
+    content = node.content || ''
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    content = ctx.stdin.join('\n')
+  } else {
+    return ['fmt: missing operand']
+  }
   const paragraphs = content.split(/\n\n+/)
   const result: string[] = []
   for (const para of paragraphs) {
@@ -1186,24 +1311,31 @@ register('yes', 'Repeatedly output a string (limited)', 'yes [text]', (ctx) => {
 })
 
 // ── tee ──
-register('tee', 'Display input (simulated, no pipe support)', 'tee <text>', (ctx) => {
-  if (ctx.args.length === 0) return ['tee: missing operand']
-  return [ctx.args.join(' ')]
+register('tee', 'Pass stdin through while displaying it', 'tee [text]', (ctx) => {
+  if (ctx.stdin && ctx.stdin.length > 0) return ctx.stdin
+  if (ctx.args.length > 0) return [ctx.args.join(' ')]
+  return ['tee: missing operand']
 })
 
 // ── strings ──
-register('strings', 'Print printable strings from a file', 'strings <file>', (ctx) => {
-  if (ctx.args.length === 0) return ['strings: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, ctx.args[0])
-  if (!node) return [`strings: ${ctx.args[0]}: No such file or directory`]
-  if (node.type === 'dir') return [`strings: ${ctx.args[0]}: Is a directory`]
-  const content = node.content || ''
+register('strings', 'Print printable strings from a file', 'strings [file]', (ctx) => {
+  let content: string
+  if (ctx.args.length > 0) {
+    const node = rp(ctx.root, ctx.cwd, ctx.args[0], ctx.env)
+    if (!node) return [`strings: ${ctx.args[0]}: No such file or directory`]
+    if (node.type === 'dir') return [`strings: ${ctx.args[0]}: Is a directory`]
+    content = node.content || ''
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    content = ctx.stdin.join('\n')
+  } else {
+    return ['strings: missing operand']
+  }
   const strings = content.match(/[\x20-\x7E]{4,}/g)
   return strings || ['(no printable strings found)']
 })
 
 // ── fold ──
-register('fold', 'Wrap lines to specified width', 'fold [-w WIDTH] <file>', (ctx) => {
+register('fold', 'Wrap lines to specified width', 'fold [-w WIDTH] [file]', (ctx) => {
   let width = 80
   let fileArg = ''
   for (let i = 0; i < ctx.args.length; i++) {
@@ -1212,12 +1344,19 @@ register('fold', 'Wrap lines to specified width', 'fold [-w WIDTH] <file>', (ctx
       i++
     } else if (!ctx.args[i].startsWith('-') && !fileArg) fileArg = ctx.args[i]
   }
-  if (!fileArg) return ['fold: missing operand']
-  const node = resolvePath(ctx.root, ctx.cwd, fileArg)
-  if (!node) return [`fold: ${fileArg}: No such file or directory`]
-  if (node.type === 'dir') return [`fold: ${fileArg}: Is a directory`]
+  let inputLines: string[]
+  if (fileArg) {
+    const node = rp(ctx.root, ctx.cwd, fileArg, ctx.env)
+    if (!node) return [`fold: ${fileArg}: No such file or directory`]
+    if (node.type === 'dir') return [`fold: ${fileArg}: Is a directory`]
+    inputLines = (node.content || '').split('\n')
+  } else if (ctx.stdin && ctx.stdin.length > 0) {
+    inputLines = ctx.stdin
+  } else {
+    return ['fold: missing operand']
+  }
   const result: string[] = []
-  for (const line of (node.content || '').split('\n')) {
+  for (const line of inputLines) {
     if (line.length <= width) {
       result.push(line)
     } else {
@@ -1243,31 +1382,72 @@ export function getCommandNames(): string[] {
 
 /**
  * Execute a command string and return output lines.
+ * Supports pipe chains (cmd1 | cmd2 | cmd3).
  */
 export function executeCommand(input: string, ctx: Omit<CommandContext, 'args'>): string[] {
   const trimmed = input.trim()
   if (!trimmed) return []
 
-  // Parse input into command and args (handle quoted strings)
-  const parts = parseInput(trimmed)
-  if (parts.length === 0) return []
+  // Split on pipes (respecting quoted strings)
+  const segments = splitPipes(trimmed)
+  if (segments.length === 0) return []
 
-  const cmdName = parts[0]
-  const args = parts.slice(1)
+  let pipeStdin: string[] | undefined
 
-  const cmd = commands.get(cmdName)
-  if (!cmd) {
-    return [`scf-bash: ${cmdName}: command not found`]
+  for (const segment of segments) {
+    const parts = parseInput(segment.trim())
+    if (parts.length === 0) continue
+
+    const cmdName = parts[0]
+    const args = parts.slice(1)
+
+    const cmd = commands.get(cmdName)
+    if (!cmd) {
+      return [`scf-bash: ${cmdName}: command not found`]
+    }
+
+    try {
+      const result = cmd.handler({ ...ctx, args, stdin: pipeStdin })
+      const lines = Array.isArray(result) ? result : typeof result === 'string' ? [result] : []
+      pipeStdin = lines
+    } catch (e) {
+      return [`${cmdName}: internal error: ${e instanceof Error ? e.message : 'unknown'}`]
+    }
   }
 
-  try {
-    const result = cmd.handler({ ...ctx, args })
-    if (Array.isArray(result)) return result
-    if (typeof result === 'string') return [result]
-    return []
-  } catch (e) {
-    return [`${cmdName}: internal error: ${e instanceof Error ? e.message : 'unknown'}`]
+  return pipeStdin ?? []
+}
+
+/**
+ * Split a command string on unquoted pipe characters.
+ */
+function splitPipes(input: string): string[] {
+  const segments: string[] = []
+  let current = ''
+  let inQuote: string | null = null
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (inQuote) {
+      if (ch === inQuote) {
+        inQuote = null
+        current += ch
+      } else {
+        current += ch
+      }
+    } else if (ch === '"' || ch === "'") {
+      inQuote = ch
+      current += ch
+    } else if (ch === '|') {
+      segments.push(current)
+      current = ''
+    } else {
+      current += ch
+    }
   }
+  if (current.trim()) segments.push(current)
+
+  return segments
 }
 
 /**
@@ -1304,7 +1484,12 @@ function parseInput(input: string): string[] {
 /**
  * Get tab-completion candidates for a partial input.
  */
-export function getCompletions(input: string, cwd: string, root: FSNode): string[] {
+export function getCompletions(
+  input: string,
+  cwd: string,
+  root: FSNode,
+  homeDir?: string,
+): string[] {
   const trimmed = input.trimStart()
   const parts = trimmed.split(/\s+/)
 
@@ -1328,7 +1513,7 @@ export function getCompletions(input: string, cwd: string, root: FSNode): string
     prefix = partial
   }
 
-  const dirNode = resolvePath(root, cwd, dirPath)
+  const dirNode = resolvePath(root, cwd, dirPath, homeDir)
   if (!dirNode || dirNode.type !== 'dir' || !dirNode.children) return []
 
   const candidates: string[] = []
