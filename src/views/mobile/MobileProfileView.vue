@@ -3,12 +3,14 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import Badge from '@/components/common/Badge.vue'
 import MobileAiChatPanel from '@/components/mobile/MobileAiChatPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+const { terminalEnabled, toggleTerminal } = useFeatureFlags()
 
 const activeTab = ref<'profile' | 'ai'>('profile')
 
@@ -214,6 +216,31 @@ function handleLogout() {
       <Transition name="fade">
         <div v-if="successMsg" class="m-success"><span>✓</span> {{ successMsg }}</div>
       </Transition>
+
+      <!-- Experimental Features -->
+      <div class="m-edit-card">
+        <div class="m-edit-header">
+          <h3>{{ t('experimental.title') }}</h3>
+        </div>
+        <p class="m-experimental-desc">{{ t('experimental.desc') }}</p>
+        <div class="m-feature-list">
+          <div class="m-feature-item">
+            <div class="m-feature-info">
+              <span class="m-feature-name">{{ t('experimental.terminal') }}</span>
+              <span class="m-feature-detail">{{ t('experimental.terminalDesc') }}</span>
+            </div>
+            <button
+              class="m-toggle-btn"
+              :class="{ active: terminalEnabled }"
+              @click="toggleTerminal"
+            >
+              <span class="m-toggle-track">
+                <span class="m-toggle-thumb"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Logout -->
       <button class="m-logout" @click="handleLogout">
@@ -472,6 +499,87 @@ function handleLogout() {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--color-success);
+}
+
+/* ═══ Experimental Features ═══ */
+.m-experimental-desc {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-md);
+}
+
+.m-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.m-feature-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.m-feature-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.m-feature-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.m-feature-detail {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+}
+
+.m-toggle-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.m-toggle-track {
+  display: block;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.m-toggle-btn.active .m-toggle-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.m-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.m-toggle-btn.active .m-toggle-thumb {
+  left: 21px;
+  background: #fff;
 }
 
 .m-logout {
