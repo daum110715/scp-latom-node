@@ -24,16 +24,15 @@ const showSearchDropdown = ref(false)
 const isSearchExpanding = ref(false)
 const isSearchClosing = ref(false)
 const useCompactSearchLabel = ref(false)
-const SEARCH_ROUND_DURATION = 70
-const SEARCH_EXPAND_DURATION = 220
-const SEARCH_CLOSE_DURATION = 320
+
+// Only the short label-swap delay stays as a timer — it has no matching CSS
+// transition to hook into (it runs during width/opacity transitions).
+const SEARCH_LABEL_SWAP_MS = 70
 const SHORTCUT_KEY_CHROME = {
   esc: 18,
   compact: 16,
 }
-let searchCloseTimer: ReturnType<typeof window.setTimeout> | undefined
 let searchLabelTimer: ReturnType<typeof window.setTimeout> | undefined
-let searchExpandTimer: ReturnType<typeof window.setTimeout> | undefined
 const shortcutEscWidth = ref<number | null>(null)
 const shortcutCompactWidth = ref<number | null>(null)
 
@@ -62,18 +61,32 @@ function updateShortcutKeyWidth() {
 
 const { searchResults } = useSearchResults()
 
-function expandSearch() {
-  if (searchCloseTimer) {
-    window.clearTimeout(searchCloseTimer)
-    searchCloseTimer = undefined
+/**
+ * Fires when the search-container's CSS width transition completes.
+ * During expand this means the container has grown to full width and the
+ * dropdown can be shown; during collapse it means the container has
+ * shrunk back so the store can be closed.
+ */
+function onSearchTransitionEnd(e: TransitionEvent) {
+  if (e.propertyName !== 'width' || e.target !== searchWrapRef.value) return
+
+  if (isSearchExpanding.value) {
+    isSearchExpanding.value = false
+    showSearchDropdown.value = true
+  } else if (isSearchClosing.value) {
+    search.close()
+    search.query = ''
+    isSearchExpanding.value = false
+    isSearchClosing.value = false
+    emit('closing-change', false)
+    useCompactSearchLabel.value = false
   }
+}
+
+function expandSearch() {
   if (searchLabelTimer) {
     window.clearTimeout(searchLabelTimer)
     searchLabelTimer = undefined
-  }
-  if (searchExpandTimer) {
-    window.clearTimeout(searchExpandTimer)
-    searchExpandTimer = undefined
   }
   isSearchExpanding.value = true
   isSearchClosing.value = false
@@ -85,12 +98,7 @@ function expandSearch() {
   searchLabelTimer = window.setTimeout(() => {
     useCompactSearchLabel.value = false
     searchLabelTimer = undefined
-  }, SEARCH_ROUND_DURATION)
-  searchExpandTimer = window.setTimeout(() => {
-    isSearchExpanding.value = false
-    showSearchDropdown.value = true
-    searchExpandTimer = undefined
-  }, SEARCH_EXPAND_DURATION)
+  }, SEARCH_LABEL_SWAP_MS)
   nextTick(() => {
     searchInputRef.value?.focus()
   })
@@ -101,26 +109,13 @@ function collapseSearch() {
 
   showSearchDropdown.value = false
   isSearchExpanding.value = false
-  if (searchExpandTimer) {
-    window.clearTimeout(searchExpandTimer)
-    searchExpandTimer = undefined
-  }
   isSearchClosing.value = true
   emit('closing-change', true)
   useCompactSearchLabel.value = false
   searchLabelTimer = window.setTimeout(() => {
     useCompactSearchLabel.value = true
     searchLabelTimer = undefined
-  }, SEARCH_ROUND_DURATION)
-  searchCloseTimer = window.setTimeout(() => {
-    search.close()
-    search.query = ''
-    isSearchExpanding.value = false
-    isSearchClosing.value = false
-    emit('closing-change', false)
-    useCompactSearchLabel.value = false
-    searchCloseTimer = undefined
-  }, SEARCH_CLOSE_DURATION)
+  }, SEARCH_LABEL_SWAP_MS)
 }
 
 function navigate(targetRoute: string) {
@@ -166,14 +161,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (searchCloseTimer) {
-    window.clearTimeout(searchCloseTimer)
-  }
   if (searchLabelTimer) {
     window.clearTimeout(searchLabelTimer)
-  }
-  if (searchExpandTimer) {
-    window.clearTimeout(searchExpandTimer)
   }
   window.removeEventListener('keydown', globalKeydown)
   window.removeEventListener('mousedown', onClickOutside)
@@ -192,6 +181,7 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
       closing: isSearchClosing,
       'dropdown-open': search.isOpen && !isSearchClosing && showSearchDropdown,
     }"
+    @transitionend="onSearchTransitionEnd"
   >
     <span ref="shortcutEscMeasureRef" class="shortcut-measure">ESC</span>
     <span ref="shortcutCompactMeasureRef" class="shortcut-measure">Ctrl+K</span>
