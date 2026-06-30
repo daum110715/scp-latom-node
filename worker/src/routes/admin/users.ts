@@ -5,6 +5,7 @@ const users = new Hono<{ Bindings: Env }>()
 
 const VALID_SORT_FIELDS = ['codename', 'created_at', 'clearance', 'role'] as const
 const VALID_ORDERS = ['asc', 'desc'] as const
+const VALID_ROLES = ['admin', 'personnel', 'banned'] as const
 
 // GET /api/admin/users
 // List users with search/filter/pagination
@@ -153,8 +154,11 @@ users.put('/:id/role', async (c) => {
 
   const body = await c.req.json<{ role?: string }>()
   const role = body.role?.trim()
-  if (!role || role.length > 32) {
-    return c.json({ success: false, error: 'Invalid role (1-32 characters)' }, 400)
+  if (!role || !VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) {
+    return c.json(
+      { success: false, error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` },
+      400,
+    )
   }
 
   const user = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first()

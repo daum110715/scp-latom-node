@@ -304,6 +304,23 @@ INSERT OR IGNORE INTO tags (id, category_id, name, name_zh, description, ai_keyw
   ('TH010', 'theme', 'Sky',             '天空',     '生活在空中或通过空气传播',          '["天空","空中","飞行","空气"]', 10),
   ('TH011', 'theme', 'Warm',            '温馨',     '给人温暖、治愈或积极感受的条目',    '["温暖","治愈","积极","感动","友善"]', 11);
 
+-- ─── Refresh Tokens ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL,
+  token_hash  TEXT NOT NULL UNIQUE,
+  family      TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  revoked     INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_family ON refresh_tokens(family);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at);
+
 -- ─── Dynamic CORS Origins ───────────────────────────────────
 -- Admin-managed, additive to the CORS_ORIGINS wrangler.toml var — lets new
 -- origins be allowed without a redeploy. See worker/src/utils/cors-origins.ts.

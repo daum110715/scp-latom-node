@@ -41,8 +41,12 @@ app.use(
       let dynamicList: string[] = []
       try {
         dynamicList = await getDynamicOrigins(c.env.DB)
-      } catch {
+      } catch (err) {
         // D1 unavailable — fall back to the static list rather than failing the request
+        console.warn(
+          '[CORS] Failed to fetch dynamic origins from D1:',
+          err instanceof Error ? err.message : err,
+        )
       }
       const allowed = [...staticList, ...dynamicList].some((pattern: string) =>
         isOriginAllowed(origin, pattern),
@@ -55,6 +59,15 @@ app.use(
     maxAge: 86400,
   }),
 )
+
+// Security headers
+app.use('/api/*', async (c, next) => {
+  await next()
+  c.header('X-Content-Type-Options', 'nosniff')
+  c.header('X-Frame-Options', 'DENY')
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+})
 
 // Request logging (attaches logger to context)
 app.use('/api/*', async (c, next) => {

@@ -250,14 +250,14 @@ describe('Admin User Routes', () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ role: 'researcher' }),
+          body: JSON.stringify({ role: 'banned' }),
         },
         env,
       )
       const body = await res.json<any>()
       expect(res.status).toBe(200)
       expect(body.success).toBe(true)
-      expect(body.message).toContain('researcher')
+      expect(body.message).toContain('banned')
     })
 
     it('rejects invalid role', async () => {
@@ -509,34 +509,32 @@ describe('Admin User Routes', () => {
   })
 
   describe('PUT /api/admin/users/:id/role — additional validation', () => {
-    it('rejects role exceeding 32 characters', async () => {
+    it('rejects role not in whitelist', async () => {
       const token = await signAdminToken()
       const env = createEnv()
-      const longRole = 'a'.repeat(33)
       const res = await app.request(
         '/api/admin/users/1/role',
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ role: longRole }),
+          body: JSON.stringify({ role: 'researcher' }),
         },
         env,
       )
       expect(res.status).toBe(400)
       const body = await res.json<any>()
-      expect(body.error).toContain('32')
+      expect(body.error).toContain('Must be one of')
     })
 
-    it('accepts role at exactly 32 characters', async () => {
+    it('accepts valid role from whitelist', async () => {
       const token = await signAdminToken()
       const env = createEnv({ user: mockUser })
-      const maxRole = 'a'.repeat(32)
       const res = await app.request(
         '/api/admin/users/1/role',
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ role: maxRole }),
+          body: JSON.stringify({ role: 'admin' }),
         },
         env,
       )
@@ -551,7 +549,7 @@ describe('Admin User Routes', () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ role: 'researcher' }),
+          body: JSON.stringify({ role: 'banned' }),
         },
         env,
       )

@@ -8,6 +8,24 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import app from '../../index'
 import { createIntegrationDB, createIntegrationEnv, parseJson, signUserToken } from './helpers'
 
+/** Extract the auth token from the Set-Cookie headers. */
+function extractToken(res: Response): string | null {
+  // getSetCookie() returns all Set-Cookie header values as an array (Node 20+)
+  const getSetCookie = (res.headers as any).getSetCookie?.bind(res.headers)
+  const cookies: string[] = getSetCookie?.() ?? []
+  for (const cookie of cookies) {
+    const match = cookie.match(/scp_auth_token=([^;]+)/)
+    if (match?.[1]) return match[1]
+  }
+  // Fallback: try single header
+  const single = res.headers.get('Set-Cookie')
+  if (single) {
+    const match = single.match(/scp_auth_token=([^;]+)/)
+    if (match?.[1]) return match[1]
+  }
+  return null
+}
+
 describe('Auth Flow Integration', () => {
   let db: ReturnType<typeof createIntegrationDB>
 
@@ -32,19 +50,20 @@ describe('Auth Flow Integration', () => {
       const regBody = await parseJson(regRes)
       expect(regRes.status).toBe(201)
       expect(regBody.success).toBe(true)
-      expect(regBody.token).toBeTruthy()
+      // Token is set as httpOnly cookie
+      expect(extractToken(regRes)).toBeTruthy()
       expect(regBody.user.codename).toBe('integration_agent')
       expect(regBody.user.role).toBe('personnel')
       expect(regBody.user.password).toBeUndefined()
 
-      const token = regBody.token
+      const token = extractToken(regRes)!
 
-      // Step 2: Access protected route with token
+      // Step 2: Access protected route with cookie
       const meRes = await app.request(
         '/api/auth/me',
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Cookie: `scp_auth_token=${token}` },
         },
         env,
       )
@@ -66,7 +85,8 @@ describe('Auth Flow Integration', () => {
       const loginBody = await parseJson(loginRes)
       expect(loginRes.status).toBe(200)
       expect(loginBody.success).toBe(true)
-      expect(loginBody.token).toBeTruthy()
+      // Token is set as httpOnly cookie
+      expect(extractToken(loginRes)).toBeTruthy()
     })
 
     it('prevents duplicate registration', async () => {
@@ -138,8 +158,8 @@ describe('Auth Flow Integration', () => {
         },
         env,
       )
-      const regBody = await parseJson(regRes)
-      return { env, token: regBody.token }
+      const token = extractToken(regRes)!
+      return { env, token }
     }
 
     it('updates codename', async () => {
@@ -151,7 +171,7 @@ describe('Auth Flow Integration', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ codename: 'new_codename' }),
         },
@@ -172,7 +192,7 @@ describe('Auth Flow Integration', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ password: 'password123', newPassword: 'newpassword456' }),
         },

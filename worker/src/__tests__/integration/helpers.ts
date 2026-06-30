@@ -37,6 +37,7 @@ export function createIntegrationDB() {
     crawl_state: [],
     ai_conversations: [],
     rate_limits: [],
+    refresh_tokens: [],
   }
 
   const nextId: Record<string, number> = {}

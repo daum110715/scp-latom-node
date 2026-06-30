@@ -120,13 +120,13 @@ describe('Admin Flow Integration', () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ role: 'researcher' }),
+          body: JSON.stringify({ role: 'banned' }),
         },
         env,
       )
       const body = await parseJson(res)
       expect(res.status).toBe(200)
-      expect(body.message).toContain('researcher')
+      expect(body.message).toContain('banned')
     })
 
     it('changes user clearance', async () => {

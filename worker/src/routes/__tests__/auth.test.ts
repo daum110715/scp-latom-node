@@ -13,19 +13,38 @@ interface ApiResponse {
     password?: string
     [key: string]: unknown
   }
-  token?: string
 }
 
 async function parseJson(res: Response): Promise<ApiResponse> {
   return res.json() as Promise<ApiResponse>
 }
 
+/** Extract the auth token from the Set-Cookie headers. */
+function extractToken(res: Response): string | null {
+  // getSetCookie() returns all Set-Cookie header values as an array (Node 20+)
+  const getSetCookie = (res.headers as any).getSetCookie?.bind(res.headers)
+  const cookies: string[] = getSetCookie?.() ?? []
+  for (const cookie of cookies) {
+    const match = cookie.match(/scp_auth_token=([^;]+)/)
+    if (match?.[1]) return match[1]
+  }
+  // Fallback: try single header
+  const single = res.headers.get('Set-Cookie')
+  if (single) {
+    const match = single.match(/scp_auth_token=([^;]+)/)
+    if (match?.[1]) return match[1]
+  }
+  return null
+}
+
 // Mock D1 database - simple in-memory implementation
 function createMockDB() {
   const users: Map<number, any> = new Map()
   const rateLimits: any[] = []
+  const refreshTokens: any[] = []
   let nextId = 1
   let rateLimitId = 1
+  let refreshTokenId = 1
 
   return {
     prepare: (sql: string) => {
@@ -109,6 +128,11 @@ function createMockDB() {
             }
             return null
           }
+          // Refresh token lookup by hash
+          if (lowerSql.includes('refresh_tokens') && lowerSql.includes('token_hash')) {
+            const [hash] = stmt._params
+            return refreshTokens.find((r) => r.token_hash === hash) || null
+          }
           return null
         },
         run: async (): Promise<any> => {
@@ -131,6 +155,26 @@ function createMockDB() {
           // Rate limit DELETE (cleanup)
           if (lowerSql.includes('delete') && lowerSql.includes('rate_limits')) {
             return { meta: { changes: 0 } }
+          }
+
+          // Refresh token INSERT
+          if (lowerSql.includes('insert') && lowerSql.includes('refresh_tokens')) {
+            const [userId, tokenHash, family, expiresAt] = stmt._params
+            refreshTokens.push({
+              id: refreshTokenId++,
+              user_id: userId,
+              token_hash: tokenHash,
+              family,
+              expires_at: expiresAt,
+              revoked: 0,
+              created_at: new Date().toISOString(),
+            })
+            return { meta: { changes: 1 } }
+          }
+
+          // Refresh token UPDATE (revoke)
+          if (lowerSql.includes('update') && lowerSql.includes('refresh_tokens')) {
+            return { meta: { changes: 1 } }
           }
 
           return { meta: { changes: 0 } }
@@ -172,7 +216,8 @@ describe('Auth Routes', () => {
       expect(json.user?.codename).toBe('test_agent')
       expect(json.user?.role).toBe('personnel')
       expect(json.user?.clearance).toBe(1)
-      expect(json.token).toBeTruthy()
+      // Token is set as httpOnly cookie, not in response body
+      expect(extractToken(res)).toBeTruthy()
       // Should not expose password
       expect(json.user?.password).toBeUndefined()
     })
@@ -282,7 +327,8 @@ describe('Auth Routes', () => {
       expect(res.status).toBe(200)
       expect(json.success).toBe(true)
       expect(json.user?.codename).toBe('login_agent')
-      expect(json.token).toBeTruthy()
+      // Token is set as httpOnly cookie, not in response body
+      expect(extractToken(res)).toBeTruthy()
     })
 
     it('rejects wrong password', async () => {
@@ -361,7 +407,7 @@ describe('Auth Routes', () => {
   describe('GET /api/auth/me', () => {
     it('returns user profile with valid token', async () => {
       const env = createEnv()
-      // Register and get token
+      // Register and get token from cookie
       const regRes = await app.request(
         '/api/auth/register',
         {
@@ -371,14 +417,13 @@ describe('Auth Routes', () => {
         },
         env,
       )
-      const regJson = await parseJson(regRes)
-      const token = regJson.token
+      const token = extractToken(regRes)!
 
       const res = await app.request(
         '/api/auth/me',
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Cookie: `scp_auth_token=${token}` },
         },
         env,
       )
@@ -423,7 +468,8 @@ describe('Auth Routes', () => {
         env,
       )
       const regJson = await parseJson(regRes)
-      return { env, token: regJson.token, user: regJson.user }
+      const token = extractToken(regRes)!
+      return { env, token, user: regJson.user }
     }
 
     it('updates codename', async () => {
@@ -435,7 +481,7 @@ describe('Auth Routes', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ codename: 'new_codename' }),
         },
@@ -456,7 +502,7 @@ describe('Auth Routes', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ password: 'password123', newPassword: 'newpassword123' }),
         },
@@ -476,7 +522,7 @@ describe('Auth Routes', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ newPassword: 'newpassword123' }),
         },
@@ -497,7 +543,7 @@ describe('Auth Routes', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Cookie: `scp_auth_token=${token}`,
           },
           body: JSON.stringify({ password: 'wrongpassword', newPassword: 'newpassword123' }),
         },
@@ -530,7 +576,7 @@ describe('Auth Routes', () => {
         },
         env,
       )
-      const regJson2 = await parseJson(regRes2)
+      const token2 = extractToken(regRes2)!
 
       // Try to change user_two's codename to user_one
       const res = await app.request(
@@ -539,7 +585,7 @@ describe('Auth Routes', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${regJson2.token}`,
+            Cookie: `scp_auth_token=${token2}`,
           },
           body: JSON.stringify({ codename: 'user_one' }),
         },

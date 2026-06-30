@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { signToken } from '../utils/jwt'
+import { createRefreshToken, rotateRefreshToken, revokeAllUserTokens } from '../utils/refresh-token'
 import { authMiddleware } from '../middleware/auth'
 import { rateLimit } from '../middleware/rate-limit'
 import { getLoggerFromContext } from '../utils/logger'
@@ -13,6 +14,62 @@ import {
   sleep,
 } from '../utils/rate-limit'
 import type { Env, User, UserPublic, RateLimitConfig, DelayThreshold } from '../types'
+
+// ─── Cookie helpers ───────────────────────────────────────
+
+const AUTH_COOKIE = 'scp_auth_token'
+const REFRESH_COOKIE = 'scp_refresh_token'
+const ACCESS_MAX_AGE = 60 * 60 * 24 // 24 hours (matches JWT expiry)
+const REFRESH_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
+
+/**
+ * Build the Set-Cookie header value for the auth token.
+ * Uses Secure + HttpOnly + SameSite=None for cross-origin support
+ * (frontend at scp-docs.pages.dev, API at api.scp.lat).
+ */
+function authCookie(token: string, isHttps: boolean): string {
+  const parts = [
+    `${AUTH_COOKIE}=${token}`,
+    'Path=/',
+    `Max-Age=${ACCESS_MAX_AGE}`,
+    'HttpOnly',
+    'SameSite=None',
+  ]
+  if (isHttps) parts.push('Secure')
+  return parts.join('; ')
+}
+
+/** Build a Set-Cookie header for the refresh token. */
+function refreshCookie(token: string, isHttps: boolean): string {
+  const parts = [
+    `${REFRESH_COOKIE}=${token}`,
+    'Path=/api/auth',
+    `Max-Age=${REFRESH_MAX_AGE}`,
+    'HttpOnly',
+    'SameSite=None',
+  ]
+  if (isHttps) parts.push('Secure')
+  return parts.join('; ')
+}
+
+/** Build Set-Cookie headers that clear both auth cookies. */
+function clearAuthCookies(isHttps: boolean): string[] {
+  const secure = isHttps ? '; Secure' : ''
+  return [
+    `${AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=None${secure}`,
+    `${REFRESH_COOKIE}=; Path=/api/auth; Max-Age=0; HttpOnly; SameSite=None${secure}`,
+  ]
+}
+
+/** Extract the refresh token from the request cookie header. */
+function extractRefreshToken(c: {
+  req: { header: (name: string) => string | undefined }
+}): string | undefined {
+  const cookie = c.req.header('Cookie')
+  if (!cookie) return undefined
+  const match = cookie.match(new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE}=([^;]+)`))
+  return match?.[1]
+}
 
 const auth = new Hono<{ Bindings: Env }>()
 
@@ -166,8 +223,13 @@ auth.post('/register', rateLimit(REGISTER_IP_LIMIT), async (c) => {
     c.env.JWT_SECRET,
   )
 
+  const { token: refreshToken } = await createRefreshToken(c.env.DB, result.id)
+
   logger.info('User registered', { userId: result.id, codename: result.codename, ip })
-  return c.json({ success: true, user: toPublic(result), token }, 201)
+  const isHttps = c.req.url.startsWith('https://')
+  c.header('Set-Cookie', authCookie(token, isHttps))
+  c.header('Set-Cookie', refreshCookie(refreshToken, isHttps), { append: true })
+  return c.json({ success: true, user: toPublic(result) }, 201)
 })
 
 // ─── POST /api/auth/login ─────────────────────────────────
@@ -233,8 +295,13 @@ auth.post('/login', rateLimit(LOGIN_IP_LIMIT), async (c) => {
     c.env.JWT_SECRET,
   )
 
+  const { token: refreshToken } = await createRefreshToken(c.env.DB, user.id)
+
   logger.info('User logged in', { userId: user.id, codename: user.codename, ip })
-  return c.json({ success: true, user: toPublic(user), token })
+  const isHttps = c.req.url.startsWith('https://')
+  c.header('Set-Cookie', authCookie(token, isHttps))
+  c.header('Set-Cookie', refreshCookie(refreshToken, isHttps), { append: true })
+  return c.json({ success: true, user: toPublic(user) })
 })
 
 // ─── GET /api/auth/me ─────────────────────────────────────
@@ -350,6 +417,82 @@ auth.put('/profile', authMiddleware, rateLimit(PROFILE_IP_LIMIT), async (c) => {
 
   logger.info('Profile updated', { userId: updated.id, codename: updated.codename, ip })
   return c.json({ success: true, user: toPublic(updated) })
+})
+
+// ─── POST /api/auth/logout ────────────────────────────────
+
+auth.post('/logout', async (c) => {
+  const isHttps = c.req.url.startsWith('https://')
+  const cookies = clearAuthCookies(isHttps)
+  c.header('Set-Cookie', cookies[0])
+  for (let i = 1; i < cookies.length; i++) {
+    c.header('Set-Cookie', cookies[i], { append: true })
+  }
+  return c.json({ success: true })
+})
+
+// ─── POST /api/auth/refresh ───────────────────────────────
+// Rotate the refresh token and issue a new access token.
+
+auth.post('/refresh', async (c) => {
+  const logger = getLoggerFromContext(c).child({ category: 'auth' })
+  const refreshToken = extractRefreshToken(c)
+
+  if (!refreshToken) {
+    return c.json({ success: false, error: 'Refresh token required' }, 401)
+  }
+
+  const result = await rotateRefreshToken(c.env.DB, refreshToken)
+  if (!result) {
+    // Invalid, expired, or replayed token — clear cookies
+    const isHttps = c.req.url.startsWith('https://')
+    const cookies = clearAuthCookies(isHttps)
+    c.header('Set-Cookie', cookies[0])
+    for (let i = 1; i < cookies.length; i++) {
+      c.header('Set-Cookie', cookies[i], { append: true })
+    }
+    logger.warn('Refresh token rejected (invalid, expired, or replayed)')
+    return c.json({ success: false, error: 'Invalid or expired refresh token' }, 401)
+  }
+
+  // Look up user for the new access token
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?')
+    .bind(result.userId)
+    .first<User>()
+
+  if (!user) {
+    return c.json({ success: false, error: 'User not found' }, 404)
+  }
+
+  const accessToken = await signToken(
+    { sub: user.id, codename: user.codename, role: user.role, clearance: user.clearance },
+    c.env.JWT_SECRET,
+  )
+
+  logger.info('Token refreshed', { userId: user.id })
+  const isHttps = c.req.url.startsWith('https://')
+  c.header('Set-Cookie', authCookie(accessToken, isHttps))
+  c.header('Set-Cookie', refreshCookie(result.token, isHttps), { append: true })
+  return c.json({ success: true, user: toPublic(user) })
+})
+
+// ─── POST /api/auth/logout-all ────────────────────────────
+// Revoke all refresh tokens (all sessions) for the current user.
+
+auth.post('/logout-all', authMiddleware, async (c) => {
+  const logger = getLoggerFromContext(c).child({ category: 'auth' })
+  const payload = c.get('user')
+
+  await revokeAllUserTokens(c.env.DB, payload.sub)
+
+  logger.info('All sessions revoked', { userId: payload.sub })
+  const isHttps = c.req.url.startsWith('https://')
+  const cookies = clearAuthCookies(isHttps)
+  c.header('Set-Cookie', cookies[0])
+  for (let i = 1; i < cookies.length; i++) {
+    c.header('Set-Cookie', cookies[i], { append: true })
+  }
+  return c.json({ success: true, message: 'All sessions revoked' })
 })
 
 export default auth
