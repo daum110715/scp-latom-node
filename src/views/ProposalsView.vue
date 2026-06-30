@@ -1,66 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useProposalsStore } from '@/stores/proposals'
-import { useAuthStore } from '@/stores/auth'
+import { useProposals, categoryVariant, categories } from '@/composables/useProposals'
+import { useDevice } from '@/composables/useDevice'
 import Badge from '@/components/common/Badge.vue'
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useProposalsStore()
-const auth = useAuthStore()
+const {
+  t,
+  store,
+  auth,
+  showForm,
+  formTitle,
+  formContent,
+  formCategory,
+  voteMessage,
+  toggleForm,
+  viewDetail,
+  submitProposal,
+  castVote,
+} = useProposals()
 
-const showForm = ref(false)
-const formTitle = ref('')
-const formContent = ref('')
-const formCategory = ref('general')
-const voteMessage = ref('')
-
-const categories = ['protocol', 'research', 'containment', 'general'] as const
-
-const categoryVariant: Record<string, string> = {
-  protocol: 'keter',
-  research: 'thaumiel',
-  containment: 'euclid',
-  general: 'safe',
-}
-
-function toggleForm() {
-  showForm.value = !showForm.value
-}
-
-function viewDetail(id: number) {
-  router.push(`/proposals/${id}`)
-}
-
-async function submitProposal() {
-  const ok = await store.submitProposal({
-    title: formTitle.value.trim(),
-    content: formContent.value.trim(),
-    category: formCategory.value,
-  })
-  if (ok) {
-    showForm.value = false
-    formTitle.value = ''
-    formContent.value = ''
-    formCategory.value = 'general'
-  }
-}
-
-async function castVote(proposalId: number, vote: 'for' | 'against' | 'abstain') {
-  const ok = await store.vote(proposalId, vote)
-  if (ok) {
-    voteMessage.value = t('proposals.vote.success')
-    setTimeout(() => {
-      voteMessage.value = ''
-    }, 3000)
-  }
-}
-
-onMounted(() => {
-  store.loadProposals()
-})
+const { isMobile } = useDevice()
 </script>
 
 <template>
@@ -194,27 +152,52 @@ onMounted(() => {
           </div>
 
           <div v-else-if="auth.isAuthenticated && p.status === 'open'" class="vote-actions">
-            <button
-              class="vote-btn for"
-              :title="t('proposals.vote.for')"
-              @click="castVote(p.id, 'for')"
-            >
-              ▲ {{ t('proposals.vote.for') }}
-            </button>
-            <button
-              class="vote-btn against"
-              :title="t('proposals.vote.against')"
-              @click="castVote(p.id, 'against')"
-            >
-              ▼ {{ t('proposals.vote.against') }}
-            </button>
-            <button
-              class="vote-btn abstain"
-              :title="t('proposals.vote.abstain')"
-              @click="castVote(p.id, 'abstain')"
-            >
-              — {{ t('proposals.vote.abstain') }}
-            </button>
+            <template v-if="!isMobile">
+              <button
+                class="vote-btn for"
+                :title="t('proposals.vote.for')"
+                @click="castVote(p.id, 'for')"
+              >
+                ▲ {{ t('proposals.vote.for') }}
+              </button>
+              <button
+                class="vote-btn against"
+                :title="t('proposals.vote.against')"
+                @click="castVote(p.id, 'against')"
+              >
+                ▼ {{ t('proposals.vote.against') }}
+              </button>
+              <button
+                class="vote-btn abstain"
+                :title="t('proposals.vote.abstain')"
+                @click="castVote(p.id, 'abstain')"
+              >
+                — {{ t('proposals.vote.abstain') }}
+              </button>
+            </template>
+            <template v-else>
+              <button
+                class="vote-btn-icon for"
+                :title="t('proposals.vote.for')"
+                @click="castVote(p.id, 'for')"
+              >
+                ▲
+              </button>
+              <button
+                class="vote-btn-icon against"
+                :title="t('proposals.vote.against')"
+                @click="castVote(p.id, 'against')"
+              >
+                ▼
+              </button>
+              <button
+                class="vote-btn-icon abstain"
+                :title="t('proposals.vote.abstain')"
+                @click="castVote(p.id, 'abstain')"
+              >
+                —
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -314,6 +297,7 @@ onMounted(() => {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   transition: border-color var(--transition-fast);
+  box-sizing: border-box;
 }
 
 .form-input:focus,
@@ -550,6 +534,45 @@ onMounted(() => {
   border-color: var(--text-tertiary);
 }
 
+.vote-btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.vote-btn-icon.for {
+  color: var(--color-success);
+}
+.vote-btn-icon.for:hover {
+  background: var(--color-success);
+  color: var(--text-inverse);
+  border-color: var(--color-success);
+}
+.vote-btn-icon.against {
+  color: var(--color-danger);
+}
+.vote-btn-icon.against:hover {
+  background: var(--color-danger);
+  color: var(--text-inverse);
+  border-color: var(--color-danger);
+}
+.vote-btn-icon.abstain {
+  color: var(--text-tertiary);
+}
+.vote-btn-icon.abstain:hover {
+  background: var(--text-tertiary);
+  color: var(--text-inverse);
+  border-color: var(--text-tertiary);
+}
+
 /* ─── States ─── */
 
 .loading-state {
@@ -608,14 +631,142 @@ onMounted(() => {
   font-weight: 600;
 }
 
-@media (max-width: 640px) {
+/* ─── Mobile (max-width: 768px) ─── */
+
+@media (max-width: 768px) {
+  .proposals-view {
+    max-width: none;
+    margin: 0;
+    padding: var(--space-md);
+  }
+
   .page-header {
     flex-direction: column;
+    margin-bottom: var(--space-lg);
+  }
+
+  .page-title {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
+  .page-desc {
+    font-size: var(--text-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  .page-header > .submit-btn {
+    width: 100%;
+  }
+
+  .create-form {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  .form-desc {
+    font-size: var(--text-xs);
+  }
+
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  .form-label {
+    font-size: var(--text-xs);
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: var(--space-sm);
+  }
+
+  .form-textarea {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions > .submit-btn {
+    width: 100%;
+  }
+
+  .cancel-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .form-error {
+    font-size: var(--text-xs);
+  }
+
+  .vote-message {
+    text-align: center;
+    font-size: var(--text-xs);
+    padding: var(--space-sm);
+  }
+
+  .skeleton-card {
+    height: 140px;
+  }
+
+  .error-state,
+  .empty-state {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+
+  .error-icon,
+  .empty-icon {
+    font-size: 2.5rem;
+  }
+
+  .proposal-card {
+    padding: var(--space-md);
+  }
+
+  .proposal-card:hover {
+    border-color: var(--border-subtle);
+  }
+
+  .proposal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .proposal-date {
+    margin-top: var(--space-xs);
+  }
+
+  .proposal-title {
+    font-size: var(--text-base);
+  }
+
+  .proposal-content-preview {
+    font-size: var(--text-xs);
+  }
+
+  .view-btn {
+    padding: var(--space-xs) var(--space-sm);
   }
 
   .proposal-footer {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
+  }
+
+  .vote-counts {
+    font-size: var(--text-xs);
+    gap: var(--space-sm);
+  }
+
+  .vote-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

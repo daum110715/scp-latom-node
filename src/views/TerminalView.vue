@@ -1,83 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useTheme } from '@/composables/useTheme'
-import {
-  bootstrapTerminal,
-  getDarkTheme,
-  getLightTheme,
-  type BootstrapResult,
-} from '@/terminal/bootstrap'
-import { createTerminalStorage, type TerminalStorage } from '@/terminal/storage'
+import { useTerminal } from '@/composables/useTerminal'
 
-const { t } = useI18n()
-const { theme } = useTheme()
-const router = useRouter()
-
-const terminalContainer = ref<HTMLDivElement>()
-const visible = ref(false)
-const launched = ref(false)
-const terminalReady = ref(false)
-let result: BootstrapResult | null = null
-let storage: TerminalStorage | null = null
-
-async function initTerminal() {
-  if (!terminalContainer.value) return
-
-  if (!storage) {
-    storage = await createTerminalStorage()
-  }
-
-  result = bootstrapTerminal(terminalContainer.value, theme.value, storage)
-
-  // Wait for the container to be fully laid out (Teleport + fixed positioning
-  // may need an extra frame), then fit and fade in.
-  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
-  try {
-    result.fitAddon.fit()
-  } catch {
-    // container may not be ready yet — ResizeObserver will retry
-  }
-  terminalReady.value = true
-}
-
-async function launch() {
-  launched.value = true
-  await nextTick()
-  await initTerminal()
-}
-
-function exitTerminal() {
-  if (result) {
-    result.save().then(() => {
-      result!.dispose()
-      result = null
-    })
-  }
-  launched.value = false
-  terminalReady.value = false
-}
-
-onMounted(() => {
-  requestAnimationFrame(() => {
-    visible.value = true
-  })
-})
-
-onBeforeUnmount(async () => {
-  if (result) {
-    await result.save()
-    result.dispose()
-    result = null
-  }
-})
-
-watch(theme, () => {
-  if (!result) return
-  const newTheme = theme.value === 'dark' ? getDarkTheme() : getLightTheme()
-  result.terminal.options.theme = newTheme
-})
+const { t, router, terminalContainer, visible, launched, terminalReady, launch, exitTerminal } =
+  useTerminal()
 </script>
 
 <template>
@@ -305,6 +230,73 @@ watch(theme, () => {
   color: #dc2626;
   background: rgba(220, 38, 38, 0.08);
   border-color: rgba(220, 38, 38, 0.15);
+}
+
+/* ═══ Mobile Responsive ═══ */
+@media (max-width: 768px) {
+  .terminal-page {
+    height: calc(100dvh - 52px - 56px - var(--space-lg) * 2);
+    padding: var(--space-md);
+    transform: translateY(12px);
+    transition-duration: 600ms;
+  }
+
+  .confirm-card {
+    max-width: 360px;
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .confirm-icon {
+    font-size: 40px;
+    margin-bottom: var(--space-md);
+  }
+
+  .confirm-title {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-xs);
+  }
+
+  .confirm-desc {
+    margin-bottom: var(--space-lg);
+  }
+
+  .confirm-actions {
+    gap: var(--space-sm);
+  }
+
+  .btn {
+    padding: 10px 20px;
+  }
+
+  .btn-primary {
+    gap: 6px;
+  }
+
+  .btn-primary:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .terminal-container-fs {
+    padding: 2px 4px;
+  }
+
+  .terminal-container-fs :deep(.xterm) {
+    padding: 2px 0;
+  }
+
+  .exit-btn {
+    top: 8px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    opacity: 1;
+  }
+
+  .terminal-fullscreen:hover .exit-btn {
+    opacity: 1;
+  }
 }
 
 @keyframes fade-up {

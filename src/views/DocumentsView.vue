@@ -1,106 +1,31 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { documents } from '@/data/documents'
+import { useDocuments } from '@/composables/useDocuments'
+import {
+  classLevel,
+  classColor,
+  typeIcon,
+  types,
+  classVariant,
+  renderMarkdown,
+} from '@/composables/useDocuments'
+import { useDevice } from '@/composables/useDevice'
 import Badge from '@/components/common/Badge.vue'
-import { useI18n } from 'vue-i18n'
 import type { Document } from '@/types'
 
-const { t } = useI18n()
-const visible = ref(false)
-const activeDoc = ref<Document | null>(null)
-const typeFilter = ref<string | null>(null)
-const sortBy = ref<'date' | 'classification' | 'type'>('date')
-
-onMounted(() => {
-  requestAnimationFrame(() => {
-    visible.value = true
-  })
-})
-
-const types = ['protocol', 'research', 'incident', 'directive'] as const
-
-const classLevel: Record<string, number> = {
-  Unclassified: 0,
-  Restricted: 1,
-  Confidential: 2,
-  Secret: 3,
-  'Top Secret': 4,
-}
-
-const classColor: Record<string, string> = {
-  Unclassified: 'var(--class-safe)',
-  Restricted: 'var(--class-euclid)',
-  Confidential: 'var(--class-keter)',
-  Secret: 'var(--class-thaumiel)',
-  'Top Secret': 'var(--color-danger)',
-}
-
-const typeIcon: Record<string, string> = {
-  protocol: '◈',
-  research: '◇',
-  incident: '⚠',
-  directive: '▣',
-}
-
-const filtered = computed(() => {
-  let list = documents
-  if (typeFilter.value) {
-    list = list.filter((d) => d.type === typeFilter.value)
-  }
-  return [...list].sort((a, b) => {
-    if (sortBy.value === 'date') return b.date.localeCompare(a.date)
-    if (sortBy.value === 'classification')
-      return (classLevel[b.classification] || 0) - (classLevel[a.classification] || 0)
-    return a.type.localeCompare(b.type)
-  })
-})
-
-const classVariant = (c: string) => {
-  const map: Record<string, string> = {
-    Unclassified: 'safe',
-    Restricted: 'euclid',
-    Confidential: 'keter',
-    Secret: 'thaumiel',
-    'Top Secret': 'apollyon',
-  }
-  return (map[c] || 'default') as 'default' | 'safe' | 'euclid' | 'keter' | 'thaumiel' | 'apollyon'
-}
-
-function openDoc(doc: Document) {
-  activeDoc.value = doc
-}
-
-function closeDoc() {
-  activeDoc.value = null
-}
-
-function renderMarkdown(md: string): string {
-  return md
-    .replace(/^### (.*$)/gm, '<h4>$1</h4>')
-    .replace(/^## (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^# (.*$)/gm, '<h2>$1</h2>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
-    .replace(/^- (.*$)/gm, '<li>$1</li>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>')
-    .replace(/<p><(h[234]|blockquote|li)/g, '<$1')
-    .replace(/<\/(h[234]|blockquote|li)><\/p>/g, '</$1>')
-}
+const { isMobile } = useDevice()
+const { t, visible, activeDoc, typeFilter, sortBy, filtered, openDoc, closeDoc, documents } =
+  useDocuments()
 </script>
 
 <template>
   <div class="documents" :class="{ visible }">
     <!-- Ambient orbs -->
     <div class="orb orb-primary"></div>
-    <div class="orb orb-accent"></div>
+    <div v-if="!isMobile" class="orb orb-accent"></div>
 
     <!-- Hero Header -->
     <header class="docs-hero">
-      <div class="grid-bg"></div>
+      <div v-if="!isMobile" class="grid-bg"></div>
       <div class="hero-content">
         <span class="hero-badge">{{ t('documents.hero.badge', { count: documents.length }) }}</span>
         <h1 class="hero-title">
@@ -110,8 +35,8 @@ function renderMarkdown(md: string): string {
       </div>
     </header>
 
-    <!-- Filter & Sort Bar -->
-    <div class="controls-bar fade-up-1">
+    <!-- Filter & Sort Bar (desktop) -->
+    <div v-if="!isMobile" class="controls-bar fade-up-1">
       <div class="filter-group">
         <button class="filter-btn" :class="{ active: !typeFilter }" @click="typeFilter = null">
           {{ t('documents.all') }}
@@ -141,12 +66,31 @@ function renderMarkdown(md: string): string {
       </div>
     </div>
 
+    <!-- Filter Pills (mobile) -->
+    <div v-else class="filter-scroll fade-up-1">
+      <div class="filter-pills">
+        <button class="pill" :class="{ active: !typeFilter }" @click="typeFilter = null">
+          {{ t('documents.all') }}
+        </button>
+        <button
+          v-for="typ in types"
+          :key="typ"
+          class="pill"
+          :class="{ active: typeFilter === typ }"
+          @click="typeFilter = typ"
+        >
+          <span class="pill-icon">{{ typeIcon[typ] }}</span>
+          {{ t(`documents.types.${typ}`) }}
+        </button>
+      </div>
+    </div>
+
     <!-- Document Count -->
     <div class="doc-count fade-up-1">
       {{ t('documents.count', { count: filtered.length }) }}
     </div>
 
-    <!-- Document Grid -->
+    <!-- Document Grid / List -->
     <div class="doc-grid">
       <div
         v-for="(doc, i) in filtered"
@@ -179,9 +123,10 @@ function renderMarkdown(md: string): string {
 
     <!-- Document Modal -->
     <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="activeDoc" class="doc-overlay" @click.self="closeDoc">
-          <div class="doc-modal">
+      <Transition :name="isMobile ? 'slide-up' : 'fade'">
+        <div v-if="activeDoc" class="doc-overlay" @click.self="isMobile ? undefined : closeDoc()">
+          <!-- Desktop: centered dialog -->
+          <div v-if="!isMobile" class="doc-modal">
             <div class="doc-modal-header">
               <div class="doc-modal-meta">
                 <Badge :variant="classVariant(activeDoc.classification)">
@@ -229,6 +174,57 @@ function renderMarkdown(md: string): string {
               </div>
             </div>
           </div>
+
+          <!-- Mobile: full-screen sheet -->
+          <template v-else>
+            <div class="m-modal-header">
+              <button class="m-close-btn" @click="closeDoc">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <div class="m-modal-meta">
+                <Badge :variant="classVariant(activeDoc.classification)">
+                  {{ t(`classification.${activeDoc.classification}`) }}
+                </Badge>
+                <span class="m-modal-type">
+                  <span class="type-icon">{{ typeIcon[activeDoc.type] }}</span>
+                  {{ t(`documents.types.${activeDoc.type}`) }}
+                </span>
+              </div>
+            </div>
+            <div class="m-modal-body">
+              <h2 class="m-modal-title">{{ t(`docs.${activeDoc.id}.title`) }}</h2>
+              <!-- eslint-disable vue/no-v-html -->
+              <div
+                class="m-modal-content"
+                v-html="renderMarkdown(t(`docs.${activeDoc.id}.content`))"
+              ></div>
+              <div class="m-modal-footer">
+                <div class="m-footer-row">
+                  <span class="m-footer-label">{{ t('documents.meta.classification') }}</span>
+                  <span class="m-footer-value">{{
+                    t(`classification.${activeDoc.classification}`)
+                  }}</span>
+                </div>
+                <div class="m-footer-row">
+                  <span class="m-footer-label">{{ t('documents.meta.lastUpdated') }}</span>
+                  <span class="m-footer-value">{{ activeDoc.date }}</span>
+                </div>
+                <div class="m-footer-row">
+                  <span class="m-footer-label">{{ t('documents.meta.node') }}</span>
+                  <span class="m-footer-value">LATOM-7</span>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </Transition>
     </Teleport>
@@ -473,6 +469,49 @@ function renderMarkdown(md: string): string {
   color: var(--text-primary);
 }
 
+/* ═══ Mobile Filter Scroll ═══ */
+.filter-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: var(--space-sm);
+  position: relative;
+  z-index: 1;
+}
+
+.filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pills {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pill.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--text-inverse);
+}
+
+.pill-icon {
+  font-size: 10px;
+}
+
 /* ═══ Doc Count ═══ */
 .doc-count {
   font-family: var(--font-mono);
@@ -598,7 +637,7 @@ function renderMarkdown(md: string): string {
   color: var(--color-accent-hover);
 }
 
-/* ═══ Modal ═══ */
+/* ═══ Desktop Modal ═══ */
 .doc-overlay {
   position: fixed;
   inset: 0;
@@ -743,7 +782,7 @@ function renderMarkdown(md: string): string {
   color: var(--text-secondary);
 }
 
-/* Modal Footer */
+/* Desktop Modal Footer */
 .doc-modal-footer {
   margin-top: var(--space-xl);
   padding-top: var(--space-lg);
@@ -770,6 +809,165 @@ function renderMarkdown(md: string): string {
   color: var(--text-secondary);
 }
 
+/* ═══ Mobile Full-Screen Modal ═══ */
+.m-modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.m-close-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+}
+
+.m-close-btn:active {
+  background: var(--bg-hover);
+}
+
+.m-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.m-modal-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.m-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-md);
+}
+
+.m-modal-title {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-xl);
+  color: var(--text-primary);
+}
+
+.m-modal-content {
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+.m-modal-content :deep(h2) {
+  font-size: var(--text-lg);
+  margin: var(--space-xl) 0 var(--space-md);
+  color: var(--text-primary);
+}
+
+.m-modal-content :deep(h3) {
+  font-size: var(--text-base);
+  margin: var(--space-lg) 0 var(--space-sm);
+  color: var(--text-primary);
+}
+
+.m-modal-content :deep(h4) {
+  font-size: var(--text-sm);
+  margin: var(--space-md) 0 var(--space-sm);
+  color: var(--text-primary);
+}
+
+.m-modal-content :deep(p) {
+  margin-bottom: var(--space-md);
+}
+
+.m-modal-content :deep(blockquote) {
+  border-left: 3px solid var(--color-primary);
+  padding-left: var(--space-md);
+  margin: var(--space-md) 0;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.m-modal-content :deep(code) {
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-primary);
+}
+
+.m-modal-content :deep(li) {
+  margin-left: var(--space-lg);
+  margin-bottom: var(--space-xs);
+}
+
+.m-modal-content :deep(strong) {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.m-modal-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-md) 0;
+  font-size: var(--text-xs);
+}
+
+.m-modal-content :deep(th),
+.m-modal-content :deep(td) {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.m-modal-content :deep(th) {
+  background: var(--bg-elevated);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.m-modal-content :deep(td) {
+  color: var(--text-secondary);
+}
+
+/* Mobile Modal Footer */
+.m-modal-footer {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.m-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.m-footer-label {
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+}
+
+.m-footer-value {
+  color: var(--text-secondary);
+}
+
 /* ═══ Footer ═══ */
 .docs-footer {
   padding: var(--space-xl) 0;
@@ -788,37 +986,159 @@ function renderMarkdown(md: string): string {
   margin: 0 auto;
 }
 
+/* ═══ Transitions ═══ */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-up-leave-active {
+  transition: transform 0.2s ease-in;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+}
+
 /* ═══ Responsive ═══ */
-@media (max-width: 640px) {
-  .controls-bar {
-    flex-direction: column;
-    align-items: flex-start;
+@media (max-width: 768px) {
+  .documents {
+    padding: var(--space-md);
+    max-width: none;
+    margin: 0;
+    transform: translateY(12px);
+    transition: all 600ms var(--ease-out-expo);
+  }
+
+  .orb-primary {
+    width: 300px;
+    height: 300px;
+    right: -20%;
+    filter: blur(80px);
+    animation: orb-float 22s ease-in-out infinite;
+  }
+
+  .documents.visible .orb {
+    opacity: 0.07;
+  }
+
+  .docs-hero {
+    padding: var(--space-lg) 0 var(--space-xl);
+    margin-bottom: var(--space-md);
+  }
+
+  .hero-badge {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 10px;
+    gap: 0;
+    margin-bottom: var(--space-md);
+    animation: fade-up 500ms var(--ease-out-expo) 100ms backwards;
+  }
+
+  .hero-title {
+    margin-bottom: var(--space-sm);
+    animation: fade-up 500ms var(--ease-out-expo) 200ms backwards;
+  }
+
+  .hero-desc {
+    font-size: var(--text-sm);
+    max-width: none;
+    animation: fade-up 500ms var(--ease-out-expo) 300ms backwards;
+  }
+
+  .fade-up-1 {
+    animation: fade-up 500ms var(--ease-out-expo) 200ms backwards;
+  }
+  .fade-up-2 {
+    animation: fade-up 500ms var(--ease-out-expo) 300ms backwards;
+  }
+  .fade-up-3 {
+    animation: fade-up 500ms var(--ease-out-expo) 400ms backwards;
+  }
+  .fade-up-4 {
+    animation: fade-up 500ms var(--ease-out-expo) 500ms backwards;
+  }
+  .fade-up-5 {
+    animation: fade-up 500ms var(--ease-out-expo) 600ms backwards;
+  }
+  .fade-up-6 {
+    animation: fade-up 500ms var(--ease-out-expo) 600ms backwards;
+  }
+  .fade-up-7 {
+    animation: fade-up 500ms var(--ease-out-expo) 700ms backwards;
+  }
+  .fade-up-8 {
+    animation: fade-up 500ms var(--ease-out-expo) 800ms backwards;
+  }
+
+  .doc-count {
+    font-size: 10px;
+    margin-bottom: var(--space-md);
   }
 
   .doc-grid {
     grid-template-columns: 1fr;
+    gap: var(--space-sm);
   }
 
-  .hero-title {
-    font-size: var(--text-3xl);
+  .doc-card {
+    padding: var(--space-lg);
+    cursor: default;
+    transition: none;
   }
 
-  .hero-desc {
+  .doc-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .doc-card:active {
+    border-color: var(--card-color);
+  }
+
+  .doc-title {
     font-size: var(--text-base);
+    margin-bottom: var(--space-xs);
   }
 
-  .orb {
-    display: none;
+  .doc-summary {
+    -webkit-line-clamp: 2;
+    margin-bottom: var(--space-md);
   }
 
+  .doc-footer {
+    margin-top: 0;
+    padding-top: var(--space-sm);
+  }
+
+  /* Mobile modal is full-screen */
   .doc-overlay {
-    padding: var(--space-sm);
+    background: var(--bg-primary);
+    backdrop-filter: none;
+    padding: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex-direction: column;
   }
 
-  .doc-modal {
-    padding: var(--space-md);
-    max-height: 90vh;
-    border-radius: var(--radius-md);
+  .docs-footer {
+    padding: var(--space-xl) 0 var(--space-md);
+    margin-top: var(--space-lg);
+  }
+
+  .docs-footer p {
+    font-size: 10px;
+    max-width: none;
   }
 }
 </style>

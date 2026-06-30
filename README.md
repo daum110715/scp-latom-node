@@ -136,3 +136,7 @@ scp-docs/
 ## License
 
 [MIT](LICENSE)
+
+## Acknowledgments
+
+A special thank you to [Cloudflare](https://cloudflare.com) for powering this project's infrastructure. Their Workers runtime, D1 database, and Durable Objects make it possible to run the entire backend at the edge — fast, globally distributed, and with zero cold starts. We're grateful for their support of the open-source and developer community. 💙

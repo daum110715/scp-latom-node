@@ -1,15 +1,46 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
+import { useDevice } from '@/composables/useDevice'
+import { useNotFound } from '@/composables/useNotFound'
+
+const { isMobile } = useDevice()
+const { t } = useNotFound()
 </script>
 
 <template>
-  <div class="not-found">
-    <div class="glitch-container">
+  <div :class="isMobile ? 'm-404' : 'not-found'">
+    <template v-if="!isMobile">
+      <div class="glitch-container">
+        <div class="error-code" data-text="404">404</div>
+        <div class="scanline"></div>
+      </div>
+      <div class="error-content">
+        <div class="error-badge">
+          <span class="pulse-dot"></span>
+          {{ t('notFound.accessDenied') }}
+        </div>
+        <h1>{{ t('notFound.title') }}</h1>
+        <p>{{ t('notFound.description') }}</p>
+        <div class="error-meta">
+          <div class="meta-row">
+            <span class="meta-label">{{ t('notFound.errorCode') }}</span>
+            <span class="meta-value">{{ t('notFound.errValue') }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">{{ t('notFound.terminal') }}</span>
+            <span class="meta-value">LATOM-7</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">{{ t('notFound.timestamp') }}</span>
+            <span class="meta-value">{{ new Date().toISOString() }}</span>
+          </div>
+        </div>
+        <router-link to="/" class="btn btn-primary">
+          {{ t('notFound.returnBtn') }}
+        </router-link>
+      </div>
+    </template>
+    <template v-else>
       <div class="error-code" data-text="404">404</div>
-      <div class="scanline"></div>
-    </div>
-    <div class="error-content">
       <div class="error-badge">
         <span class="pulse-dot"></span>
         {{ t('notFound.accessDenied') }}
@@ -33,58 +64,31 @@ const { t } = useI18n()
       <router-link to="/" class="btn btn-primary">
         {{ t('notFound.returnBtn') }}
       </router-link>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.not-found {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  text-align: center;
-  padding: var(--space-xl);
-  animation: fade-up 600ms var(--ease-out-expo) backwards;
+/* ===== Shared ===== */
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  animation: pulse 1.5s infinite;
 }
 
-.glitch-container {
-  margin-bottom: var(--space-xl);
-  position: relative;
-}
-
-.error-code {
-  font-size: clamp(5rem, 12vw, 8rem);
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--color-danger);
-  position: relative;
-  line-height: 1;
-  text-shadow: 0 0 20px var(--color-danger-muted);
-  animation: glitch 4s infinite;
-}
-
-.error-code::before,
-.error-code::after {
-  content: '404';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.error-code::before {
-  color: var(--color-accent);
-  animation: glitch-1 3s infinite;
-  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
-}
-
-.error-code::after {
-  color: var(--color-primary);
-  animation: glitch-2 3s infinite;
-  clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px var(--color-danger);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 8px var(--color-danger);
+  }
 }
 
 @keyframes glitch {
@@ -152,6 +156,66 @@ const { t } = useI18n()
   }
 }
 
+@keyframes scanline-move {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+/* ===== Desktop ===== */
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: var(--space-xl);
+  animation: fade-up 600ms var(--ease-out-expo) backwards;
+}
+
+.glitch-container {
+  margin-bottom: var(--space-xl);
+  position: relative;
+}
+
+.not-found .error-code {
+  font-size: clamp(5rem, 12vw, 8rem);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-danger);
+  position: relative;
+  line-height: 1;
+  text-shadow: 0 0 20px var(--color-danger-muted);
+  animation: glitch 4s infinite;
+}
+
+.not-found .error-code::before,
+.not-found .error-code::after {
+  content: '404';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.not-found .error-code::before {
+  color: var(--color-accent);
+  animation: glitch-1 3s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+}
+
+.not-found .error-code::after {
+  color: var(--color-primary);
+  animation: glitch-2 3s infinite;
+  clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+}
+
 .scanline {
   position: absolute;
   top: 0;
@@ -168,15 +232,6 @@ const { t } = useI18n()
   pointer-events: none;
   animation: scanline-move 8s linear infinite;
   opacity: 0.3;
-}
-
-@keyframes scanline-move {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
 }
 
 .error-content {
@@ -198,26 +253,6 @@ const { t } = useI18n()
   color: var(--color-danger);
   letter-spacing: 0.08em;
   margin-bottom: var(--space-lg);
-}
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-danger);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 4px var(--color-danger);
-  }
-  50% {
-    opacity: 0.4;
-    box-shadow: 0 0 8px var(--color-danger);
-  }
 }
 
 .error-content h1 {
@@ -293,5 +328,100 @@ const { t } = useI18n()
 
 .btn-primary:hover::before {
   transform: translateX(100%);
+}
+
+/* ===== Mobile ===== */
+
+.m-404 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-xl);
+  min-height: calc(100vh - 52px - 56px);
+}
+
+.m-404 .error-code {
+  font-size: clamp(4rem, 20vw, 7rem);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-danger);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--color-danger-muted);
+  animation: glitch 3s infinite;
+  margin-bottom: var(--space-lg);
+}
+
+.m-404 .error-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger-muted);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-danger);
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-lg);
+}
+
+.m-404 h1 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-sm);
+}
+
+.m-404 p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-xl);
+  max-width: 360px;
+}
+
+.m-404 .error-meta {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-xl);
+  width: 100%;
+  max-width: 320px;
+}
+
+.m-404 .meta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.m-404 .meta-label {
+  color: var(--text-tertiary);
+}
+
+.m-404 .meta-value {
+  color: var(--text-secondary);
+}
+
+.m-404 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: none;
+}
+
+.m-404 .btn-primary {
+  background: var(--color-primary);
+  color: var(--text-inverse);
 }
 </style>

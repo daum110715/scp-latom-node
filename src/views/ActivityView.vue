@@ -1,44 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useUserActivityStore } from '@/stores/userActivity'
+import { useActivity } from '@/composables/useActivity'
 import Badge from '@/components/common/Badge.vue'
 import ClassBar from '@/components/common/ClassBar.vue'
 import type { ObjectClass } from '@/types'
 
-const { t } = useI18n()
-const activity = useUserActivityStore()
-
-const showClearConfirm = ref(false)
-
-function setLanguage(lang: string | null) {
-  activity.setLangFilter(lang)
-}
-
-function formatTime(dateStr: string): string {
-  try {
-    return new Date(dateStr + 'Z').toLocaleString()
-  } catch {
-    return dateStr
-  }
-}
-
-async function handleClear() {
-  const ok = await activity.clearHistory()
-  if (ok) showClearConfirm.value = false
-}
-
-async function handleDeleteHistory(id: number) {
-  await activity.deleteHistoryEntryById(id)
-}
-
-async function handleRemoveBookmark(lang: string, scpNumber: number) {
-  await activity.removeBookmark(lang, scpNumber)
-}
-
-onMounted(() => {
-  activity.init()
-})
+const {
+  t,
+  activity,
+  showClearConfirm,
+  setLanguage,
+  formatTime,
+  handleClear,
+  handleDeleteHistory,
+  handleRemoveBookmark,
+} = useActivity()
 </script>
 
 <template>
@@ -254,6 +229,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ═══ Desktop (default) ═══ */
 .activity {
   max-width: var(--max-content);
   margin: 0 auto;
@@ -602,18 +578,180 @@ onMounted(() => {
   margin-top: var(--space-xs);
 }
 
-@media (max-width: 640px) {
-  .entry-link {
+/* ═══ Mobile (≤768px) ═══ */
+@media (max-width: 768px) {
+  .activity {
+    max-width: none;
+    margin: 0;
     padding: var(--space-md);
   }
 
+  .page-header {
+    margin-bottom: var(--space-md);
+  }
+
+  .page-header h1 {
+    font-size: var(--text-xl);
+    margin-bottom: 0;
+  }
+
+  /* Tabs */
+  .tabs {
+    margin-bottom: var(--space-md);
+  }
+
+  .tab {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    text-align: center;
+  }
+
+  .tab:hover {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+
+  /* Toolbar */
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: var(--space-md);
+  }
+
+  .lang-filters {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: var(--space-xs);
+  }
+
+  .lang-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lang-btn {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .lang-btn:hover {
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
   }
 
   .toolbar-right {
     justify-content: space-between;
+    margin-top: var(--space-sm);
+  }
+
+  .results-count {
+    font-size: var(--text-xs);
+  }
+
+  .clear-btn {
+    padding: 6px 12px;
+    font-size: var(--text-xs);
+  }
+
+  .clear-btn:hover {
+    background: transparent;
+    color: var(--color-danger);
+  }
+
+  /* Confirm Bar */
+  .confirm-bar {
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+  }
+
+  .confirm-bar span {
+    flex: 1 0 100%;
+    margin-bottom: var(--space-sm);
+  }
+
+  .confirm-yes,
+  .confirm-no {
+    padding: 6px 14px;
+  }
+
+  /* Entry List */
+  .entry-row:hover {
+    border-color: var(--border-subtle);
+    box-shadow: none;
+  }
+
+  .entry-link {
+    padding: var(--space-lg);
+  }
+
+  .entry-name {
+    font-size: var(--text-base);
+  }
+
+  /* Delete button: active instead of hover on touch */
+  .delete-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .delete-btn:hover {
+    background: transparent;
+    color: var(--text-tertiary);
+  }
+
+  .delete-btn:active {
+    background: var(--color-danger);
+    color: white;
+  }
+
+  /* Pagination */
+  .pagination {
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    padding: var(--space-md) 0;
+  }
+
+  .page-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  /* States */
+  .error-state {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+
+  .error-icon {
+    font-size: 2.5rem;
+  }
+
+  .empty-state {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+  }
+
+  .empty-state p {
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+  }
+
+  .empty-hint {
+    margin-top: 0;
   }
 }
 </style>

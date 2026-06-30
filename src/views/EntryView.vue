@@ -1,188 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { fetchEntryContent, type EntryContentResponse } from '@/services/crawler'
-import { fetchEntryTags, TAG_CATEGORY_LABELS, type TagInfo } from '@/services/tags'
-import { downloadEntry } from '@/services/download'
-import { checkReports } from '@/services/reports'
-import { useAuthStore } from '@/stores/auth'
-import { useUserActivityStore } from '@/stores/userActivity'
+import { watch, onMounted } from 'vue'
+import { useEntry } from '@/composables/useEntry'
+import { useDevice } from '@/composables/useDevice'
+import { TAG_CATEGORY_LABELS } from '@/services/tags'
 import Badge from '@/components/common/Badge.vue'
 import ClassBar from '@/components/common/ClassBar.vue'
 import ReportDialog from '@/components/common/ReportDialog.vue'
 import type { ObjectClass } from '@/types'
 
-const { t } = useI18n()
-const route = useRoute()
-const auth = useAuthStore()
-const activityStore = useUserActivityStore()
+const { isMobile } = useDevice()
 
-const bookmarked = ref(false)
-const bookmarkLoading = ref(false)
-const downloading = ref(false)
-const reportOpen = ref(false)
-const reportCount = ref(0)
-const reportMax = ref(3)
+const {
+  t,
+  auth,
+  scpId,
+  scpNumber,
+  lang,
+  loading,
+  error,
+  data,
+  tags,
+  tagsLoading,
+  bookmarked,
+  bookmarkLoading,
+  downloading,
+  reportOpen,
+  reportCount,
+  reportMax,
+  collapseFooterDetails,
+  retry,
+  toggleBookmark,
+  handleDownload,
+  init,
+} = useEntry()
 
-const lang = computed(() => route.params.lang as 'en' | 'cn')
-const scpNumber = computed(() => parseInt(route.params.scpNumber as string, 10))
-const scpId = computed(() => `SCP-${String(scpNumber.value).padStart(3, '0')}`)
+const BODY_SELECTOR = '.entry-body'
 
-const loading = ref(true)
-const error = ref('')
-const data = ref<EntryContentResponse | null>(null)
-const tags = ref<TagInfo[]>([])
-const tagsLoading = ref(false)
-let pollTimer: ReturnType<typeof setTimeout> | null = null
-
-// Collapse all <details> elements in footer content after render
-function collapseFooterDetails() {
-  nextTick(() => {
-    const body = document.querySelector('.entry-body')
-    if (!body) return
-    body.querySelectorAll('details').forEach((el) => {
-      el.removeAttribute('open')
-    })
-  })
-}
-
+// Collapse details when content loads
 watch(
   () => data.value?.content,
   (content) => {
-    if (content) collapseFooterDetails()
+    if (content) collapseFooterDetails(BODY_SELECTOR)
   },
 )
 
-async function loadContent() {
-  loading.value = true
-  error.value = ''
-
-  const res = await fetchEntryContent(lang.value, scpNumber.value)
-
-  if (!res.ok) {
-    loading.value = false
-    error.value = res.error
-    return
-  }
-
-  data.value = res.data
-
-  if (res.data.status === 'cached' || res.data.status === 'fetched') {
-    loading.value = false
-    recordVisit(res.data)
-    loadTags()
-    return
-  }
-
-  if (res.data.status === 'pending' || res.data.status === 'fetching') {
-    // Poll until content is ready
-    pollTimer = setTimeout(() => {
-      pollForContent()
-    }, 2000)
-    return
-  }
-
-  // status === 'error'
-  loading.value = false
-  error.value = res.data.error || 'Failed to fetch entry content'
-}
-
-function recordVisit(entry: EntryContentResponse) {
-  if (!auth.isAuthenticated) return
-  activityStore.recordVisit({
-    language: lang.value,
-    scpNumber: scpNumber.value,
-    name: entry.name,
-    objectClass: entry.objectClass,
-  })
-}
-
-async function loadTags() {
-  tagsLoading.value = true
-  const res = await fetchEntryTags(scpNumber.value, lang.value)
-  if (res.ok) {
-    tags.value = res.data.tags
-  }
-  tagsLoading.value = false
-}
-
-async function pollForContent() {
-  const res = await fetchEntryContent(lang.value, scpNumber.value)
-
-  if (!res.ok) {
-    loading.value = false
-    error.value = res.error
-    return
-  }
-
-  data.value = res.data
-
-  if (res.data.status === 'cached' || res.data.status === 'fetched') {
-    loading.value = false
-    recordVisit(res.data)
-    loadTags()
-    return
-  }
-
-  if (res.data.status === 'pending' || res.data.status === 'fetching') {
-    pollTimer = setTimeout(() => {
-      pollForContent()
-    }, 2000)
-    return
-  }
-
-  loading.value = false
-  error.value = res.data.error || 'Failed to fetch entry content'
-}
-
-function retry() {
-  data.value = null
-  loadContent()
-}
-
-async function toggleBookmark() {
-  if (!auth.isAuthenticated) return
-  bookmarkLoading.value = true
-  const result = await activityStore.toggleBookmark(lang.value, scpNumber.value)
-  if (result) bookmarked.value = !bookmarked.value
-  bookmarkLoading.value = false
-}
-
-function handleDownload() {
-  if (!data.value || downloading.value) return
-  downloading.value = true
-  downloadEntry(scpNumber.value, lang.value, data.value)
-  downloading.value = false
-}
-
 onMounted(() => {
-  if (!scpNumber.value || isNaN(scpNumber.value)) {
-    error.value = 'Invalid SCP number'
-    loading.value = false
-    return
-  }
-  loadContent()
-
-  // Check bookmark status for authenticated users
-  if (auth.isAuthenticated) {
-    activityStore.checkBookmark(lang.value, scpNumber.value).then((result: boolean) => {
-      bookmarked.value = result
-    })
-    checkReports(lang.value, scpNumber.value).then((res) => {
-      if (res.ok) {
-        reportCount.value = res.data.count
-        reportMax.value = res.data.maxReports
-      }
-    })
-  }
-})
-
-onUnmounted(() => {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
+  init(BODY_SELECTOR)
 })
 </script>
 
@@ -229,7 +92,7 @@ onUnmounted(() => {
       <h2>{{ scpId }}</h2>
       <p class="error-message">{{ error }}</p>
       <div class="error-actions">
-        <button class="retry-btn" @click="retry">Retry</button>
+        <button class="retry-btn" @click="retry(BODY_SELECTOR)">Retry</button>
         <a
           v-if="data?.status !== 'error'"
           :href="`https://scp-wiki.wikidot.com/scp-${String(scpNumber).padStart(3, '0')}`"
@@ -327,7 +190,7 @@ onUnmounted(() => {
             <span class="info-label">Language</span>
             {{ lang === 'en' ? 'English' : '中文' }}
           </span>
-          <span v-if="data.fetchedAt" class="info-item">
+          <span v-if="data.fetchedAt && !isMobile" class="info-item">
             <span class="info-label">Cached</span>
             {{ new Date(data.fetchedAt).toLocaleDateString() }}
           </span>
@@ -337,7 +200,7 @@ onUnmounted(() => {
             rel="noopener noreferrer"
             class="wiki-link"
           >
-            View on Wiki ↗
+            {{ isMobile ? 'Wiki' : 'View on Wiki' }} ↗
           </a>
         </div>
       </div>
@@ -680,10 +543,127 @@ onUnmounted(() => {
   color: var(--color-accent);
 }
 
-@media (max-width: 480px) {
+/* ─── Mobile ─── */
+
+@media (max-width: 768px) {
+  .entry-view {
+    max-width: none;
+    margin: 0;
+    padding: var(--space-md);
+  }
+
+  .back-link {
+    margin-bottom: var(--space-lg);
+    padding: var(--space-sm) 0;
+  }
+
+  .entry-meta {
+    flex-wrap: wrap;
+  }
+
+  .download-btn,
+  .bookmark-btn,
+  .report-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .download-btn svg,
+  .bookmark-btn svg,
+  .report-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .download-btn:hover,
+  .bookmark-btn:hover,
+  .bookmark-btn.active,
+  .report-btn:hover {
+    background: transparent;
+  }
+
+  .entry-title {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
   .entry-info {
     gap: var(--space-sm);
     font-size: var(--text-xs);
+  }
+
+  .entry-tags {
+    margin-top: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .tag-group {
+    gap: 4px;
+  }
+
+  .tag-group-label {
+    font-size: 10px;
+    margin-right: 4px;
+  }
+
+  .tag-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .tag-skeleton {
+    width: 50px;
+    height: 18px;
+  }
+
+  .entry-body {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+  }
+
+  .loading-state {
+    padding: var(--space-lg) 0;
+  }
+
+  .skeleton-header {
+    margin-bottom: var(--space-lg);
+  }
+
+  .skeleton-badge {
+    width: 100px;
+    height: 24px;
+  }
+
+  .skeleton-title {
+    width: min(250px, 80%);
+    height: 30px;
+  }
+
+  .skeleton-subtitle {
+    width: min(150px, 50%);
+    height: 18px;
+  }
+
+  .skeleton-line {
+    height: 14px;
+  }
+
+  .loading-hint {
+    font-size: var(--text-xs);
+    margin-top: var(--space-md);
+  }
+
+  .error-state {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+
+  .error-icon {
+    font-size: 2.5rem;
+  }
+
+  .error-message {
+    font-size: var(--text-sm);
   }
 
   .error-actions {

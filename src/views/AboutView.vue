@@ -1,33 +1,7 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { ref, onMounted } from 'vue'
+import { useAbout, classKeys, classColors, classGlow } from '@/composables/useAbout'
 
-const { t } = useI18n()
-const visible = ref(false)
-
-onMounted(() => {
-  requestAnimationFrame(() => {
-    visible.value = true
-  })
-})
-
-const classKeys = ['safe', 'euclid', 'keter', 'thaumiel', 'apollyon', 'neutralized'] as const
-const classColors: Record<string, string> = {
-  safe: 'var(--class-safe)',
-  euclid: 'var(--class-euclid)',
-  keter: 'var(--class-keter)',
-  thaumiel: 'var(--class-thaumiel)',
-  apollyon: 'var(--color-danger)',
-  neutralized: 'var(--class-neutralized)',
-}
-const classGlow: Record<string, string> = {
-  safe: 'var(--class-safe-glow, rgba(74, 222, 128, 0.15))',
-  euclid: 'var(--class-euclid-glow, rgba(250, 204, 21, 0.15))',
-  keter: 'var(--class-keter-glow, rgba(239, 68, 68, 0.15))',
-  thaumiel: 'var(--class-thaumiel-glow, rgba(168, 85, 247, 0.15))',
-  apollyon: 'var(--class-apollyon-glow, rgba(239, 68, 68, 0.2))',
-  neutralized: 'var(--class-neutralized-glow, rgba(107, 114, 128, 0.15))',
-}
+const { t, visible } = useAbout()
 </script>
 
 <template>

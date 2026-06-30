@@ -1,56 +1,34 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import {
-  sendChatMessageStream,
-  fetchConversations,
-  fetchConversation,
-  deleteConversation,
-  type AiMessage,
-  type AiConversationMeta,
-} from '@/services/ai'
+import { ref } from 'vue'
+import { useAiChat } from '@/composables/useAiChat'
 import AiMessageBubble from '@/components/ai/AiMessageBubble.vue'
 
-const { t } = useI18n()
-const router = useRouter()
+const {
+  t,
+  conversations,
+  currentId,
+  messages,
+  inputText,
+  isStreaming,
+  messagesEl,
+  loadConversations,
+  selectConversation: baseSelectConversation,
+  newConversation: baseNewConversation,
+  handleDelete: baseHandleDelete,
+  sendMessage,
+  handleKeydown,
+} = useAiChat()
 
-const conversations = ref<AiConversationMeta[]>([])
-const currentId = ref<string | null>(null)
-const messages = ref<AiMessage[]>([])
-const inputText = ref('')
-const isStreaming = ref(false)
+// Mobile-specific: list/chat view toggle
 const showList = ref(true)
-const messagesEl = ref<HTMLElement | null>(null)
 
-onMounted(() => {
-  loadConversations()
-})
-
-async function loadConversations() {
-  const res = await fetchConversations({ limit: 50 })
-  if (res.ok) {
-    conversations.value = res.data.conversations
-  }
-}
-
-async function selectConversation(id: string) {
-  if (isStreaming.value) return
-  currentId.value = id
-  messages.value = []
+function selectConversation(id: string) {
+  baseSelectConversation(id)
   showList.value = false
-
-  const res = await fetchConversation(id)
-  if (res.ok) {
-    messages.value = res.data.conversation.messages
-  }
-  scrollToBottom()
 }
 
 function newConversation() {
-  if (isStreaming.value) return
-  currentId.value = null
-  messages.value = []
+  baseNewConversation()
   showList.value = false
 }
 
@@ -61,106 +39,10 @@ function backToList() {
 }
 
 async function handleDelete(id: string) {
-  if (!confirm(t('ai.deleteConfirm'))) return
-  const res = await deleteConversation(id)
-  if (res.ok) {
-    conversations.value = conversations.value.filter((c) => c.id !== id)
-    if (currentId.value === id) {
-      currentId.value = null
-      messages.value = []
-      showList.value = true
-    }
+  await baseHandleDelete(id)
+  if (currentId.value === null) {
+    showList.value = true
   }
-}
-
-async function sendMessage() {
-  const text = inputText.value.trim()
-  if (!text || isStreaming.value) return
-
-  inputText.value = ''
-
-  const userMsg: AiMessage = {
-    id: crypto.randomUUID(),
-    role: 'user',
-    content: text,
-    createdAt: new Date().toISOString(),
-  }
-  messages.value.push(userMsg)
-  scrollToBottom()
-
-  const placeholder: AiMessage = {
-    id: 'streaming',
-    role: 'assistant',
-    content: '',
-    createdAt: new Date().toISOString(),
-  }
-  messages.value.push(placeholder)
-  isStreaming.value = true
-
-  const isFirst = !currentId.value
-
-  await sendChatMessageStream(
-    {
-      conversationId: currentId.value ?? undefined,
-      message: text,
-    },
-    {
-      onMetadata(data) {
-        currentId.value = data.conversationId
-      },
-      onChunk(delta) {
-        const idx = messages.value.findIndex((m) => m.id === 'streaming')
-        if (idx >= 0) {
-          messages.value[idx] = {
-            ...messages.value[idx],
-            content: messages.value[idx].content + delta,
-          }
-        }
-        scrollToBottom()
-      },
-      onDone(message) {
-        const idx = messages.value.findIndex((m) => m.id === 'streaming')
-        if (idx >= 0) {
-          messages.value[idx] = message
-        }
-        isStreaming.value = false
-        if (isFirst && currentId.value) {
-          loadConversations()
-        }
-      },
-      onError(error) {
-        const idx = messages.value.findIndex((m) => m.id === 'streaming')
-        if (idx >= 0) {
-          const content =
-            error === 'ERR-401-CLEARANCE' ? `⚠ ${t('errors.ERR-AUTH-EXPIRED')}` : `Error: ${error}`
-          messages.value[idx] = {
-            ...messages.value[idx],
-            content,
-          }
-        }
-        isStreaming.value = false
-        if (error === 'ERR-401-CLEARANCE') {
-          localStorage.removeItem('scp-auth-token')
-          router.push('/login')
-        }
-      },
-    },
-  )
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    sendMessage()
-  }
-}
-
-function scrollToBottom() {
-  nextTick(() => {
-    if (messagesEl.value) {
-      messagesEl.value.scrollTop = messagesEl.value.scrollHeight
-    }
-  })
 }
 
 function formatTime(iso: string): string {
@@ -176,8 +58,6 @@ function formatTime(iso: string): string {
     return ''
   }
 }
-
-watch(messages, () => scrollToBottom(), { deep: true })
 </script>
 
 <template>

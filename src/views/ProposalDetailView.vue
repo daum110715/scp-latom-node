@@ -1,42 +1,14 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useProposalsStore } from '@/stores/proposals'
-import { useAuthStore } from '@/stores/auth'
+import { useProposalDetail, categoryVariant } from '@/composables/useProposalDetail'
+import { useDevice } from '@/composables/useDevice'
 import Badge from '@/components/common/Badge.vue'
 
-const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
-const store = useProposalsStore()
-const auth = useAuthStore()
-
-const proposalId = computed(() => parseInt(route.params.id as string, 10))
-const proposal = computed(() => store.currentProposal)
-
-const categoryVariant: Record<string, string> = {
-  protocol: 'keter',
-  research: 'thaumiel',
-  containment: 'euclid',
-  general: 'safe',
-}
-
-function goBack() {
-  router.push('/proposals')
-}
-
-async function castVote(vote: 'for' | 'against' | 'abstain') {
-  await store.vote(proposalId.value, vote)
-}
-
-onMounted(() => {
-  store.loadProposal(proposalId.value)
-})
+const { t, store, auth, proposalId, proposal, goBack, castVote } = useProposalDetail()
+const { isMobile } = useDevice()
 </script>
 
 <template>
-  <div class="proposal-detail-view">
+  <div class="proposal-detail-view" :class="{ 'is-mobile': isMobile }">
     <button class="back-btn" @click="goBack">← {{ t('proposals.back') }}</button>
 
     <!-- Loading -->
@@ -336,5 +308,96 @@ onMounted(() => {
   cursor: pointer;
   font-size: var(--text-sm);
   font-weight: 600;
+}
+
+/* ─── Mobile Overrides ─── */
+
+@media (max-width: 768px) {
+  .proposal-detail-view {
+    max-width: none;
+    margin: 0;
+    padding: var(--space-md);
+  }
+
+  .back-btn {
+    padding: var(--space-xs) var(--space-sm);
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-xs);
+  }
+
+  .detail-header {
+    margin-bottom: var(--space-lg);
+  }
+
+  .detail-meta {
+    margin-bottom: var(--space-sm);
+  }
+
+  .detail-title {
+    font-size: clamp(1.125rem, 5vw, 1.5rem);
+  }
+
+  .detail-author {
+    font-size: var(--text-xs);
+  }
+
+  .detail-content {
+    padding: var(--space-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  .detail-voting {
+    padding: var(--space-lg);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vote-counts {
+    gap: var(--space-md);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .voted-msg {
+    font-size: var(--text-xs);
+  }
+
+  .vote-actions {
+    flex-direction: column;
+  }
+
+  .vote-btn {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+
+  .loading-state {
+    gap: var(--space-md);
+  }
+
+  .skeleton-title {
+    height: 32px;
+    width: 80%;
+  }
+  .skeleton-meta {
+    height: 16px;
+    width: 40%;
+  }
+  .skeleton-body {
+    height: 200px;
+  }
+
+  .error-state,
+  .empty-state {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+
+  .error-icon,
+  .empty-icon {
+    font-size: 2.5rem;
+  }
 }
 </style>

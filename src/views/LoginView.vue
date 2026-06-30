@@ -1,20 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
+import { useLogin } from '@/composables/useAuthForm'
 
-const { t } = useI18n()
-const router = useRouter()
-const auth = useAuthStore()
-
-const codename = ref('')
-const password = ref('')
-
-async function handleSubmit() {
-  const ok = await auth.login(codename.value, password.value)
-  if (ok) router.push('/')
-}
+const { t, auth, codename, password, handleSubmit } = useLogin()
 </script>
 
 <template>
@@ -311,10 +298,84 @@ async function handleSubmit() {
   color: var(--color-accent-hover);
 }
 
-@media (max-width: 480px) {
+/* --- Mobile overrides (max-width: 768px) --- */
+@media (max-width: 768px) {
+  .auth-page {
+    align-items: flex-start;
+    min-height: calc(100vh - 52px - 56px);
+    padding: var(--space-xl) var(--space-md);
+    animation: none;
+  }
+
   .auth-card {
-    padding: var(--space-lg);
-    border-radius: var(--radius-md);
+    max-width: none;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    animation: none;
+  }
+
+  .auth-icon {
+    animation: none;
+  }
+
+  .input-wrapper {
+    position: static;
+  }
+
+  .input-focus-line {
+    display: none;
+  }
+
+  .form-group input {
+    height: 48px;
+    padding: 0 var(--space-md);
+    font-size: 16px;
+    box-shadow: none;
+  }
+
+  .form-group input:focus {
+    box-shadow: none;
+  }
+
+  .error-msg {
+    padding: var(--space-md);
+  }
+
+  .auth-submit {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 var(--space-lg);
+    border: none;
+    transition: none;
+  }
+
+  .auth-submit::before {
+    display: none;
+  }
+
+  .auth-submit:hover:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .auth-submit:active:not(:disabled) {
+    transform: none;
+  }
+
+  .auth-footer {
+    margin-top: var(--space-xl);
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .auth-footer a {
+    transition: none;
+  }
+
+  .auth-footer a:hover {
+    color: var(--color-accent);
   }
 }
 </style>

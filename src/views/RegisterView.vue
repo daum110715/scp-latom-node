@@ -1,39 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
+import { useRegister } from '@/composables/useAuthForm'
 
-const { t } = useI18n()
-const router = useRouter()
-const auth = useAuthStore()
-
-const codename = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const localError = ref('')
-
-const CODENAME_RE = /^[a-zA-Z0-9_]{3,32}$/
-
-async function handleSubmit() {
-  localError.value = ''
-
-  if (!CODENAME_RE.test(codename.value)) {
-    localError.value = t('auth.errors.codenameFormat')
-    return
-  }
-  if (password.value.length < 8) {
-    localError.value = t('auth.errors.passwordLength')
-    return
-  }
-  if (password.value !== confirmPassword.value) {
-    localError.value = t('auth.errors.passwordMismatch')
-    return
-  }
-
-  const ok = await auth.register(codename.value, password.value)
-  if (ok) router.push('/')
-}
+const { t, auth, codename, password, confirmPassword, localError, handleSubmit } = useRegister()
 </script>
 
 <template>
@@ -350,6 +318,88 @@ async function handleSubmit() {
   color: var(--color-accent-hover);
 }
 
+/* ---- Mobile (<=768px) ---- */
+@media (max-width: 768px) {
+  .auth-page {
+    padding: var(--space-xl) var(--space-md);
+    min-height: calc(100vh - 52px - 56px);
+    align-items: stretch;
+    justify-content: center;
+    animation: none;
+  }
+
+  .auth-card {
+    max-width: none;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    animation: none;
+  }
+
+  .auth-header {
+    margin-bottom: var(--space-xl);
+  }
+
+  .auth-icon {
+    animation: none;
+  }
+
+  .input-wrapper {
+    position: static;
+  }
+
+  .input-focus-line {
+    display: none;
+  }
+
+  .form-group input {
+    height: 48px;
+    padding: 0 var(--space-md);
+    font-size: 16px;
+    box-shadow: none;
+  }
+
+  .form-group input:focus {
+    box-shadow: none;
+  }
+
+  .form-hint {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+  }
+
+  .error-msg {
+    padding: var(--space-md);
+  }
+
+  .auth-submit {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 var(--space-lg);
+  }
+
+  .auth-submit::before {
+    display: none;
+  }
+
+  .auth-submit:hover:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .auth-submit:active:not(:disabled) {
+    transform: none;
+  }
+
+  .auth-footer {
+    margin-top: var(--space-xl);
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
+/* ---- Small phones (<=480px) ---- */
 @media (max-width: 480px) {
   .auth-card {
     padding: var(--space-lg);
