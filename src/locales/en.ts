@@ -822,6 +822,13 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
     confirmBack: 'Go Back',
     exitTerminal: 'Exit',
   },
+  experimental: {
+    title: 'Experimental Features',
+    desc: 'Enable experimental features that are still in development. These may be unstable or change without notice.',
+    terminal: 'Terminal',
+    terminalDesc:
+      'Interactive documentation terminal with SCP-themed virtual filesystem and 50+ commands.',
+  },
   notFound: {
     accessDenied: 'ACCESS DENIED',
     title: 'Document Not Found',

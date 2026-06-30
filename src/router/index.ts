@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import i18n from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import { logger } from '@/services/logger'
 import DeviceView from '@/components/DeviceView.vue'
 
@@ -92,6 +93,10 @@ const routes: RouteRecordRaw[] = [
       mobile: () => import('@/views/mobile/MobileTerminalView.vue'),
     },
     meta: { titleKey: 'nav.terminal' },
+    beforeEnter: () => {
+      const { terminalEnabled } = useFeatureFlags()
+      if (!terminalEnabled.value) return '/'
+    },
   },
   {
     path: '/about',

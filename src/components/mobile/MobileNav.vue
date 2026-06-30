@@ -1,20 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 
 const { t } = useI18n()
 const route = useRoute()
+const { terminalEnabled } = useFeatureFlags()
 
-const navItems = [
-  { path: '/', icon: 'home', labelKey: 'nav.home' },
-  { path: '/catalog', icon: 'catalog', labelKey: 'nav.catalog' },
-  { path: '/documents', icon: 'documents', labelKey: 'nav.documents' },
-  { path: '/proposals', icon: 'proposals', labelKey: 'nav.proposals' },
-  { path: '/activity', icon: 'activity', labelKey: 'nav.activity' },
-  { path: '/terminal', icon: 'terminal', labelKey: 'nav.terminal' },
-  { path: '/about', icon: 'about', labelKey: 'nav.about' },
-  { path: '/profile', icon: 'profile', labelKey: 'auth.profile' },
-]
+const navItems = computed(() => {
+  const items = [
+    { path: '/', icon: 'home', labelKey: 'nav.home' },
+    { path: '/catalog', icon: 'catalog', labelKey: 'nav.catalog' },
+    { path: '/documents', icon: 'documents', labelKey: 'nav.documents' },
+    { path: '/proposals', icon: 'proposals', labelKey: 'nav.proposals' },
+    { path: '/activity', icon: 'activity', labelKey: 'nav.activity' },
+  ]
+  if (terminalEnabled.value) {
+    items.push({ path: '/terminal', icon: 'terminal', labelKey: 'nav.terminal' })
+  }
+  items.push(
+    { path: '/about', icon: 'about', labelKey: 'nav.about' },
+    { path: '/profile', icon: 'profile', labelKey: 'auth.profile' },
+  )
+  return items
+})
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/'

@@ -1,21 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSidebar } from '@/composables/useSidebar'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 
 const { t } = useI18n()
 const route = useRoute()
 const { collapsed, toggle } = useSidebar()
+const { terminalEnabled } = useFeatureFlags()
 
-const navItems = [
-  { path: '/', labelKey: 'nav.dashboard', icon: '◈' },
-  { path: '/catalog', labelKey: 'nav.catalog', icon: '☰' },
-  { path: '/documents', labelKey: 'nav.documents', icon: '◫' },
-  { path: '/proposals', labelKey: 'nav.proposals', icon: '◇' },
-  { path: '/activity', labelKey: 'nav.activity', icon: '◧' },
-  { path: '/terminal', labelKey: 'nav.terminal', icon: '⏣' },
-  { path: '/about', labelKey: 'nav.about', icon: '◎' },
-]
+const navItems = computed(() => {
+  const items = [
+    { path: '/', labelKey: 'nav.dashboard', icon: '◈' },
+    { path: '/catalog', labelKey: 'nav.catalog', icon: '☰' },
+    { path: '/documents', labelKey: 'nav.documents', icon: '◫' },
+    { path: '/proposals', labelKey: 'nav.proposals', icon: '◇' },
+    { path: '/activity', labelKey: 'nav.activity', icon: '◧' },
+  ]
+  if (terminalEnabled.value) {
+    items.push({ path: '/terminal', labelKey: 'nav.terminal', icon: '⏣' })
+  }
+  items.push({ path: '/about', labelKey: 'nav.about', icon: '◎' })
+  return items
+})
 </script>
 
 <template>

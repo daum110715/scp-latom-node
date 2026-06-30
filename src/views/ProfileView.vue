@@ -3,12 +3,14 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import Badge from '@/components/common/Badge.vue'
 import AiChatPanel from '@/components/ai/AiChatPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+const { terminalEnabled, toggleTerminal } = useFeatureFlags()
 
 const activeTab = ref<'profile' | 'ai'>('profile')
 
@@ -238,6 +240,27 @@ function handleLogout() {
         <Transition name="fade">
           <div v-if="successMsg" class="success-msg"><span>✓</span> {{ successMsg }}</div>
         </Transition>
+      </div>
+
+      <!-- Experimental Features -->
+      <div class="edit-card">
+        <div class="edit-header">
+          <h3>{{ t('experimental.title') }}</h3>
+        </div>
+        <p class="experimental-desc">{{ t('experimental.desc') }}</p>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-info">
+              <span class="feature-name">{{ t('experimental.terminal') }}</span>
+              <span class="feature-detail">{{ t('experimental.terminalDesc') }}</span>
+            </div>
+            <button class="toggle-btn" :class="{ active: terminalEnabled }" @click="toggleTerminal">
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -540,6 +563,87 @@ function handleLogout() {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--color-success);
+}
+
+/* ═══ Experimental Features ═══ */
+.experimental-desc {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-md);
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.feature-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.feature-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.feature-detail {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+}
+
+.toggle-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggle-track {
+  display: block;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.toggle-btn.active .toggle-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.toggle-btn.active .toggle-thumb {
+  left: 20px;
+  background: #fff;
 }
 
 @media (max-width: 480px) {
