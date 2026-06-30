@@ -1,18 +1,31 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Diamond,
+  FileText,
+  Fingerprint,
+  LayoutDashboard,
+  ScrollText,
+  Settings,
+  Users,
+} from 'lucide-vue-next'
 
 const route = useRoute()
+const { t } = useI18n()
 const collapsed = ref(false)
 
-const navItems = [
-  { path: '/', name: 'dashboard', label: 'Dashboard', icon: '◈' },
-  { path: '/users', name: 'users', label: 'Users', icon: '◉' },
-  { path: '/entries', name: 'entries', label: 'Content', icon: '☰' },
-  { path: '/proposals', name: 'proposals', label: 'Proposals', icon: '◇' },
-  { path: '/logs', name: 'logs', label: 'Logs', icon: '▣' },
-  { path: '/settings', name: 'settings', label: 'Settings', icon: '⚙' },
-]
+const navItems = computed(() => [
+  { path: '/', name: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+  { path: '/users', name: 'users', label: t('nav.users'), icon: Users },
+  { path: '/entries', name: 'entries', label: t('nav.entries'), icon: FileText },
+  { path: '/proposals', name: 'proposals', label: t('nav.proposals'), icon: Diamond },
+  { path: '/logs', name: 'logs', label: t('nav.logs'), icon: ScrollText },
+  { path: '/settings', name: 'settings', label: t('nav.settings'), icon: Settings },
+])
 
 function toggle() {
   collapsed.value = !collapsed.value
@@ -22,10 +35,10 @@ function toggle() {
 <template>
   <aside class="admin-sidebar" :class="{ collapsed }">
     <div class="sidebar-brand">
-      <div class="brand-icon">◈</div>
+      <div class="brand-icon"><Fingerprint :size="28" :stroke-width="1.75" /></div>
       <div v-if="!collapsed" class="brand-text">
-        <div class="brand-title">SCP FOUNDATION</div>
-        <div class="brand-subtitle">ADMIN TERMINAL</div>
+        <div class="brand-title">{{ t('sidebar.brandTitle') }}</div>
+        <div class="brand-subtitle">{{ t('sidebar.brandSubtitle') }}</div>
       </div>
     </div>
 
@@ -42,7 +55,7 @@ function toggle() {
         }"
         :title="collapsed ? item.label : undefined"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon"><component :is="item.icon" :size="18" /></span>
         <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
       </router-link>
     </nav>
@@ -51,34 +64,28 @@ function toggle() {
       <div class="sidebar-divider"></div>
       <div v-if="!collapsed" class="sidebar-info">
         <div class="info-row">
-          <span class="info-label">NODE</span>
-          <span class="info-value">ADMIN-01</span>
+          <span class="info-label">{{ t('sidebar.node') }}</span>
+          <span class="info-value">{{ t('sidebar.nodeValue') }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">STATUS</span>
+          <span class="info-label">{{ t('sidebar.status') }}</span>
           <span class="status-dot"></span>
-          <span class="info-value">ACTIVE</span>
+          <span class="info-value">{{ t('sidebar.active') }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">ACCESS</span>
-          <span class="info-value level-5">LEVEL 5</span>
+          <span class="info-label">{{ t('sidebar.access') }}</span>
+          <span class="info-value level-5">{{ t('sidebar.level5') }}</span>
         </div>
       </div>
     </div>
 
-    <button class="collapse-btn" :title="collapsed ? 'Expand' : 'Collapse'" @click="toggle">
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <polyline :points="collapsed ? '6 3 11 8 6 13' : '10 3 5 8 10 13'" />
-      </svg>
+    <button
+      class="collapse-btn"
+      :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+      @click="toggle"
+    >
+      <ChevronRight v-if="collapsed" :size="16" :stroke-width="1.5" />
+      <ChevronLeft v-else :size="16" :stroke-width="1.5" />
     </button>
   </aside>
 </template>
@@ -114,11 +121,14 @@ function toggle() {
 }
 
 .brand-icon {
-  font-size: var(--text-2xl);
   color: var(--color-primary);
   width: 32px;
+  height: 32px;
   text-align: center;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-text {
@@ -186,10 +196,12 @@ function toggle() {
 }
 
 .nav-icon {
-  font-size: var(--text-lg);
   width: 24px;
   text-align: center;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-label {

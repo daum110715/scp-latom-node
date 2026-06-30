@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="unauthorized-page">
     <div class="unauthorized-content">
       <div class="lock-icon">🔒</div>
-      <h1 class="title">Insufficient Clearance</h1>
-      <p class="description">You do not have admin privileges to access this terminal.</p>
+      <h1 class="title">{{ t('unauthorized.title') }}</h1>
+      <p class="description">{{ t('unauthorized.description') }}</p>
       <p v-if="auth.user" class="codename">
-        Logged in as: {{ auth.user.codename }} ({{ auth.user.role }})
+        {{ t('unauthorized.loggedInAs', { codename: auth.user.codename, role: auth.user.role }) }}
       </p>
       <div class="actions">
-        <router-link v-if="!auth.isAuthenticated" to="/login" class="btn btn-primary"
-          >Login as Admin</router-link
-        >
-        <button v-else class="btn btn-ghost" @click="auth.logout()">Logout</button>
+        <router-link v-if="!auth.isAuthenticated" to="/login" class="btn btn-primary">{{
+          t('unauthorized.loginAsAdmin')
+        }}</router-link>
+        <button v-else class="btn btn-ghost" @click="auth.logout()">
+          {{ t('unauthorized.logout') }}
+        </button>
       </div>
     </div>
   </div>

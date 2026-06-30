@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUsersStore } from '@/stores/users'
 import SearchInput from '@/components/common/SearchInput.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import { TriangleAlert } from 'lucide-vue-next'
 
 const store = useUsersStore()
+const router = useRouter()
+const { t } = useI18n()
 const deleteTarget = ref<number | null>(null)
 
 onMounted(() => store.fetchUsers())
@@ -35,23 +39,23 @@ function formatDate(d: string) {
 <template>
   <div class="users-view">
     <div class="page-header">
-      <h2>User Management</h2>
-      <p class="page-desc">Manage personnel accounts, roles, and clearance levels</p>
+      <h2>{{ t('users.title') }}</h2>
+      <p class="page-desc">{{ t('users.desc') }}</p>
     </div>
 
     <div class="filter-bar">
       <SearchInput
         :model-value="store.searchQuery"
-        placeholder="Search by codename..."
+        :placeholder="t('users.searchPlaceholder')"
         @update:model-value="onSearch"
       />
       <select class="select" @change="onRoleFilter">
-        <option value="">All Roles</option>
+        <option value="">{{ t('users.allRoles') }}</option>
         <option value="admin">Admin</option>
         <option value="personnel">Personnel</option>
         <option value="banned">Banned</option>
       </select>
-      <span class="results-count">{{ store.total }} users</span>
+      <span class="results-count">{{ t('users.resultsCount', { n: store.total }) }}</span>
     </div>
 
     <div v-if="store.loading && !store.users.length" class="loading-state">
@@ -59,7 +63,7 @@ function formatDate(d: string) {
     </div>
 
     <div v-else-if="store.error" class="error-state">
-      <span class="error-icon">⚠</span>
+      <TriangleAlert class="error-icon" :size="48" />
       <p>{{ store.error }}</p>
     </div>
 
@@ -68,12 +72,12 @@ function formatDate(d: string) {
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Codename</th>
-              <th>Role</th>
-              <th>Clearance</th>
-              <th>Joined</th>
-              <th>Actions</th>
+              <th>{{ t('users.colId') }}</th>
+              <th>{{ t('users.colCodename') }}</th>
+              <th>{{ t('users.colRole') }}</th>
+              <th>{{ t('users.colClearance') }}</th>
+              <th>{{ t('users.colJoined') }}</th>
+              <th>{{ t('users.colActions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,27 +89,27 @@ function formatDate(d: string) {
                 }}</router-link>
               </td>
               <td><StatusBadge :variant="user.role" :label="user.role" /></td>
-              <td class="cell-mono">Level {{ user.clearance }}</td>
+              <td class="cell-mono">{{ t('common.level', { n: user.clearance }) }}</td>
               <td class="cell-mono">{{ formatDate(user.created_at) }}</td>
               <td>
                 <div class="action-btns">
-                  <router-link :to="`/users/${user.id}`" class="btn btn-ghost btn-sm"
-                    >View</router-link
-                  >
+                  <router-link :to="`/users/${user.id}`" class="btn btn-ghost btn-sm">{{
+                    t('common.view')
+                  }}</router-link>
                   <button
                     v-if="user.role !== 'admin'"
                     class="btn btn-sm"
                     :class="user.role === 'banned' ? 'btn-success' : 'btn-danger'"
                     @click="user.role === 'banned' ? store.unban(user.id) : store.ban(user.id)"
                   >
-                    {{ user.role === 'banned' ? 'Unban' : 'Ban' }}
+                    {{ user.role === 'banned' ? t('users.unban') : t('users.ban') }}
                   </button>
                   <button
                     v-if="user.role !== 'admin'"
                     class="btn btn-danger btn-sm"
                     @click="deleteTarget = user.id"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -119,9 +123,9 @@ function formatDate(d: string) {
 
     <ConfirmModal
       v-if="deleteTarget !== null"
-      title="Delete User"
-      message="This will permanently delete the user and all their data (history, bookmarks, proposals, votes). This action cannot be undone."
-      confirm-label="Delete User"
+      :title="t('users.deleteTitle')"
+      :message="t('users.deleteMessage')"
+      :confirm-label="t('users.deleteConfirm')"
       :loading="store.loading"
       @confirm="confirmDelete"
       @cancel="deleteTarget = null"
@@ -187,9 +191,8 @@ function formatDate(d: string) {
 }
 
 .error-icon {
-  font-size: 3rem;
   color: var(--color-danger);
-  display: block;
+  display: inline-block;
   margin-bottom: var(--space-md);
 }
 </style>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 defineProps<{
   title: string
   message: string
@@ -11,6 +13,8 @@ const emit = defineEmits<{
   confirm: []
   cancel: []
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -20,14 +24,14 @@ const emit = defineEmits<{
         <div class="modal-title">{{ title }}</div>
         <div class="modal-body">{{ message }}</div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" @click="emit('cancel')">Cancel</button>
+          <button class="btn btn-ghost" @click="emit('cancel')">{{ t('common.cancel') }}</button>
           <button
             class="btn"
             :class="`btn-${confirmVariant || 'danger'}`"
             :disabled="loading"
             @click="emit('confirm')"
           >
-            {{ loading ? 'Processing...' : confirmLabel || 'Confirm' }}
+            {{ loading ? t('common.processing') : confirmLabel || t('common.confirm') }}
           </button>
         </div>
       </div>

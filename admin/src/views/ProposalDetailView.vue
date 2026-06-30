@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProposalsStore } from '@/stores/proposals'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const store = useProposalsStore()
 const proposalId = Number(route.params.id)
 const showDelete = ref(false)
@@ -31,7 +33,7 @@ function formatDate(d: string) {
   <div class="proposal-detail">
     <div class="page-header">
       <nav class="breadcrumb">
-        <router-link to="/proposals">Proposals</router-link>
+        <router-link to="/proposals">{{ t('proposalDetail.breadcrumbProposals') }}</router-link>
         <span class="breadcrumb-sep">/</span>
         <span class="breadcrumb-current">#{{ proposalId }}</span>
       </nav>
@@ -53,12 +55,16 @@ function formatDate(d: string) {
           </div>
           <div class="proposal-meta">
             <span
-              >By <strong>{{ store.currentProposal.authorCodename }}</strong></span
+              >{{ t('proposalDetail.by') }}
+              <strong>{{ store.currentProposal.authorCodename }}</strong></span
             >
             <span>•</span>
             <span>{{ store.currentProposal.category }}</span>
             <span>•</span>
-            <span>Created {{ formatDate(store.currentProposal.createdAt) }}</span>
+            <span
+              >{{ t('proposalDetail.created') }}
+              {{ formatDate(store.currentProposal.createdAt) }}</span
+            >
           </div>
         </div>
 
@@ -69,22 +75,22 @@ function formatDate(d: string) {
         <!-- Vote Summary -->
         <div class="vote-summary">
           <div class="vote-item for">
-            <span class="vote-label">For</span>
+            <span class="vote-label">{{ t('proposalDetail.for') }}</span>
             <span class="vote-value">{{ store.currentProposal.votesFor }}</span>
           </div>
           <div class="vote-item against">
-            <span class="vote-label">Against</span>
+            <span class="vote-label">{{ t('proposalDetail.against') }}</span>
             <span class="vote-value">{{ store.currentProposal.votesAgainst }}</span>
           </div>
           <div class="vote-item abstain">
-            <span class="vote-label">Abstain</span>
+            <span class="vote-label">{{ t('proposalDetail.abstain') }}</span>
             <span class="vote-value">{{ store.currentProposal.votesAbstain }}</span>
           </div>
         </div>
 
         <!-- Voter List -->
         <div v-if="store.currentProposal.voters?.length" class="voter-list">
-          <h4>Voters</h4>
+          <h4>{{ t('proposalDetail.voters') }}</h4>
           <div class="voters">
             <div v-for="v in store.currentProposal.voters" :key="v.codename" class="voter-item">
               <span class="voter-name">{{ v.codename }}</span>
@@ -106,32 +112,34 @@ function formatDate(d: string) {
             class="btn btn-success"
             @click="setStatus('approved')"
           >
-            Approve
+            {{ t('proposalDetail.approve') }}
           </button>
           <button
             v-if="store.currentProposal.status !== 'rejected'"
             class="btn btn-danger"
             @click="setStatus('rejected')"
           >
-            Reject
+            {{ t('proposalDetail.reject') }}
           </button>
           <button
             v-if="store.currentProposal.status !== 'open'"
             class="btn btn-ghost"
             @click="setStatus('open')"
           >
-            Reopen
+            {{ t('proposalDetail.reopen') }}
           </button>
-          <button class="btn btn-danger" @click="showDelete = true">Delete Proposal</button>
+          <button class="btn btn-danger" @click="showDelete = true">
+            {{ t('proposalDetail.deleteProposal') }}
+          </button>
         </div>
       </div>
     </template>
 
     <ConfirmModal
       v-if="showDelete"
-      title="Delete Proposal"
-      message="This will permanently delete this proposal and all its votes. This action cannot be undone."
-      confirm-label="Delete"
+      :title="t('proposalDetail.deleteTitle')"
+      :message="t('proposalDetail.deleteMessage')"
+      :confirm-label="t('proposalDetail.deleteConfirm')"
       :loading="store.loading"
       @confirm="confirmDelete"
       @cancel="showDelete = false"

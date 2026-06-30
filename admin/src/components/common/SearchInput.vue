@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { Search } from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: string
   placeholder?: string
 }>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -30,22 +34,11 @@ function onInput(e: Event) {
 
 <template>
   <div class="search-input-wrap">
-    <svg
-      class="search-icon"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
+    <Search class="search-icon" :size="16" />
     <input
       :value="localValue"
       type="text"
-      :placeholder="placeholder || 'Search...'"
+      :placeholder="placeholder || t('common.searchPlaceholder')"
       class="input search-input"
       @input="onInput"
     />
