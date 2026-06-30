@@ -8,6 +8,8 @@ const AUDIENCE = 'scp-latom-users'
 
 export async function signToken(payload: Omit<JwtPayload, 'exp'>, secret: string): Promise<string> {
   const key = new TextEncoder().encode(secret)
+  // JwtPayload.sub is number (user ID); JWTPayload.sub is string (JWT spec).
+  // The double assertion bridges this intentional mismatch.
   return new SignJWT({ ...payload } as unknown as JWTPayload)
     .setProtectedHeader({ alg: ALG })
     .setIssuer(ISSUER)
@@ -25,6 +27,7 @@ export async function verifyToken(token: string, secret: string): Promise<JwtPay
       issuer: ISSUER,
       audience: AUDIENCE,
     })
+    // We trust the payload shape — it was signed by signToken with our JwtPayload fields.
     return payload as unknown as JwtPayload
   } catch {
     // Invalid, expired, or malformed token — callers handle null
