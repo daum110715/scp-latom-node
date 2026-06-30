@@ -139,7 +139,9 @@ export function bootstrapTerminal(
   }
 
   terminal.open(container)
-  fitAddon.fit()
+  // Do NOT fit here — the caller must ensure the container is visible and
+  // has its final dimensions before calling fitAddon.fit().  The view calls
+  // `fit()` once the fullscreen overlay is opaque and laid out.
 
   // Shell setup — track input buffer and cursor position within it
   let currentInput = ''
@@ -388,7 +390,9 @@ export function bootstrapTerminal(
     }
   })
 
-  // Resize handler
+  // Resize handling — use ResizeObserver on the container for reliable
+  // refitting (catches Teleport / fixed-position settling), plus a
+  // window listener as a fallback for viewport-level resizes.
   const handleResize = () => {
     try {
       fitAddon.fit()
@@ -398,6 +402,12 @@ export function bootstrapTerminal(
   }
   window.addEventListener('resize', handleResize)
 
+  let resizeObserver: ResizeObserver | null = null
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => handleResize())
+    resizeObserver.observe(container)
+  }
+
   // Save state explicitly (used before dispose on theme toggle)
   const save = async () => {
     await shell.save()
@@ -406,6 +416,7 @@ export function bootstrapTerminal(
   // Cleanup
   const dispose = () => {
     window.removeEventListener('resize', handleResize)
+    resizeObserver?.disconnect()
     try {
       webglAddon?.dispose()
     } catch {

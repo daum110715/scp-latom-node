@@ -29,11 +29,16 @@ async function initTerminal() {
     storage = await createTerminalStorage()
   }
 
-  terminalReady.value = false
   result = bootstrapTerminal(terminalContainer.value, theme.value, storage)
-  requestAnimationFrame(() => {
-    terminalReady.value = true
-  })
+
+  // Wait for the container to be fully laid out, then fit and fade in.
+  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+  try {
+    result.fitAddon.fit()
+  } catch {
+    // container may not be ready yet — ResizeObserver will retry
+  }
+  terminalReady.value = true
 }
 
 async function launch() {
@@ -220,22 +225,22 @@ watch(theme, () => {
   inset: 0;
   z-index: 9999;
   background: #0c0c14;
-  opacity: 0;
-  transition: opacity 400ms ease;
 }
 
 [data-theme='light'] .terminal-fullscreen {
   background: #f6f6fc;
 }
 
-.terminal-fullscreen.ready {
-  opacity: 1;
-}
-
 .terminal-container-fs {
   position: absolute;
   inset: 0;
   padding: 2px 4px;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.terminal-fullscreen.ready .terminal-container-fs {
+  opacity: 1;
 }
 
 .terminal-container-fs :deep(.xterm) {
