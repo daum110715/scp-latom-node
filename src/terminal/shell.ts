@@ -91,8 +91,9 @@ export function createShell(options: ShellOptions) {
     if (!storage) return
     try {
       await storage.save(getStateForSave())
-    } catch {
-      // Swallow save errors — non-critical
+    } catch (e) {
+      // Non-critical — terminal state is restorable from defaults
+      console.warn('[shell] Failed to save terminal state:', e instanceof Error ? e.message : e)
     }
   }
 

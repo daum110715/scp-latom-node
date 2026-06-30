@@ -9,7 +9,7 @@ const props = withDefaults(
     fallbackCode?: ErrorCode
   }>(),
   {
-    fallbackCode: ErrorCode.SERVER,
+    fallbackCode: ErrorCode.SERVER_ERROR,
   },
 )
 

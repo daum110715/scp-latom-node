@@ -181,6 +181,7 @@ async function createOPFSStorage(): Promise<TerminalStorage | null> {
           const text = await file.text()
           return JSON.parse(text) as PersistedState
         } catch {
+          // File doesn't exist yet or is corrupted — start fresh
           return null
         }
       },
@@ -278,8 +279,8 @@ function debounce<T extends (...args: unknown[]) => Promise<void>>(
   return (...args: Parameters<T>) => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
-      fn(...args).catch(() => {
-        // Swallow save errors — non-critical
+      fn(...args).catch((e) => {
+        console.warn('[storage] Debounced save failed:', e instanceof Error ? e.message : e)
       })
       timer = null
     }, ms)

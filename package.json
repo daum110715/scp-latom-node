@@ -56,8 +56,16 @@
     "vue-tsc": "^3.3.5"
   },
   "lint-staged": {
-    "*.{ts,tsx,vue}": [
+    "src/**/*.{ts,tsx,vue}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "admin/**/*.{ts,tsx,vue}": [
+      "sh -c 'cd admin && npx eslint --fix \"${0#admin/}\"'",
+      "prettier --write"
+    ],
+    "worker/**/*.{ts,tsx,json}": [
+      "sh -c 'cd worker && npx eslint --fix \"${0#worker/}\"'",
       "prettier --write"
     ],
     "*.{css,json}": [

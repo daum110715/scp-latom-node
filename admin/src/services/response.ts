@@ -1,4 +1,4 @@
-import { ErrorCode } from './errors'
+import { ErrorCode, httpStatusToErrorCode } from './errors'
 
 export type ApiResult<T = unknown> =
   { ok: true; data: T } | { ok: false; code: ErrorCode; error: string }
@@ -12,8 +12,8 @@ export function normalizeResponse<T>(json: Record<string, unknown>, status: numb
   if (status >= 400 || json?.success === false) {
     return {
       ok: false,
-      code: mapStatusToCode(status),
-      error: json?.error || `HTTP ${status}`,
+      code: httpStatusToErrorCode(status),
+      error: (typeof json?.error === 'string' ? json.error : null) || `HTTP ${status}`,
     }
   }
 
@@ -27,22 +27,5 @@ export function networkError(message?: string): ApiResult<never> {
     ok: false,
     code: ErrorCode.NETWORK,
     error: message || 'Network error',
-  }
-}
-
-function mapStatusToCode(status: number): ErrorCode {
-  switch (status) {
-    case 401:
-      return ErrorCode.UNAUTHORIZED
-    case 403:
-      return ErrorCode.FORBIDDEN
-    case 404:
-      return ErrorCode.NOT_FOUND
-    case 409:
-      return ErrorCode.CONFLICT
-    case 429:
-      return ErrorCode.RATE_LIMITED
-    default:
-      return status >= 500 ? ErrorCode.SERVER : ErrorCode.UNKNOWN
   }
 }

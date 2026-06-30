@@ -36,8 +36,9 @@ export function useTerminal() {
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
     try {
       result.fitAddon.fit()
-    } catch {
-      // container may not be ready yet — ResizeObserver will retry
+    } catch (e) {
+      // Container may not be fully laid out yet — ResizeObserver will retry
+      console.debug('[terminal] fitAddon.fit() deferred:', e instanceof Error ? e.message : e)
     }
     terminalReady.value = true
   }

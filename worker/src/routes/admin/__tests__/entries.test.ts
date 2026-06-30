@@ -348,7 +348,7 @@ describe('Admin Entry Routes', () => {
       expect(body.message).toContain('re-fetch triggered')
     })
 
-    it('still succeeds when DO fetch fails', async () => {
+    it('returns 502 when DO fetch fails', async () => {
       const token = await signAdminToken()
       const env = createEnv(
         { entry: { id: 1, scp_number: 173, language: 'en' } },
@@ -363,8 +363,9 @@ describe('Admin Entry Routes', () => {
         env,
       )
       const body = await res.json<any>()
-      expect(res.status).toBe(200)
-      expect(body.message).toContain('re-fetch triggered')
+      expect(res.status).toBe(502)
+      expect(body.success).toBe(false)
+      expect(body.error).toContain('re-fetch failed')
     })
 
     it('returns 404 for nonexistent entry', async () => {

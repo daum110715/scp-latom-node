@@ -318,7 +318,7 @@ describe('glmChat retry', () => {
     const resultPromise = glmChat({
       apiKey: 'key',
       messages: [{ role: 'user', content: 'Test' }],
-    }).catch((e) => e) // Catch to prevent unhandled rejection
+    }).catch((err) => err) // Catch to prevent unhandled rejection
 
     // Advance past all retry delays (1s + 2s + 4s = 7s)
     await vi.advanceTimersByTimeAsync(8000)
