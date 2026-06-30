@@ -2,7 +2,6 @@
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
-import SearchModal from '@/components/layout/SearchModal.vue'
 import BackToTop from '@/components/common/BackToTop.vue'
 import ErrorBoundary from '@/components/common/ErrorBoundary.vue'
 import MobileLayout from '@/components/mobile/MobileLayout.vue'
@@ -33,8 +32,6 @@ const route = useRoute()
           <AppFooter />
         </div>
       </main>
-
-      <SearchModal />
     </template>
 
     <!-- Mobile Layout -->

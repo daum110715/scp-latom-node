@@ -4,8 +4,10 @@ import { useLocale } from '@/composables/useLocale'
 import { useSearchStore } from '@/stores/search'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import InlineSearch from './InlineSearch.vue'
+import { Sun, Moon } from 'lucide-vue-next'
 
 const { theme, toggle: toggleTheme } = useTheme()
 const { toggleLocale } = useLocale()
@@ -18,10 +20,20 @@ const breadcrumbs = computed(() => {
   const key = route.meta.titleKey as string
   return key ? t(key) : t('nav.home')
 })
+
+// Inline search emits this so the header shell can keep its center-element
+// transition in sync with the search collapse animation (see .header-center).
+const isSearchClosing = ref(false)
 </script>
 
 <template>
-  <header class="header">
+  <header
+    class="header"
+    :class="{
+      'search-expanded': search.isOpen && !isSearchClosing,
+      'search-closing': isSearchClosing,
+    }"
+  >
     <div class="header-left">
       <router-link to="/" class="logo-link">
         <div class="logo-icon">
@@ -46,82 +58,42 @@ const breadcrumbs = computed(() => {
     </div>
 
     <div class="header-right">
-      <button class="search-btn" :title="t('header.searchTitle')" @click="search.open">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
+      <!-- 右侧按钮组 - 固定在最右边 -->
+      <div class="right-buttons">
+        <button class="lang-btn" :title="t('header.langSwitch')" @click="toggleLocale">
+          <span class="lang-label">{{ t('header.langSwitch') }}</span>
+        </button>
+
+        <button
+          class="icon-btn"
+          :title="theme === 'dark' ? t('header.lightMode') : t('header.darkMode')"
+          @click="toggleTheme"
         >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <span class="search-label">{{ t('header.searchPlaceholder') }}</span>
-        <kbd>⌘K</kbd>
-      </button>
+          <Transition name="fade" mode="out-in">
+            <Sun v-if="theme === 'dark'" key="sun" :size="18" />
+            <Moon v-else key="moon" :size="18" />
+          </Transition>
+        </button>
 
-      <button class="lang-btn" :title="t('header.langSwitch')" @click="toggleLocale">
-        <span class="lang-label">{{ t('header.langSwitch') }}</span>
-      </button>
+        <!-- Auth: logged in -->
+        <router-link
+          v-if="auth.isAuthenticated"
+          to="/profile"
+          class="user-btn"
+          :title="t('auth.profile')"
+        >
+          <div class="user-avatar">{{ auth.user?.codename?.charAt(0).toUpperCase() }}</div>
+          <span class="user-codename">{{ auth.user?.codename }}</span>
+        </router-link>
 
-      <button
-        class="icon-btn"
-        :title="theme === 'dark' ? t('header.lightMode') : t('header.darkMode')"
-        @click="toggleTheme"
-      >
-        <Transition name="fade" mode="out-in">
-          <svg
-            v-if="theme === 'dark'"
-            key="sun"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-          <svg
-            v-else
-            key="moon"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        </Transition>
-      </button>
+        <!-- Auth: logged out -->
+        <router-link v-else to="/login" class="login-btn">
+          {{ t('auth.loginBtn') }}
+        </router-link>
+      </div>
 
-      <!-- Auth: logged in -->
-      <router-link
-        v-if="auth.isAuthenticated"
-        to="/profile"
-        class="user-btn"
-        :title="t('auth.profile')"
-      >
-        <div class="user-avatar">{{ auth.user?.codename?.charAt(0).toUpperCase() }}</div>
-        <span class="user-codename">{{ auth.user?.codename }}</span>
-      </router-link>
-
-      <!-- Auth: logged out -->
-      <router-link v-else to="/login" class="login-btn">
-        {{ t('auth.loginBtn') }}
-      </router-link>
+      <!-- 搜索区域 - 在按钮组左侧，向左展开（右边缘固定） -->
+      <InlineSearch @closing-change="isSearchClosing = $event" />
     </div>
   </header>
 </template>
@@ -153,7 +125,7 @@ const breadcrumbs = computed(() => {
 }
 
 .header-left {
-  flex: 1;
+  flex: none;
 }
 
 .logo-link {
@@ -204,7 +176,17 @@ const breadcrumbs = computed(() => {
 
 .header-center {
   flex: 1;
+  min-width: 0;
   text-align: center;
+  transition: transform 220ms var(--ease-out-expo);
+}
+
+.header.search-closing .header-center {
+  transition-delay: 70ms;
+}
+
+.header.search-expanded .header-center {
+  transform: translateX(calc((min(420px, 50vw) - 150px) / 6));
 }
 
 .breadcrumb {
@@ -215,64 +197,27 @@ const breadcrumbs = computed(() => {
 }
 
 .header-right {
-  flex: 1;
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-sm);
 }
 
-.search-btn {
+/* 右侧按钮组 - 固定在最右边 */
+.right-buttons {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  transition: all var(--transition-fast);
-}
-
-.search-btn:hover {
-  border-color: var(--border-default);
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-.search-label {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .search-label {
-    display: inline;
-  }
-}
-
-kbd {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
-  display: none;
-}
-
-@media (min-width: 640px) {
-  kbd {
-    display: inline;
-  }
+  flex-shrink: 0;
 }
 
 .lang-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
+  height: 36px;
+  padding: 0 10px;
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -310,7 +255,11 @@ kbd {
 
 /* Auth buttons */
 .login-btn {
-  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
   border-radius: var(--radius-md);
   background: var(--color-primary);
   color: var(--text-inverse);
@@ -347,7 +296,8 @@ kbd {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: 4px 10px 4px 4px;
+  height: 36px;
+  padding: 0 10px 0 4px;
   border-radius: var(--radius-full);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);

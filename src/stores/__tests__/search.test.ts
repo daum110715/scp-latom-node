@@ -70,9 +70,16 @@ describe('useSearchStore', () => {
   })
 
   describe('open/close/toggle', () => {
-    it('open() sets isOpen to true and hides body overflow', () => {
+    it('open() sets isOpen to true without hiding body overflow by default', () => {
       const store = useSearchStore()
       store.open()
+      expect(store.isOpen).toBe(true)
+      expect(document.body.style.overflow).toBe('')
+    })
+
+    it('open({ lockScroll: true }) sets isOpen to true and hides body overflow', () => {
+      const store = useSearchStore()
+      store.open({ lockScroll: true })
       expect(store.isOpen).toBe(true)
       expect(document.body.style.overflow).toBe('hidden')
     })
@@ -85,6 +92,19 @@ describe('useSearchStore', () => {
       expect(document.body.style.overflow).toBe('')
     })
 
+    it('close() after open({ lockScroll: true }) restores body overflow and resets the flag', () => {
+      const store = useSearchStore()
+      store.open({ lockScroll: true })
+      expect(document.body.style.overflow).toBe('hidden')
+      store.close()
+      expect(store.isOpen).toBe(false)
+      expect(document.body.style.overflow).toBe('')
+      // locksScroll must be reset so a subsequent default open() doesn't re-lock
+      store.open()
+      expect(store.isOpen).toBe(true)
+      expect(document.body.style.overflow).toBe('')
+    })
+
     it('toggle() toggles between open and closed', () => {
       const store = useSearchStore()
       expect(store.isOpen).toBe(false)
@@ -92,6 +112,13 @@ describe('useSearchStore', () => {
       expect(store.isOpen).toBe(true)
       store.toggle()
       expect(store.isOpen).toBe(false)
+    })
+
+    it('toggle({ lockScroll: true }) hides body overflow (mobile fullscreen path)', () => {
+      const store = useSearchStore()
+      store.toggle({ lockScroll: true })
+      expect(store.isOpen).toBe(true)
+      expect(document.body.style.overflow).toBe('hidden')
     })
   })
 

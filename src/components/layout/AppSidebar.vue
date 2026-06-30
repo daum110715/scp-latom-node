@@ -4,6 +4,17 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSidebar } from '@/composables/useSidebar'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
+import {
+  LayoutDashboard,
+  Grid2x2,
+  FileText,
+  Diamond,
+  Clock,
+  Terminal,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-vue-next'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -12,16 +23,16 @@ const { terminalEnabled } = useFeatureFlags()
 
 const navItems = computed(() => {
   const items = [
-    { path: '/', labelKey: 'nav.dashboard', icon: '◈' },
-    { path: '/catalog', labelKey: 'nav.catalog', icon: '☰' },
-    { path: '/documents', labelKey: 'nav.documents', icon: '◫' },
-    { path: '/proposals', labelKey: 'nav.proposals', icon: '◇' },
-    { path: '/activity', labelKey: 'nav.activity', icon: '◧' },
+    { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+    { path: '/catalog', labelKey: 'nav.catalog', icon: Grid2x2 },
+    { path: '/documents', labelKey: 'nav.documents', icon: FileText },
+    { path: '/proposals', labelKey: 'nav.proposals', icon: Diamond },
+    { path: '/activity', labelKey: 'nav.activity', icon: Clock },
   ]
   if (terminalEnabled.value) {
-    items.push({ path: '/terminal', labelKey: 'nav.terminal', icon: '⏣' })
+    items.push({ path: '/terminal', labelKey: 'nav.terminal', icon: Terminal })
   }
-  items.push({ path: '/about', labelKey: 'nav.about', icon: '◎' })
+  items.push({ path: '/about', labelKey: 'nav.about', icon: Info })
   return items
 })
 </script>
@@ -41,7 +52,7 @@ const navItems = computed(() => {
         :title="collapsed ? t(item.labelKey) : undefined"
         :style="{ animationDelay: `${index * 50 + 200}ms` }"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon"><component :is="item.icon" :size="18" /></span>
         <span class="nav-label">{{ t(item.labelKey) }}</span>
       </router-link>
     </nav>
@@ -70,18 +81,8 @@ const navItems = computed(() => {
       :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
       @click="toggle"
     >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <polyline :points="collapsed ? '6 3 11 8 6 13' : '10 3 5 8 10 13'" />
-      </svg>
+      <ChevronRight v-if="collapsed" :size="16" :stroke-width="1.5" />
+      <ChevronLeft v-else :size="16" :stroke-width="1.5" />
     </button>
   </aside>
 
