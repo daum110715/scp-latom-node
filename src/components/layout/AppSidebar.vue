@@ -4,6 +4,16 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSidebar } from '@/composables/useSidebar'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
+import {
+  ChevronLeft,
+  ChevronRight,
+  House,
+  Grid2x2,
+  FileText,
+  Diamond,
+  LayoutGrid,
+  Info,
+} from 'lucide-vue-next'
 
 const { t } = useI18n()
 const route = useRoute()

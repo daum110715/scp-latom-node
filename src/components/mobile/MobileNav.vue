@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
+import { House, Grid2x2, FileText, Diamond, LayoutGrid, Info, User } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const route = useRoute()
