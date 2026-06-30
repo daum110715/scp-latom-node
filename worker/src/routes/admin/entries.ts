@@ -199,6 +199,7 @@ entries.post('/:id/refetch', async (c) => {
       entryId: id,
       error: err instanceof Error ? err.message : String(err),
     })
+    return c.json({ success: false, error: 'Content cleared but re-fetch failed' }, 502)
   }
 
   return c.json({ success: true, message: 'Content cleared and re-fetch triggered' })
