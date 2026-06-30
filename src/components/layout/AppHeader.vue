@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { computed, ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useSearchResults } from '@/composables/useSearchResults'
 import { Search, SearchX, ChevronRight, Sun, Moon } from 'lucide-vue-next'
 
 const { theme, toggle: toggleTheme } = useTheme()
@@ -67,29 +68,7 @@ function updateShortcutKeyWidth() {
   })
 }
 
-const searchResults = computed(() => {
-  const items: Array<{ type: string; id: string; title: string; subtitle: string; route: string }> =
-    []
-  for (const e of search.filteredEntries) {
-    items.push({
-      type: 'entry',
-      id: e.id,
-      title: `SCP-${String(e.number).padStart(3, '0')}`,
-      subtitle: t(`entries.${e.id}.name`),
-      route: `/entry/${e.id}`,
-    })
-  }
-  for (const d of search.filteredDocuments) {
-    items.push({
-      type: 'document',
-      id: d.id,
-      title: t(`docs.${d.id}.title`),
-      subtitle: t(`documents.types.${d.type}`),
-      route: `/documents`,
-    })
-  }
-  return items
-})
+const { searchResults } = useSearchResults()
 
 function expandSearch() {
   if (searchCloseTimer) {

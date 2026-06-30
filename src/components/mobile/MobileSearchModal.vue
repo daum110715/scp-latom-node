@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearchStore } from '@/stores/search'
+import { useSearchResults } from '@/composables/useSearchResults'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -9,30 +10,7 @@ const search = useSearchStore()
 const router = useRouter()
 const inputRef = ref<HTMLInputElement | null>(null)
 const selectedIndex = ref(0)
-
-const results = computed(() => {
-  const items: Array<{ type: string; id: string; title: string; subtitle: string; route: string }> =
-    []
-  for (const e of search.filteredEntries) {
-    items.push({
-      type: 'entry',
-      id: e.id,
-      title: `SCP-${String(e.number).padStart(3, '0')}`,
-      subtitle: t(`entries.${e.id}.name`),
-      route: `/entry/${e.id}`,
-    })
-  }
-  for (const d of search.filteredDocuments) {
-    items.push({
-      type: 'document',
-      id: d.id,
-      title: t(`docs.${d.id}.title`),
-      subtitle: t(`documents.types.${d.type}`),
-      route: `/documents`,
-    })
-  }
-  return items
-})
+const { searchResults } = useSearchResults()
 
 watch(
   () => search.isOpen,
@@ -48,12 +26,12 @@ watch(
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'ArrowDown') {
     e.preventDefault()
-    selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1)
+    selectedIndex.value = Math.min(selectedIndex.value + 1, searchResults.value.length - 1)
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
     selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
-  } else if (e.key === 'Enter' && results.value[selectedIndex.value]) {
-    navigate(results.value[selectedIndex.value].route)
+  } else if (e.key === 'Enter' && searchResults.value[selectedIndex.value]) {
+    navigate(searchResults.value[selectedIndex.value].route)
   }
 }
 
@@ -115,10 +93,12 @@ onUnmounted(() => window.removeEventListener('keydown', globalKeydown))
           </button>
         </div>
 
-        <div v-if="results.length > 0" class="search-results">
-          <div class="results-count">{{ t('search.results', { count: results.length }) }}</div>
+        <div v-if="searchResults.length > 0" class="search-results">
+          <div class="results-count">
+            {{ t('search.results', { count: searchResults.length }) }}
+          </div>
           <button
-            v-for="(item, i) in results"
+            v-for="(item, i) in searchResults"
             :key="item.id"
             class="result-item"
             :class="{ selected: i === selectedIndex }"
