@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
+import { Home, Grid2x2, FileText, Diamond, Clock, Terminal, Info, User } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -10,18 +11,18 @@ const { terminalEnabled } = useFeatureFlags()
 
 const navItems = computed(() => {
   const items = [
-    { path: '/', icon: 'home', labelKey: 'nav.home' },
-    { path: '/catalog', icon: 'catalog', labelKey: 'nav.catalog' },
-    { path: '/documents', icon: 'documents', labelKey: 'nav.documents' },
-    { path: '/proposals', icon: 'proposals', labelKey: 'nav.proposals' },
-    { path: '/activity', icon: 'activity', labelKey: 'nav.activity' },
+    { path: '/', icon: Home, labelKey: 'nav.home' },
+    { path: '/catalog', icon: Grid2x2, labelKey: 'nav.catalog' },
+    { path: '/documents', icon: FileText, labelKey: 'nav.documents' },
+    { path: '/proposals', icon: Diamond, labelKey: 'nav.proposals' },
+    { path: '/activity', icon: Clock, labelKey: 'nav.activity' },
   ]
   if (terminalEnabled.value) {
-    items.push({ path: '/terminal', icon: 'terminal', labelKey: 'nav.terminal' })
+    items.push({ path: '/terminal', icon: Terminal, labelKey: 'nav.terminal' })
   }
   items.push(
-    { path: '/about', icon: 'about', labelKey: 'nav.about' },
-    { path: '/profile', icon: 'profile', labelKey: 'auth.profile' },
+    { path: '/about', icon: Info, labelKey: 'nav.about' },
+    { path: '/profile', icon: User, labelKey: 'auth.profile' },
   )
   return items
 })
@@ -41,116 +42,7 @@ function isActive(path: string): boolean {
       class="nav-item"
       :class="{ active: isActive(item.path) }"
     >
-      <!-- Home -->
-      <svg
-        v-if="item.icon === 'home'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-      <!-- Catalog -->
-      <svg
-        v-else-if="item.icon === 'catalog'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <rect x="3" y="3" width="7" height="7" />
-        <rect x="14" y="3" width="7" height="7" />
-        <rect x="3" y="14" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" />
-      </svg>
-      <!-- Documents -->
-      <svg
-        v-else-if="item.icon === 'documents'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-      <!-- Proposals -->
-      <svg
-        v-else-if="item.icon === 'proposals'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M12 2l10 10-10 10L2 12z" />
-      </svg>
-      <!-- Activity -->
-      <svg
-        v-else-if="item.icon === 'activity'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-      <!-- Terminal -->
-      <svg
-        v-else-if="item.icon === 'terminal'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polyline points="4 17 10 11 4 5" />
-        <line x1="12" y1="19" x2="20" y2="19" />
-      </svg>
-      <!-- About -->
-      <svg
-        v-else-if="item.icon === 'about'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-      <!-- Profile -->
-      <svg
-        v-else-if="item.icon === 'profile'"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
+      <component :is="item.icon" :size="22" />
 
       <span class="nav-label">{{ t(item.labelKey) }}</span>
     </router-link>
