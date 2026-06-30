@@ -28,6 +28,9 @@ const useCompactSearchLabel = ref(false)
 // Only the short label-swap delay stays as a timer — it has no matching CSS
 // transition to hook into (it runs during width/opacity transitions).
 const SEARCH_LABEL_SWAP_MS = 70
+
+const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent)
+const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl+K'))
 const SHORTCUT_KEY_CHROME = {
   esc: 18,
   compact: 16,
@@ -184,7 +187,7 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
     @transitionend="onSearchTransitionEnd"
   >
     <span ref="shortcutEscMeasureRef" class="shortcut-measure">ESC</span>
-    <span ref="shortcutCompactMeasureRef" class="shortcut-measure">Ctrl+K</span>
+    <span ref="shortcutCompactMeasureRef" class="shortcut-measure">{{ shortcutLabel }}</span>
 
     <button
       v-if="!search.isOpen && !isSearchClosing"
@@ -196,7 +199,7 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
         <Search :size="18" />
       </span>
       <span class="search-label">{{ t('header.searchPlaceholder') }}</span>
-      <kbd class="shortcut-key">Ctrl+K</kbd>
+      <kbd class="shortcut-key">{{ shortcutLabel }}</kbd>
     </button>
 
     <div
@@ -232,7 +235,7 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
       <kbd class="esc-key" :class="{ compact: useCompactSearchLabel }" :style="shortcutKeyStyle">
         <Transition name="shortcut" mode="out-in">
           <span :key="useCompactSearchLabel ? 'shortcut' : 'esc'" class="shortcut-value">
-            {{ useCompactSearchLabel ? 'Ctrl+K' : 'ESC' }}
+            {{ useCompactSearchLabel ? shortcutLabel : 'ESC' }}
           </span>
         </Transition>
       </kbd>
@@ -387,7 +390,7 @@ watch(useCompactSearchLabel, updateShortcutKeyWidth)
   }
 }
 
-kbd {
+.search-container kbd {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   box-sizing: border-box;
@@ -404,12 +407,12 @@ kbd {
   white-space: nowrap;
 }
 
-kbd span {
+.search-container kbd span {
   display: inline-block;
 }
 
 @media (min-width: 640px) {
-  kbd {
+  .search-container kbd {
     display: inline-flex;
     align-items: center;
     justify-content: center;
