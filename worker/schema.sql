@@ -303,3 +303,13 @@ INSERT OR IGNORE INTO tags (id, category_id, name, name_zh, description, ai_keyw
   ('TH009', 'theme', 'Electronic',      '电子/电脑', '涉及电子或计算机技术',            '["电子","电脑","技术","数字"]', 9),
   ('TH010', 'theme', 'Sky',             '天空',     '生活在空中或通过空气传播',          '["天空","空中","飞行","空气"]', 10),
   ('TH011', 'theme', 'Warm',            '温馨',     '给人温暖、治愈或积极感受的条目',    '["温暖","治愈","积极","感动","友善"]', 11);
+
+-- ─── Dynamic CORS Origins ───────────────────────────────────
+-- Admin-managed, additive to the CORS_ORIGINS wrangler.toml var — lets new
+-- origins be allowed without a redeploy. See worker/src/utils/cors-origins.ts.
+
+CREATE TABLE IF NOT EXISTS cors_origins (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  origin     TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

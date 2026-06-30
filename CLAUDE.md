@@ -35,6 +35,11 @@ npm run db:schema       # Apply schema to remote D1 database
 npm run db:schema:local # Apply schema to local D1 database
 ```
 
+The Worker needs a one-time `worker/.dev.vars` (gitignored, copy from
+`worker/.dev.vars.example`) providing a local `JWT_SECRET` — without it, auth
+endpoints fail locally. Production sets its own `JWT_SECRET` via
+`wrangler secret put`, never via `wrangler.toml` (see SECURITY.md).
+
 ### Admin Dashboard (admin/ directory)
 ```bash
 cd admin

@@ -72,13 +72,13 @@ npm run db:schema:local  # Apply to local D1 (for development)
 
 ## Environment Variables
 
-### Backend (`worker/wrangler.toml` `[vars]`)
+### Backend
 
-| Variable | Description |
-| -------- | ----------- |
-| `JWT_SECRET` | Secret key for JWT signing. **MUST be changed from the default before production.** |
-| `CORS_ORIGINS` | Comma-separated list of allowed origins. Supports wildcard subdomains (e.g., `https://*.scp.lat`). |
-| `GLM_API_KEY` | ZhipuAI API key for AI chat functionality. |
+| Variable | Set via | Description |
+| -------- | ------- | ----------- |
+| `JWT_SECRET` | `wrangler secret put JWT_SECRET` (prod) / `worker/.dev.vars` (local, gitignored) | Secret key for JWT signing. Never put the real value in `wrangler.toml` — a plaintext `[vars]` entry is redeployed (and clobbers a same-named secret) on every `wrangler deploy`. |
+| `CORS_ORIGINS` | `worker/wrangler.toml` `[vars]` | Comma-separated list of allowed origins. Supports wildcard subdomains (e.g., `https://*.scp.lat`). Additional origins can be added at runtime via the admin Settings UI (stored in D1, see `cors_origins` table). |
+| `GLM_API_KEY` | `wrangler secret put GLM_API_KEY` (prod) / `worker/.dev.vars` (local) | ZhipuAI API key for AI chat functionality. |
 
 ### Durable Objects
 
@@ -162,7 +162,7 @@ make typecheck # Type-check only
 
 Before deploying to production:
 
-1. [ ] Change `JWT_SECRET` in `wrangler.toml` to a strong, unique secret
+1. [ ] Set a strong, unique `JWT_SECRET` via `wrangler secret put JWT_SECRET` (cd `worker/`) — do not put it in `wrangler.toml`
 2. [ ] Set `GLM_API_KEY` for AI chat functionality
 3. [ ] Verify `CORS_ORIGINS` only includes your actual domains
 4. [ ] Ensure D1 database bindings are correctly configured
