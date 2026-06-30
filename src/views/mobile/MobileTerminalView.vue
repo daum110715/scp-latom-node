@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
-import { useAuthStore } from '@/stores/auth'
 import {
   bootstrapTerminal,
   getDarkTheme,
@@ -13,20 +13,18 @@ import { createTerminalStorage, type TerminalStorage } from '@/terminal/storage'
 
 const { t } = useI18n()
 const { theme } = useTheme()
-const auth = useAuthStore()
+const router = useRouter()
 
 const terminalContainer = ref<HTMLDivElement>()
 const visible = ref(false)
+const launched = ref(false)
 const terminalReady = ref(false)
 let result: BootstrapResult | null = null
 let storage: TerminalStorage | null = null
 
-const userName = computed(() => auth.user?.codename || 'researcher')
-
 async function initTerminal() {
   if (!terminalContainer.value) return
 
-  // Initialize storage once (survives theme toggles)
   if (!storage) {
     storage = await createTerminalStorage()
   }
@@ -38,9 +36,24 @@ async function initTerminal() {
   })
 }
 
-onMounted(async () => {
+async function launch() {
+  launched.value = true
   await nextTick()
   await initTerminal()
+}
+
+function exitTerminal() {
+  if (result) {
+    result.save().then(() => {
+      result!.dispose()
+      result = null
+    })
+  }
+  launched.value = false
+  terminalReady.value = false
+}
+
+onMounted(() => {
   requestAnimationFrame(() => {
     visible.value = true
   })
@@ -54,7 +67,6 @@ onBeforeUnmount(async () => {
   }
 })
 
-// Smooth theme transition — update xterm theme in-place without recreating
 watch(theme, () => {
   if (!result) return
   const newTheme = theme.value === 'dark' ? getDarkTheme() : getLightTheme()
@@ -63,74 +75,41 @@ watch(theme, () => {
 </script>
 
 <template>
-  <div class="m-terminal" :class="{ visible }">
-    <!-- Header -->
-    <header class="m-terminal-header">
-      <div class="m-header-left">
-        <span class="m-header-icon">⏣</span>
-        <span class="m-header-title">{{ t('nav.terminal') }}</span>
-      </div>
-      <div class="m-header-right">
-        <span class="m-status-dot"></span>
-        <span class="m-status-text">{{ t('terminal.status') }}</span>
-      </div>
-    </header>
-
-    <!-- Terminal wrapper -->
-    <div class="m-terminal-wrapper" :class="{ ready: terminalReady }">
-      <!-- Chrome -->
-      <div class="m-chrome">
-        <div class="m-chrome-left">
-          <div class="m-chrome-dots">
-            <span class="m-dot m-dot-close"></span>
-            <span class="m-dot m-dot-minimize"></span>
-            <span class="m-dot m-dot-maximize"></span>
-          </div>
-          <span class="m-chrome-title">{{ userName }}@LATOM-7</span>
-        </div>
-        <span class="m-chrome-badge">bash</span>
-      </div>
-
-      <!-- Terminal body -->
-      <div class="m-terminal-body">
-        <div ref="terminalContainer" class="m-terminal-container"></div>
-        <div class="m-scanlines"></div>
-      </div>
-
-      <!-- Status bar -->
-      <div class="m-statusbar">
-        <span class="m-statusbar-item">
-          <span class="m-statusbar-dot"></span>
-          {{ t('terminal.statusConnected') }}
-        </span>
-        <span class="m-statusbar-item">UTF-8</span>
-        <span class="m-statusbar-item">xterm</span>
+  <!-- Confirmation Gate -->
+  <div v-if="!launched" class="m-terminal" :class="{ visible }">
+    <div class="confirm-card">
+      <div class="confirm-icon">⏣</div>
+      <h2 class="confirm-title">{{ t('terminal.confirmTitle') }}</h2>
+      <p class="confirm-desc">{{ t('terminal.confirmDesc') }}</p>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" @click="router.push('/')">
+          {{ t('terminal.confirmBack') }}
+        </button>
+        <button class="btn btn-primary" @click="launch">
+          <span class="btn-dot"></span>
+          {{ t('terminal.confirmLaunch') }}
+        </button>
       </div>
     </div>
-
-    <!-- Footer hints -->
-    <footer class="m-terminal-footer">
-      <span class="m-hint">
-        <span class="m-hint-key">help</span>
-        {{ t('terminal.hintHelp') }}
-      </span>
-      <span class="m-hint-sep">·</span>
-      <span class="m-hint">
-        <span class="m-hint-key">Tab</span>
-        {{ t('terminal.hintTab') }}
-      </span>
-    </footer>
   </div>
+
+  <!-- Full-Screen Terminal -->
+  <Teleport to="body">
+    <div v-if="launched" class="terminal-fullscreen" :class="{ ready: terminalReady }">
+      <div ref="terminalContainer" class="terminal-container-fs"></div>
+      <button class="exit-btn" :title="t('terminal.exitTerminal')" @click="exitTerminal">✕</button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
+/* ═══ Confirmation Gate ═══ */
 .m-terminal {
   display: flex;
-  flex-direction: column;
-  /* 100dvh minus mobile header (52px) minus mobile nav (56px) minus content padding */
+  align-items: center;
+  justify-content: center;
   height: calc(100dvh - 52px - 56px - var(--space-lg) * 2);
   padding: var(--space-md);
-  position: relative;
   opacity: 0;
   transform: translateY(12px);
   transition: all 600ms var(--ease-out-expo);
@@ -141,54 +120,87 @@ watch(theme, () => {
   transform: translateY(0);
 }
 
-/* ═══ Header ═══ */
-.m-terminal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-  flex-shrink: 0;
-  animation: fade-up 500ms var(--ease-out-expo) 100ms backwards;
+.confirm-card {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-lg);
+  animation: fade-up 600ms var(--ease-out-expo) 200ms backwards;
 }
 
-.m-header-left {
+.confirm-icon {
+  font-size: 40px;
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 12px var(--color-primary-muted));
+  margin-bottom: var(--space-md);
+}
+
+.confirm-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.confirm-desc {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-lg);
+}
+
+.confirm-actions {
   display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  letter-spacing: 0.02em;
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.m-header-icon {
-  font-size: var(--text-lg);
-  color: var(--color-primary);
-  filter: drop-shadow(0 0 6px var(--color-primary-muted));
+.btn-primary:hover {
+  filter: brightness(1.1);
 }
 
-.m-header-title {
-  font-size: var(--text-base);
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.01em;
-}
-
-.m-header-right {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  background: var(--color-success-muted);
-  border: 1px solid rgba(74, 222, 128, 0.12);
-  border-radius: var(--radius-full);
-}
-
-.m-status-dot {
-  width: 5px;
-  height: 5px;
+.btn-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--color-success);
-  box-shadow: 0 0 6px var(--color-success);
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -202,206 +214,92 @@ watch(theme, () => {
   }
 }
 
-.m-status-text {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--color-success);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-/* ═══ Terminal Wrapper ═══ */
-.m-terminal-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  box-shadow:
-    var(--shadow-md),
-    0 0 0 1px var(--border-subtle);
-  min-height: 0;
+/* ═══ Full-Screen Terminal ═══ */
+.terminal-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0c0c14;
   opacity: 0;
-  transform: translateY(8px) scale(0.995);
-  transition: all 500ms var(--ease-out-expo);
-  transition-delay: 150ms;
+  transition: opacity 400ms ease;
 }
 
-.m-terminal-wrapper.ready {
+[data-theme='light'] .terminal-fullscreen {
+  background: #f6f6fc;
+}
+
+.terminal-fullscreen.ready {
   opacity: 1;
-  transform: translateY(0) scale(1);
 }
 
-/* ═══ Chrome ═══ */
-.m-chrome {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  height: 34px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-
-.m-chrome-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.m-chrome-dots {
-  display: flex;
-  gap: 5px;
-}
-
-.m-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.m-dot-close {
-  background: #ef4444;
-}
-
-.m-dot-minimize {
-  background: #facc15;
-}
-
-.m-dot-maximize {
-  background: #4ade80;
-}
-
-.m-chrome-title {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-tertiary);
-  letter-spacing: 0.02em;
-}
-
-.m-chrome-badge {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-tertiary);
-  padding: 1px 6px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-sm);
-  letter-spacing: 0.02em;
-}
-
-/* ═══ Terminal Body ═══ */
-.m-terminal-body {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  background: var(--bg-primary);
-}
-
-.m-terminal-container {
+.terminal-container-fs {
   position: absolute;
   inset: 0;
-  padding: 2px;
+  padding: 2px 4px;
 }
 
-.m-scanlines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.025) 2px,
-    rgba(0, 0, 0, 0.025) 4px
-  );
-  z-index: 1;
-  opacity: 0.3;
-}
-
-[data-theme='light'] .m-scanlines {
-  opacity: 0.1;
-}
-
-.m-terminal-container :deep(.xterm) {
+.terminal-container-fs :deep(.xterm) {
   height: 100%;
   padding: 2px 0;
 }
 
-.m-terminal-container :deep(.xterm-viewport) {
+.terminal-container-fs :deep(.xterm-viewport) {
   overflow-y: auto !important;
 }
 
-.m-terminal-container :deep(.xterm-cursor-layer) {
+.terminal-container-fs :deep(.xterm-screen) {
+  height: 100%;
+}
+
+.terminal-container-fs :deep(.xterm-cursor-layer) {
   z-index: 2;
 }
 
-/* ═══ Status Bar ═══ */
-.m-statusbar {
+.exit-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 10000;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
-  padding: 0 12px;
-  height: 24px;
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border-subtle);
-  flex-shrink: 0;
+  font-size: 16px;
+  color: #6b6b82;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.m-statusbar-item {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  letter-spacing: 0.02em;
+[data-theme='light'] .exit-btn {
+  color: #7a7a92;
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.m-statusbar-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-success);
-  box-shadow: 0 0 3px var(--color-success);
+.exit-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
 }
 
-/* ═══ Footer ═══ */
-.m-terminal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) 0 0;
-  flex-shrink: 0;
-  animation: fade-up 500ms var(--ease-out-expo) 400ms backwards;
+[data-theme='light'] .exit-btn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.15);
 }
 
-.m-hint {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-}
-
-.m-hint-key {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-secondary);
-  padding: 0px 5px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 3px;
-  line-height: 1.5;
-}
-
-.m-hint-sep {
-  color: var(--border-default);
-  font-size: 10px;
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

@@ -815,6 +815,12 @@ Exploration team encountered unexpected spatial anomalies. 3 of 8 team members r
     hintHistory: 'history',
     hintTab: 'complete',
     hintClear: 'clear',
+    confirmTitle: 'Launch Terminal?',
+    confirmDesc:
+      'You are about to access the LATOM-7 secure terminal. All activity is monitored and logged for security purposes.',
+    confirmLaunch: 'Launch',
+    confirmBack: 'Go Back',
+    exitTerminal: 'Exit',
   },
   notFound: {
     accessDenied: 'ACCESS DENIED',
