@@ -717,13 +717,13 @@ const { t, visible } = useAbout()
 }
 
 .terminal-dot.red {
-  background: #ef4444;
+  background: var(--class-keter);
 }
 .terminal-dot.yellow {
-  background: #facc15;
+  background: var(--class-euclid);
 }
 .terminal-dot.green {
-  background: #4ade80;
+  background: var(--class-safe);
 }
 
 .terminal-title {
