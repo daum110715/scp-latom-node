@@ -3,7 +3,8 @@
  * cp, mv, write, append, grep, find.
  */
 
-import type { FSNode } from '../filesystem'
+import type { FSNode, FSDirNode } from '../filesystem'
+import { isDir } from '../filesystem'
 import { register, rp, rps } from './types'
 
 // ── ls ──
@@ -115,8 +116,7 @@ register('tree', 'Display directory tree structure', 'tree [path]', (ctx) => {
   const dirName = target === '.' ? ctx.cwd : target
   lines.push(dirName)
 
-  function walk(n: FSNode, prefix: string) {
-    if (!n.children) return
+  function walk(n: FSDirNode, prefix: string) {
     const entries = [...n.children.values()]
     entries.forEach((child, i) => {
       const isLast = i === entries.length - 1
@@ -129,7 +129,7 @@ register('tree', 'Display directory tree structure', 'tree [path]', (ctx) => {
     })
   }
 
-  walk(node, '')
+  if (isDir(node)) walk(node, '')
   return lines
 })
 
@@ -355,14 +355,13 @@ register('find', 'Find files by name pattern', 'find [path] -name <pattern>', (c
   const globRegex = new RegExp(
     '^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.') + '$',
   )
-  function walk(n: FSNode, path: string) {
-    if (!n.children) return
+  function walk(n: FSDirNode, path: string) {
     for (const [name, child] of n.children) {
       const childPath = path === '/' ? `/${name}` : `${path}/${name}`
       if (globRegex.test(name)) results.push(childPath)
       if (child.type === 'dir') walk(child, childPath)
     }
   }
-  walk(node, searchPath === '.' ? '' : searchPath)
+  if (isDir(node)) walk(node, searchPath === '.' ? '' : searchPath)
   return results.length > 0 ? results : ['(no matches)']
 })

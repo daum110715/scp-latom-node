@@ -18,7 +18,7 @@ function getRequestId(c: LoggerContext): string {
  * Logs at `info` level for all requests. 4xx/5xx responses are also
  * persisted to D1 via the logger's warn/error persistence.
  */
-export function requestLogger(env: Env) {
+export function requestLogger(env: Env): (c: LoggerContext, next: Next) => Promise<void> {
   const baseLogger = new Logger({
     level: (env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') ?? 'info',
     db: env.DB,

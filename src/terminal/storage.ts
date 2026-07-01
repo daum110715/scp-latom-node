@@ -8,6 +8,7 @@
  */
 
 import type { FSNode } from './filesystem'
+import { isFile, isDir } from './filesystem'
 
 // ── Types ──
 
@@ -80,7 +81,7 @@ export function deserializeFSNode(name: string, data: SerializedFSDelta[string])
 export function computeFSDelta(currentRoot: FSNode, defaultRoot: FSNode): SerializedFSDelta {
   const delta: SerializedFSDelta = {}
 
-  if (currentRoot.type !== 'dir' || defaultRoot.type !== 'dir') return delta
+  if (!isDir(currentRoot) || !isDir(defaultRoot)) return delta
 
   // Find user-added or modified nodes
   for (const [name, currentNode] of currentRoot.children) {
@@ -125,7 +126,7 @@ export function mergeFilesystemDelta(defaultRoot: FSNode, delta: SerializedFSDel
   // Deep-clone the default tree via serialization roundtrip
   const cloned = cloneFSNode(defaultRoot)
 
-  if (cloned.type !== 'dir') return cloned
+  if (!isDir(cloned)) return cloned
 
   for (const [name, deltaEntry] of Object.entries(delta)) {
     if (deltaEntry.deleted) {
@@ -134,7 +135,7 @@ export function mergeFilesystemDelta(defaultRoot: FSNode, delta: SerializedFSDel
       cloned.children.set(name, { type: 'file', name, content: deltaEntry.content ?? '' })
     } else if (deltaEntry.type === 'dir') {
       const existing = cloned.children.get(name)
-      if (existing && existing.type === 'dir' && deltaEntry.children) {
+      if (existing && isDir(existing) && deltaEntry.children) {
         // Recursively merge into existing directory
         const merged = mergeFilesystemDelta(existing, deltaEntry.children)
         cloned.children.set(name, merged)
@@ -152,7 +153,7 @@ export function mergeFilesystemDelta(defaultRoot: FSNode, delta: SerializedFSDel
  * Deep-clone an FSNode tree.
  */
 function cloneFSNode(node: FSNode): FSNode {
-  if (node.type === 'file') {
+  if (isFile(node)) {
     return { type: 'file', name: node.name, content: node.content }
   }
   const map = new Map<string, FSNode>()

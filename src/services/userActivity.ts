@@ -55,19 +55,28 @@ export interface HistoryParams {
 
 // ─── Bookmark API ──────────────────────────────────────────
 
-export function fetchBookmarks() {
+export function fetchBookmarks(): Promise<ApiResult<BookmarksResponse>> {
   return apiGet<BookmarksResponse>('/bookmarks')
 }
 
-export function addBookmark(lang: string, scpNumber: number) {
+export function addBookmark(
+  lang: string,
+  scpNumber: number,
+): Promise<ApiResult<BookmarkActionResponse>> {
   return apiPost<BookmarkActionResponse>(`/bookmarks/${lang}/${scpNumber}`)
 }
 
-export function removeBookmark(lang: string, scpNumber: number) {
+export function removeBookmark(
+  lang: string,
+  scpNumber: number,
+): Promise<ApiResult<BookmarkActionResponse>> {
   return apiDelete<BookmarkActionResponse>(`/bookmarks/${lang}/${scpNumber}`)
 }
 
-export function checkBookmark(lang: string, scpNumber: number) {
+export function checkBookmark(
+  lang: string,
+  scpNumber: number,
+): Promise<ApiResult<BookmarkCheckResponse>> {
   return apiGet<BookmarkCheckResponse>(`/bookmarks/${lang}/${scpNumber}`)
 }
 

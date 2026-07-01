@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createFilesystem, type FSNode } from '../filesystem'
+import { createFilesystem } from '../filesystem'
+import type { FSNode, FSDirNode, FSFileNode } from '../filesystem'
 import {
   serializeFSNode,
   deserializeFSNode,
@@ -15,19 +16,19 @@ import {
 
 describe('serializeFSNode', () => {
   it('serializes a file node', () => {
-    const node: FSNode = { type: 'file', name: 'test.txt', content: 'hello' }
+    const node: FSFileNode = { type: 'file', name: 'test.txt', content: 'hello' }
     const result = serializeFSNode(node)
     expect(result).toEqual({ type: 'file', content: 'hello' })
   })
 
   it('serializes a file node with empty content', () => {
-    const node: FSNode = { type: 'file', name: 'empty.txt', content: '' }
+    const node: FSFileNode = { type: 'file', name: 'empty.txt', content: '' }
     const result = serializeFSNode(node)
     expect(result).toEqual({ type: 'file', content: '' })
   })
 
   it('serializes a directory with children', () => {
-    const dir: FSNode = {
+    const dir: FSDirNode = {
       type: 'dir',
       name: 'root',
       children: new Map([
@@ -46,7 +47,7 @@ describe('serializeFSNode', () => {
   })
 
   it('serializes nested directories', () => {
-    const root: FSNode = {
+    const root: FSDirNode = {
       type: 'dir',
       name: '/',
       children: new Map([
@@ -75,7 +76,7 @@ describe('serializeFSNode', () => {
   })
 
   it('serializes an empty directory', () => {
-    const dir: FSNode = { type: 'dir', name: 'empty', children: new Map() }
+    const dir: FSDirNode = { type: 'dir', name: 'empty', children: new Map() }
     const result = serializeFSNode(dir)
     expect(result).toEqual({ type: 'dir', children: {} })
   })
@@ -97,11 +98,11 @@ describe('deserializeFSNode', () => {
         'a.txt': { type: 'file' as const, content: 'aaa' },
       },
     }
-    const result = deserializeFSNode('root', data)
+    const result = deserializeFSNode('root', data) as FSDirNode
     expect(result.type).toBe('dir')
     expect(result.name).toBe('root')
     expect(result.children).toBeInstanceOf(Map)
-    expect(result.children?.get('a.txt')).toEqual({ type: 'file', name: 'a.txt', content: 'aaa' })
+    expect(result.children.get('a.txt')).toEqual({ type: 'file', name: 'a.txt', content: 'aaa' })
   })
 
   it('roundtrips through serialize and deserialize', () => {
@@ -110,13 +111,14 @@ describe('deserializeFSNode', () => {
     const restored = deserializeFSNode('/', serialized)
 
     // Check top-level structure
-    expect(restored.type).toBe('dir')
-    expect(restored.children?.has('etc')).toBe(true)
-    expect(restored.children?.has('scp')).toBe(true)
+    const restoredDir = restored as FSDirNode
+    expect(restoredDir.type).toBe('dir')
+    expect(restoredDir.children.has('etc')).toBe(true)
+    expect(restoredDir.children.has('scp')).toBe(true)
 
     // Check nested file
-    const etc = restored.children?.get('etc')
-    expect(etc?.children?.get('hostname')?.content).toBe('LATOM-7\n')
+    const etc = restoredDir.children.get('etc') as FSDirNode
+    expect((etc.children.get('hostname') as FSFileNode).content).toBe('LATOM-7\n')
   })
 })
 
@@ -134,9 +136,10 @@ describe('computeFSDelta', () => {
     const defaultTree = createFilesystem()
 
     // Add a new file to /home/researcher
-    const home = current.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    if (researcher?.children) {
+    const currentDir = current as FSDirNode
+    const home = currentDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    if (researcher.children) {
       researcher.children.set('user-file.txt', {
         type: 'file',
         name: 'user-file.txt',
@@ -158,9 +161,10 @@ describe('computeFSDelta', () => {
     const defaultTree = createFilesystem()
 
     // Add a new directory to /home/researcher
-    const home = current.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    if (researcher?.children) {
+    const currentDir = current as FSDirNode
+    const home = currentDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    if (researcher.children) {
       researcher.children.set('mydir', {
         type: 'dir',
         name: 'mydir',
@@ -181,9 +185,10 @@ describe('computeFSDelta', () => {
     const defaultTree = createFilesystem()
 
     // Modify an existing file
-    const home = current.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    const notes = researcher?.children?.get('notes.txt')
+    const currentDir = current as FSDirNode
+    const home = currentDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    const notes = researcher.children.get('notes.txt') as FSFileNode | undefined
     if (notes) {
       notes.content = 'modified content'
     }
@@ -201,9 +206,10 @@ describe('computeFSDelta', () => {
     const defaultTree = createFilesystem()
 
     // Delete a file from /home/researcher
-    const home = current.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    researcher?.children?.delete('notes.txt')
+    const currentDir = current as FSDirNode
+    const home = currentDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    researcher.children.delete('notes.txt')
 
     const delta = computeFSDelta(current, defaultTree)
     const researcherDelta = delta.home?.children?.researcher
@@ -215,9 +221,10 @@ describe('computeFSDelta', () => {
     const defaultTree = createFilesystem()
 
     // Add one new file
-    const home = current.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    if (researcher?.children) {
+    const currentDir = current as FSDirNode
+    const home = currentDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    if (researcher.children) {
       researcher.children.set('new.txt', { type: 'file', name: 'new.txt', content: 'new' })
     }
 
@@ -250,14 +257,15 @@ describe('mergeFilesystemDelta', () => {
     }
 
     const merged = mergeFilesystemDelta(defaultTree, delta)
-    const home = merged.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    const userFile = researcher?.children?.get('user-file.txt')
+    const mergedDir = merged as FSDirNode
+    const home = mergedDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    const userFile = researcher.children.get('user-file.txt') as FSFileNode
     expect(userFile).toBeDefined()
-    expect(userFile?.content).toBe('user content')
+    expect(userFile.content).toBe('user content')
 
     // Default files should still exist
-    expect(researcher?.children?.has('notes.txt')).toBe(true)
+    expect(researcher.children.has('notes.txt')).toBe(true)
   })
 
   it('applies deleted nodes from delta', () => {
@@ -277,25 +285,31 @@ describe('mergeFilesystemDelta', () => {
     }
 
     const merged = mergeFilesystemDelta(defaultTree, delta)
-    const home = merged.children?.get('home')
-    const researcher = home?.children?.get('researcher')
-    expect(researcher?.children?.has('notes.txt')).toBe(false)
+    const mergedDir = merged as FSDirNode
+    const home = mergedDir.children.get('home') as FSDirNode
+    const researcher = home.children.get('researcher') as FSDirNode
+    expect(researcher.children.has('notes.txt')).toBe(false)
     // Other files should remain
-    expect(researcher?.children?.has('.bashrc')).toBe(true)
+    expect(researcher.children.has('.bashrc')).toBe(true)
   })
 
   it('preserves default tree when delta is empty', () => {
     const defaultTree = createFilesystem()
     const merged = mergeFilesystemDelta(defaultTree, {})
 
-    expect(merged.children?.has('etc')).toBe(true)
-    expect(merged.children?.has('scp')).toBe(true)
-    expect(merged.children?.has('home')).toBe(true)
+    const mergedDir = merged as FSDirNode
+    expect(mergedDir.children.has('etc')).toBe(true)
+    expect(mergedDir.children.has('scp')).toBe(true)
+    expect(mergedDir.children.has('home')).toBe(true)
   })
 
   it('does not mutate the default tree', () => {
     const defaultTree = createFilesystem()
-    const etcBefore = defaultTree.children?.get('etc')?.children?.get('hostname')?.content
+    const defaultDir = defaultTree as FSDirNode
+    const etcBefore = (defaultDir.children.get('etc') as FSDirNode).children.get(
+      'hostname',
+    ) as FSFileNode
+    const contentBefore = etcBefore.content
 
     const delta: SerializedFSDelta = {
       home: {
@@ -314,8 +328,10 @@ describe('mergeFilesystemDelta', () => {
     mergeFilesystemDelta(defaultTree, delta)
 
     // Default tree should be unchanged
-    const etcAfter = defaultTree.children?.get('etc')?.children?.get('hostname')?.content
-    expect(etcAfter).toBe(etcBefore)
+    const etcAfter = (defaultDir.children.get('etc') as FSDirNode).children.get(
+      'hostname',
+    ) as FSFileNode
+    expect(etcAfter.content).toBe(contentBefore)
   })
 
   it('full roundtrip: compute delta then merge', () => {
@@ -323,9 +339,10 @@ describe('mergeFilesystemDelta', () => {
     const modified = createFilesystem()
 
     // Make changes
-    const modHome = modified.children?.get('home')
-    const modResearcher = modHome?.children?.get('researcher')
-    if (modResearcher?.children) {
+    const modifiedDir = modified as FSDirNode
+    const modHome = modifiedDir.children.get('home') as FSDirNode
+    const modResearcher = modHome.children.get('researcher') as FSDirNode
+    if (modResearcher.children) {
       modResearcher.children.set('test.txt', { type: 'file', name: 'test.txt', content: 'test' })
       modResearcher.children.delete('notes.txt')
     }
@@ -337,11 +354,12 @@ describe('mergeFilesystemDelta', () => {
     const merged = mergeFilesystemDelta(defaultTree, delta)
 
     // Verify merged tree matches modified tree
-    const mHome = merged.children?.get('home')
-    const mResearcher = mHome?.children?.get('researcher')
-    expect(mResearcher?.children?.has('test.txt')).toBe(true)
-    expect(mResearcher?.children?.get('test.txt')?.content).toBe('test')
-    expect(mResearcher?.children?.has('notes.txt')).toBe(false)
+    const mergedDir = merged as FSDirNode
+    const mHome = mergedDir.children.get('home') as FSDirNode
+    const mResearcher = mHome.children.get('researcher') as FSDirNode
+    expect(mResearcher.children.has('test.txt')).toBe(true)
+    expect((mResearcher.children.get('test.txt') as FSFileNode).content).toBe('test')
+    expect(mResearcher.children.has('notes.txt')).toBe(false)
   })
 })
 

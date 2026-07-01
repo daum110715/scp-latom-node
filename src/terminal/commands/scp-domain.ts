@@ -3,6 +3,7 @@
  * incident, protocol, status, audit, alert, staff.
  */
 
+import { isFile } from '../filesystem'
 import { register, rp } from './types'
 
 // ── matrix ──
@@ -27,7 +28,7 @@ register('scp', 'Look up an SCP entry by number', 'scp <number>', (ctx) => {
   const padded = num.padStart(3, '0')
   const filePath = `/scp/scp-${padded}.txt`
   const node = rp(ctx.root, '/', filePath, ctx.env)
-  if (!node || !node.content) {
+  if (!node || !isFile(node)) {
     return [
       `SCP-${padded}: FILE NOT FOUND`,
       '',
@@ -140,7 +141,7 @@ register('incident', 'Look up incident reports', 'incident [id]', (ctx) => {
   const id = ctx.args[0].toUpperCase()
   if (id.includes('2024-0312')) {
     const node = rp(ctx.root, '/', '/documents/incident-report-2024-03.txt', ctx.env)
-    if (node?.content) return node.content.split('\n')
+    if (node && isFile(node)) return node.content.split('\n')
   }
   return [`incident: report '${ctx.args[0]}' not found or access denied`]
 })
@@ -165,7 +166,7 @@ register('protocol', 'Look up Foundation protocols', 'protocol [name]', (ctx) =>
   const name = ctx.args[0].toUpperCase()
   if (name.includes('OMEGA')) {
     const node = rp(ctx.root, '/', '/documents/protocol-omega.txt', ctx.env)
-    if (node?.content) return node.content.split('\n')
+    if (node && isFile(node)) return node.content.split('\n')
   }
   return [
     `Protocol ${name}: DETAILS CLASSIFIED`,
@@ -196,7 +197,7 @@ register('status', 'Display system and containment status', 'status', () => {
 // ── audit ──
 register('audit', 'Display audit log', 'audit', (ctx) => {
   const node = rp(ctx.root, '/', '/logs/access.log', ctx.env)
-  if (!node?.content) return ['(no audit records)']
+  if (!node || !isFile(node)) return ['(no audit records)']
   const lines = node.content.split('\n').filter(Boolean)
   return [
     '╔══════════════════════════════════════════════════════════╗',

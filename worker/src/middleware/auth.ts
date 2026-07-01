@@ -23,7 +23,7 @@ function extractToken(c: AuthContext): string | undefined {
   return undefined
 }
 
-export async function authMiddleware(c: AuthContext, next: Next) {
+export async function authMiddleware(c: AuthContext, next: Next): Promise<Response | void> {
   const token = extractToken(c)
   if (!token) {
     return c.json({ success: false, error: 'Authentication required' }, 401)

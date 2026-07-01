@@ -18,6 +18,14 @@ export interface FSDirNode {
 
 export type FSNode = FSFileNode | FSDirNode
 
+export function isFile(node: FSNode): node is FSFileNode {
+  return node.type === 'file'
+}
+
+export function isDir(node: FSNode): node is FSDirNode {
+  return node.type === 'dir'
+}
+
 export function file(name: string, content: string): FSFileNode {
   return { type: 'file', name, content }
 }

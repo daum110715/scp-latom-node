@@ -5,6 +5,7 @@
  */
 
 import type { FSNode } from '../filesystem'
+import { isFile, isDir } from '../filesystem'
 import { register, rp, commands } from './types'
 
 // ── neofetch ──
@@ -92,7 +93,7 @@ register('who', 'Show logged-in users', 'who', () => {
 // ── last ──
 register('last', 'Show last login entries', 'last', (ctx) => {
   const node = rp(ctx.root, '/', '/var/log/lastlog', ctx.env)
-  if (!node || !node.content) return ['(no login records)']
+  if (!node || !isFile(node)) return ['(no login records)']
   return node.content.split('\n').filter(Boolean)
 })
 
@@ -155,9 +156,9 @@ register('du', 'Display directory disk usage', 'du [-h] [path]', (ctx) => {
     return [human ? `${(size / 1024).toFixed(1)}K\t${path}` : `${Math.ceil(size / 1024)}\t${path}`]
   }
   function calcSize(n: FSNode): number {
-    if (n.type === 'file') return (n.content || '').length
+    if (isFile(n)) return n.content.length
     let total = 0
-    if (n.children) for (const child of n.children.values()) total += calcSize(child)
+    for (const child of n.children.values()) total += calcSize(child)
     return total
   }
   const size = calcSize(node)

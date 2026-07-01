@@ -1,11 +1,18 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
 
 export type DeviceType = 'mobile' | 'tablet' | 'desktop'
 
 const MOBILE_BREAKPOINT = 768
 const TABLET_BREAKPOINT = 1024
 
-export function useDevice() {
+export function useDevice(): {
+  width: Ref<number>
+  device: ComputedRef<DeviceType>
+  isMobile: ComputedRef<boolean>
+  isTablet: ComputedRef<boolean>
+  isDesktop: ComputedRef<boolean>
+  isMobileOrTablet: ComputedRef<boolean>
+} {
   const width = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
   let resizeTimer: ReturnType<typeof setTimeout> | null = null

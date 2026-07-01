@@ -2,17 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createShell } from '../shell'
 import { executeCommand, getCompletions, getCommandNames } from '../commands'
 import { createFilesystem, resolvePath, resolvePathString } from '../filesystem'
+import type { FSDirNode, FSFileNode } from '../filesystem'
 
 describe('filesystem', () => {
   const root = createFilesystem()
 
   it('creates root directory with expected children', () => {
     expect(root.type).toBe('dir')
-    expect(root.children?.has('etc')).toBe(true)
-    expect(root.children?.has('scp')).toBe(true)
-    expect(root.children?.has('documents')).toBe(true)
-    expect(root.children?.has('logs')).toBe(true)
-    expect(root.children?.has('home')).toBe(true)
+    const rootDir = root as FSDirNode
+    expect(rootDir.children.has('etc')).toBe(true)
+    expect(rootDir.children.has('scp')).toBe(true)
+    expect(rootDir.children.has('documents')).toBe(true)
+    expect(rootDir.children.has('logs')).toBe(true)
+    expect(rootDir.children.has('home')).toBe(true)
   })
 
   it('resolves absolute paths', () => {
@@ -20,7 +22,7 @@ describe('filesystem', () => {
     expect(node).not.toBeNull()
     expect(node?.type).toBe('file')
     expect(node?.name).toBe('hostname')
-    expect(node?.content).toContain('LATOM-7')
+    expect((node as FSFileNode).content).toContain('LATOM-7')
   })
 
   it('resolves relative paths', () => {
@@ -1009,10 +1011,11 @@ describe('shell', () => {
       shell.writePrompt()
       shell.processInput('mkdir mydir')
       // Verify the directory exists in the filesystem
-      const home = shell.state.root.children?.get('home')
-      const researcher = home?.children?.get('researcher')
-      expect(researcher?.children?.has('mydir')).toBe(true)
-      expect(researcher?.children?.get('mydir')?.type).toBe('dir')
+      const rootDir = shell.state.root as FSDirNode
+      const home = rootDir.children.get('home') as FSDirNode
+      const researcher = home.children.get('researcher') as FSDirNode
+      expect(researcher.children.has('mydir')).toBe(true)
+      expect(researcher.children.get('mydir')?.type).toBe('dir')
     })
 
     it('creates a file with touch', () => {
@@ -1023,10 +1026,11 @@ describe('shell', () => {
       })
       shell.writePrompt()
       shell.processInput('touch myfile.txt')
-      const home = shell.state.root.children?.get('home')
-      const researcher = home?.children?.get('researcher')
-      expect(researcher?.children?.has('myfile.txt')).toBe(true)
-      expect(researcher?.children?.get('myfile.txt')?.type).toBe('file')
+      const rootDir = shell.state.root as FSDirNode
+      const home = rootDir.children.get('home') as FSDirNode
+      const researcher = home.children.get('researcher') as FSDirNode
+      expect(researcher.children.has('myfile.txt')).toBe(true)
+      expect(researcher.children.get('myfile.txt')?.type).toBe('file')
     })
 
     it('removes a file with rm', () => {
@@ -1037,12 +1041,13 @@ describe('shell', () => {
       })
       shell.writePrompt()
       shell.processInput('touch tempfile.txt')
-      const home = shell.state.root.children?.get('home')
-      const researcher = home?.children?.get('researcher')
-      expect(researcher?.children?.has('tempfile.txt')).toBe(true)
+      const rootDir = shell.state.root as FSDirNode
+      const home = rootDir.children.get('home') as FSDirNode
+      const researcher = home.children.get('researcher') as FSDirNode
+      expect(researcher.children.has('tempfile.txt')).toBe(true)
 
       shell.processInput('rm tempfile.txt')
-      expect(researcher?.children?.has('tempfile.txt')).toBe(false)
+      expect(researcher.children.has('tempfile.txt')).toBe(false)
     })
 
     it('prevents mkdir on protected paths', () => {
@@ -1221,13 +1226,14 @@ describe('shell', () => {
       expect(shell.state.env.CUSTOM).toBe('value')
 
       // Verify merged filesystem
-      const home = shell.state.root.children?.get('home')
-      const researcher = home?.children?.get('researcher')
-      const projects = researcher?.children?.get('projects')
-      expect(projects?.children?.get('saved.txt')?.content).toBe('saved data')
+      const rootDir = shell.state.root as FSDirNode
+      const home = rootDir.children.get('home') as FSDirNode
+      const researcher = home.children.get('researcher') as FSDirNode
+      const projects = researcher.children.get('projects') as FSDirNode
+      expect((projects.children.get('saved.txt') as FSFileNode).content).toBe('saved data')
 
       // Default files should still exist
-      expect(researcher?.children?.has('notes.txt')).toBe(true)
+      expect(researcher.children.has('notes.txt')).toBe(true)
     })
   })
 })

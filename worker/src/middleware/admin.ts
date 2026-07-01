@@ -9,7 +9,7 @@ type AdminContext = Context<{ Bindings: Env; Variables: { user: JwtPayload } }>
  * Verifies JWT and checks that the user has role === 'admin'.
  * Returns 401 for missing/invalid token, 403 for non-admin users.
  */
-export async function adminMiddleware(c: AdminContext, next: Next) {
+export async function adminMiddleware(c: AdminContext, next: Next): Promise<Response | void> {
   const header = c.req.header('Authorization')
   if (!header?.startsWith('Bearer ')) {
     return c.json({ success: false, error: 'Missing or invalid authorization header' }, 401)

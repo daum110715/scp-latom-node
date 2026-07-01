@@ -484,9 +484,11 @@ export function createShell(options: ShellOptions) {
   }
 
   function getMotd(): string {
-    const etcNode = state.root.children?.get('etc')
-    const motdNode = etcNode?.children?.get('motd')
-    return motdNode?.content || ''
+    if (state.root.type !== 'dir') return ''
+    const etcNode = state.root.children.get('etc')
+    if (etcNode?.type !== 'dir') return ''
+    const motdNode = etcNode.children.get('motd')
+    return motdNode?.type === 'file' ? motdNode.content : ''
   }
 
   return {

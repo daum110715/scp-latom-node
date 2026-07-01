@@ -12,6 +12,6 @@ export async function getDynamicOrigins(db: D1Database): Promise<string[]> {
   return origins
 }
 
-export function invalidateDynamicOriginsCache() {
+export function invalidateDynamicOriginsCache(): void {
   cache = null
 }

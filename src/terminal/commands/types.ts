@@ -63,6 +63,6 @@ export function register(
   description: string,
   usage: string,
   handler: CommandHandler,
-) {
+): void {
   commands.set(name, { handler, description, usage })
 }

@@ -64,7 +64,9 @@ export const TYPE_ICON: Record<string, string> = {
 
 export const DOCUMENT_TYPES = ['protocol', 'research', 'incident', 'directive'] as const
 
-export function classVariant(c: string) {
+export function classVariant(
+  c: string,
+): 'default' | 'safe' | 'euclid' | 'keter' | 'thaumiel' | 'apollyon' {
   const map: Record<string, string> = {
     Unclassified: 'safe',
     Restricted: 'euclid',

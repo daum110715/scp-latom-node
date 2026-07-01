@@ -1,7 +1,11 @@
-import { computed } from 'vue'
+import { computed, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-export function useLocale() {
+export function useLocale(): {
+  currentLocale: ComputedRef<string>
+  toggleLocale: () => void
+  setLocale: (lang: string) => void
+} {
   const { locale } = useI18n()
 
   const currentLocale = computed(() => locale.value)

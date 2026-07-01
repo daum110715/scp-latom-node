@@ -122,19 +122,19 @@ async function request<T = unknown>(
   }
 }
 
-export function apiGet<T = unknown>(path: string) {
+export function apiGet<T = unknown>(path: string): Promise<ApiResult<T>> {
   return request<T>('GET', path)
 }
 
-export function apiPost<T = unknown>(path: string, body?: unknown) {
+export function apiPost<T = unknown>(path: string, body?: unknown): Promise<ApiResult<T>> {
   return request<T>('POST', path, body)
 }
 
-export function apiPut<T = unknown>(path: string, body?: unknown) {
+export function apiPut<T = unknown>(path: string, body?: unknown): Promise<ApiResult<T>> {
   return request<T>('PUT', path, body)
 }
 
-export function apiDelete<T = unknown>(path: string) {
+export function apiDelete<T = unknown>(path: string): Promise<ApiResult<T>> {
   return request<T>('DELETE', path)
 }
 
@@ -142,6 +142,6 @@ export function apiDelete<T = unknown>(path: string) {
  * POST with streaming response. Returns the raw Response on success for
  * the caller to consume as a stream, or a normalized error on failure.
  */
-export function apiStream(path: string, body?: unknown) {
+export function apiStream(path: string, body?: unknown): Promise<StreamResult> {
   return requestStream('POST', path, body)
 }

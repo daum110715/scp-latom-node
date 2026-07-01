@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 
 const STORAGE_KEY = 'scp-sidebar-collapsed'
 
@@ -19,7 +19,7 @@ watch(collapsed, (val) => {
   }
 })
 
-export function useSidebar() {
+export function useSidebar(): { collapsed: Ref<boolean>; toggle: () => void } {
   const toggle = () => {
     collapsed.value = !collapsed.value
   }

@@ -14,7 +14,9 @@ import { checkRateLimit, extractIp } from '../utils/rate-limit'
  *   - X-RateLimit-Reset     — Unix timestamp when the window resets
  *   - Retry-After           — seconds to wait (only on 429)
  */
-export function rateLimit(config: RateLimitConfig) {
+export function rateLimit(
+  config: RateLimitConfig,
+): (c: Context<{ Bindings: Env }>, next: Next) => Promise<Response | void> {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const ip = extractIp(c.req.raw.headers)
     const result = await checkRateLimit(c.env.DB, ip, null, config)

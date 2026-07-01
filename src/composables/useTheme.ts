@@ -1,4 +1,4 @@
-import { ref, watchEffect } from 'vue'
+import { ref, watchEffect, type Ref } from 'vue'
 
 type Theme = 'dark' | 'light'
 
@@ -18,7 +18,7 @@ function applyTheme(t: Theme) {
 
 watchEffect(() => applyTheme(theme.value))
 
-export function useTheme() {
+export function useTheme(): { theme: Ref<Theme>; toggle: () => void; set: (t: Theme) => void } {
   function toggle() {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
