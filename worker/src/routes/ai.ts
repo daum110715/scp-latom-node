@@ -84,7 +84,7 @@ function generateConversationId(): string {
 function sanitizeTitle(title: string): string {
   return title
     .replace(/<[^>]*>/g, '') // strip HTML tags
-    .replace(/[\x00-\x1f\x7f]/g, '') // strip control characters
+    .replace(/[\x00-\x1f\x7f]/g, '') // eslint-disable-line no-control-regex
     .trim()
     .slice(0, 100)
 }
