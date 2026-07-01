@@ -48,9 +48,6 @@ jobs:
   admin:
     name: Admin
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: admin
     steps:
       - uses: actions/checkout@v4
 
@@ -58,26 +55,22 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: admin/package-lock.json
 
       - run: npm ci
 
       - name: Type-check
-        run: npm run typecheck
+        run: cd admin && npm run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: cd admin && npm run lint
 
       - name: Test
-        run: npm run test
+        run: cd admin && npm run test
 
   # ─── Backend: type-check, test ───────────────────────────────────
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: worker
     steps:
       - uses: actions/checkout@v4
 
@@ -85,15 +78,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: worker/package-lock.json
 
       - run: npm ci
 
       - name: Type-check
-        run: npm run typecheck
+        run: cd worker && npm run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: cd worker && npm run lint
 
       - name: Test
-        run: npm run test
+        run: cd worker && npm run test
