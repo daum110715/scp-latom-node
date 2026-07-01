@@ -142,7 +142,7 @@ describe('UserActivity Store', () => {
       })
 
       it('handles duplicate (409) gracefully', async () => {
-        mockAddBookmark.mockResolvedValueOnce(errResult('Already bookmarked', 'ERR-409-CONFLICT'))
+        mockAddBookmark.mockResolvedValueOnce(errResult('Already bookmarked', ErrorCode.CONFLICT))
         const store = useUserActivityStore()
         const result = await store.addBookmark('en', 173)
 
