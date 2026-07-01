@@ -43,7 +43,7 @@ export function resolvePath(
   // Walk the tree
   let current = root
   for (const part of resolved) {
-    if (current.type !== 'dir' || !current.children) return null
+    if (current.type !== 'dir') return null
     const child = current.children.get(part)
     if (!child) return null
     current = child

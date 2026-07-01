@@ -1,19 +1,28 @@
 /**
  * Core types and constructors for the virtual filesystem.
+ * Uses a discriminated union so TypeScript narrows `children` to
+ * `Map` (never undefined) when `type === 'dir'`.
  */
 
-export interface FSNode {
-  type: 'file' | 'dir'
+export interface FSFileNode {
+  type: 'file'
   name: string
-  content?: string
-  children?: Map<string, FSNode>
+  content: string
 }
 
-export function file(name: string, content: string): FSNode {
+export interface FSDirNode {
+  type: 'dir'
+  name: string
+  children: Map<string, FSNode>
+}
+
+export type FSNode = FSFileNode | FSDirNode
+
+export function file(name: string, content: string): FSFileNode {
   return { type: 'file', name, content }
 }
 
-export function dir(name: string, children: FSNode[] = []): FSNode {
+export function dir(name: string, children: FSNode[] = []): FSDirNode {
   const map = new Map<string, FSNode>()
   for (const child of children) {
     map.set(child.name, child)

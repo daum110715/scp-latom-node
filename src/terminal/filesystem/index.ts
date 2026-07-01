@@ -2,7 +2,7 @@
  * Virtual filesystem barrel — re-exports the public API.
  */
 
-export type { FSNode } from './types'
+export type { FSNode, FSFileNode, FSDirNode } from './types'
 export { file, dir } from './types'
 export { createFilesystem } from './default-tree'
 export { resolvePath, resolvePathString } from './resolver'

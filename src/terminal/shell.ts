@@ -182,7 +182,7 @@ export function createShell(options: ShellOptions) {
       return `rm: cannot remove '${target}': No such file or directory`
     }
     // Don't allow removing non-empty directories
-    if (node.type === 'dir' && node.children && node.children.size > 0) {
+    if (node.type === 'dir' && node.children.size > 0) {
       return `rm: cannot remove '${name}': Directory not empty`
     }
     removeNode(parentNode, name)
@@ -224,7 +224,7 @@ export function createShell(options: ShellOptions) {
         return `cp: cannot copy '${src}': '${dest}/${childName}' already exists`
       }
       const cloned = deepClone(srcNode)
-      destNode.children!.set(childName, cloned)
+      destNode.children.set(childName, cloned)
       return null
     }
 
@@ -239,7 +239,7 @@ export function createShell(options: ShellOptions) {
     }
     const cloned = deepClone(srcNode)
     cloned.name = name
-    parentNode.children!.set(name, cloned)
+    parentNode.children.set(name, cloned)
     return null
   }
 
@@ -265,8 +265,8 @@ export function createShell(options: ShellOptions) {
       if (destNode.children?.has(srcName)) {
         return `mv: cannot move '${src}': '${dest}/${srcName}' already exists`
       }
-      srcParentNode.children!.delete(srcName)
-      destNode.children!.set(srcName, srcNode)
+      srcParentNode.children.delete(srcName)
+      destNode.children.set(srcName, srcNode)
       return null
     }
 
@@ -279,9 +279,9 @@ export function createShell(options: ShellOptions) {
     if (isProtectedPath(destPath)) {
       return `mv: cannot move to '${destName}': Permission denied (protected system path)`
     }
-    srcParentNode.children!.delete(srcName)
+    srcParentNode.children.delete(srcName)
     srcNode.name = destName
-    destParentNode.children!.set(destName, srcNode)
+    destParentNode.children.set(destName, srcNode)
     return null
   }
 
@@ -358,10 +358,8 @@ export function createShell(options: ShellOptions) {
       return { type: 'file', name: node.name, content: node.content }
     }
     const children = new Map<string, FSNode>()
-    if (node.children) {
-      for (const [key, child] of node.children) {
-        children.set(key, deepClone(child))
-      }
+    for (const [key, child] of node.children) {
+      children.set(key, deepClone(child))
     }
     return { type: 'dir', name: node.name, children }
   }

@@ -38,7 +38,7 @@ export function splitPath(path: string): { parent: string; name: string } {
  * Returns the new directory node, or null if it already exists.
  */
 export function createDir(parent: FSNode, name: string): FSNode | null {
-  if (parent.type !== 'dir' || !parent.children) return null
+  if (parent.type !== 'dir') return null
   if (parent.children.has(name)) return null
   const node: FSNode = { type: 'dir', name, children: new Map() }
   parent.children.set(name, node)
@@ -50,7 +50,7 @@ export function createDir(parent: FSNode, name: string): FSNode | null {
  * Returns the new file node, or null if it already exists.
  */
 export function createFile(parent: FSNode, name: string, content = ''): FSNode | null {
-  if (parent.type !== 'dir' || !parent.children) return null
+  if (parent.type !== 'dir') return null
   if (parent.children.has(name)) return null
   const node: FSNode = { type: 'file', name, content }
   parent.children.set(name, node)
@@ -62,7 +62,7 @@ export function createFile(parent: FSNode, name: string, content = ''): FSNode |
  * Returns true if removed, false if not found.
  */
 export function removeNode(parent: FSNode, name: string): boolean {
-  if (parent.type !== 'dir' || !parent.children) return false
+  if (parent.type !== 'dir') return false
   return parent.children.delete(name)
 }
 

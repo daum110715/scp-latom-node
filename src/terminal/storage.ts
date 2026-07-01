@@ -50,10 +50,8 @@ export function serializeFSNode(node: FSNode): SerializedFSDelta[string] {
     return { type: 'file', content: node.content ?? '' }
   }
   const children: SerializedFSDelta = {}
-  if (node.children) {
-    for (const [name, child] of node.children) {
-      children[name] = serializeFSNode(child)
-    }
+  for (const [name, child] of node.children) {
+    children[name] = serializeFSNode(child)
   }
   return { type: 'dir', children }
 }
@@ -82,7 +80,7 @@ export function deserializeFSNode(name: string, data: SerializedFSDelta[string])
 export function computeFSDelta(currentRoot: FSNode, defaultRoot: FSNode): SerializedFSDelta {
   const delta: SerializedFSDelta = {}
 
-  if (!currentRoot.children || !defaultRoot.children) return delta
+  if (currentRoot.type !== 'dir' || defaultRoot.type !== 'dir') return delta
 
   // Find user-added or modified nodes
   for (const [name, currentNode] of currentRoot.children) {
@@ -127,7 +125,7 @@ export function mergeFilesystemDelta(defaultRoot: FSNode, delta: SerializedFSDel
   // Deep-clone the default tree via serialization roundtrip
   const cloned = cloneFSNode(defaultRoot)
 
-  if (!cloned.children) return cloned
+  if (cloned.type !== 'dir') return cloned
 
   for (const [name, deltaEntry] of Object.entries(delta)) {
     if (deltaEntry.deleted) {
@@ -158,10 +156,8 @@ function cloneFSNode(node: FSNode): FSNode {
     return { type: 'file', name: node.name, content: node.content }
   }
   const map = new Map<string, FSNode>()
-  if (node.children) {
-    for (const [name, child] of node.children) {
-      map.set(name, cloneFSNode(child))
-    }
+  for (const [name, child] of node.children) {
+    map.set(name, cloneFSNode(child))
   }
   return { type: 'dir', name: node.name, children: map }
 }

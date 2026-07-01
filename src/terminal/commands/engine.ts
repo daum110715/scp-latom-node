@@ -141,7 +141,7 @@ export function getCompletions(
   }
 
   const dirNode = resolvePath(root, cwd, dirPath, homeDir)
-  if (!dirNode || dirNode.type !== 'dir' || !dirNode.children) return []
+  if (!dirNode || dirNode.type !== 'dir') return []
 
   const candidates: string[] = []
   for (const [name, child] of dirNode.children) {

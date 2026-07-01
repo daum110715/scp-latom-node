@@ -21,7 +21,7 @@ describe('serializeFSNode', () => {
   })
 
   it('serializes a file node with empty content', () => {
-    const node: FSNode = { type: 'file', name: 'empty.txt' }
+    const node: FSNode = { type: 'file', name: 'empty.txt', content: '' }
     const result = serializeFSNode(node)
     expect(result).toEqual({ type: 'file', content: '' })
   })
