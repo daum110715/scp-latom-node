@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ScpCrawlerDo } from '../scp-crawler'
 import * as httpClient from '../http-client'
+import { createMockD1Database, createMockEnv } from '../../test-helpers'
 import type { Env, CrawlState, CrawlEntry } from '../../types'
 
 // ─── Mocks ──────────────────────────────────────────────────
@@ -20,7 +21,7 @@ function createMockStorage(initialData: Record<string, unknown> = {}) {
   }
 }
 
-function createMockD1(existingState?: CrawlState, existingEntries?: CrawlEntry[]) {
+function createMockD1(existingState?: CrawlState, existingEntries?: CrawlEntry[]): D1Database {
   const entries = existingEntries ?? []
   const stateRow = existingState
     ? {
@@ -55,27 +56,26 @@ function createMockD1(existingState?: CrawlState, existingEntries?: CrawlEntry[]
       return stmt
     }),
     batch: vi.fn(async () => []),
-  }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as D1Database
 }
 
-function createMockEnv(overrides?: Partial<Env>): Env {
-  return {
-    DB: createMockD1() as unknown as D1Database,
+function createCrawlerMockEnv(overrides?: Partial<Env>): Env {
+  return createMockEnv({
+    DB: createMockD1(),
     JWT_SECRET: 'test',
-    CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
     ...overrides,
-  } as Env
+  })
 }
 
-function createMockState(storageData?: Record<string, unknown>) {
+function createCrawlerMockState(storageData?: Record<string, unknown>): DurableObjectState {
   const storage = createMockStorage(storageData)
   return {
     storage,
     id: 'mock-do-id',
     blockConcurrencyWhile: vi.fn(async (fn: () => Promise<void>) => fn()),
-  } as unknown as DurableObjectState
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as DurableObjectState
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -84,12 +84,12 @@ describe('ScpCrawlerDo', () => {
   let env: Env
 
   beforeEach(() => {
-    env = createMockEnv()
+    env = createCrawlerMockEnv()
   })
 
   describe('fetch handler', () => {
     it('returns error for missing language prefix', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/status')
@@ -102,7 +102,7 @@ describe('ScpCrawlerDo', () => {
     })
 
     it('returns status for /en/status', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/en/status')
@@ -120,7 +120,7 @@ describe('ScpCrawlerDo', () => {
     })
 
     it('returns status for /cn/status', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/cn/status')
@@ -133,7 +133,7 @@ describe('ScpCrawlerDo', () => {
     })
 
     it('returns empty entries when no data', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/en/entries')
@@ -170,11 +170,11 @@ describe('ScpCrawlerDo', () => {
       const storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 2 }
 
       const envWithD1 = {
-        ...createMockEnv(),
-        DB: createMockD1(storedState, storedEntries) as unknown as D1Database,
+        ...createCrawlerMockEnv(),
+        DB: createMockD1(storedState, storedEntries),
       }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       const req = new Request('https://do.scp/en/entries')
@@ -191,7 +191,7 @@ describe('ScpCrawlerDo', () => {
     })
 
     it('returns 404 for unknown paths', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/en/unknown')
@@ -201,7 +201,7 @@ describe('ScpCrawlerDo', () => {
     })
 
     it('triggers crawl via POST', async () => {
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, env)
 
       const req = new Request('https://do.scp/en/crawl', { method: 'POST' })
@@ -226,7 +226,7 @@ describe('ScpCrawlerDo', () => {
     function createSmartMockD1(
       existingEntries: CrawlEntry[],
       stateRow: { status: string; last_crawl: number; total_entries: number; error: string | null },
-    ) {
+    ): D1Database {
       return {
         prepare: vi.fn((sql: string) => {
           const stmt = {
@@ -257,7 +257,8 @@ describe('ScpCrawlerDo', () => {
           return stmt
         }),
         batch: vi.fn(async () => []),
-      }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any as D1Database
     }
 
     beforeEach(() => {
@@ -289,9 +290,9 @@ describe('ScpCrawlerDo', () => {
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       // Return HTML with 2 entries: 1 existing + 1 new
@@ -323,9 +324,9 @@ describe('ScpCrawlerDo', () => {
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 1, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       // Same SCP but name and class changed
@@ -361,9 +362,9 @@ describe('ScpCrawlerDo', () => {
       ]
       const stateRow = { status: 'idle', last_crawl: Date.now(), total_entries: 2, error: null }
       const d1 = createSmartMockD1(existingEntries, stateRow)
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       // Wiki returns both entries — SCP-173 unchanged, SCP-999 name changed
@@ -384,9 +385,9 @@ describe('ScpCrawlerDo', () => {
 
     it('re-arms alarm to next fixed daily time', async () => {
       const d1 = createMockD1()
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       await doInstance.alarm()
@@ -406,9 +407,9 @@ describe('ScpCrawlerDo', () => {
 
     it('skips crawling if language is already in crawling state', async () => {
       const d1 = createMockD1({ status: 'crawling', lastCrawl: Date.now(), totalEntries: 100 })
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
 
-      const state = createMockState()
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       await doInstance.alarm()
@@ -425,8 +426,8 @@ describe('ScpCrawlerDo', () => {
   describe('handleEntryContent', () => {
     it('returns 404 when entry not found in index', async () => {
       const d1 = createMockD1()
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
-      const state = createMockState()
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       const req = new Request('https://do.scp/en/entry/173')
@@ -451,7 +452,7 @@ describe('ScpCrawlerDo', () => {
       ]
       const _storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
 
-      const d1 = {
+      const d1: D1Database = {
         prepare: vi.fn((sql: string) => {
           const stmt = {
             _sql: sql,
@@ -484,10 +485,11 @@ describe('ScpCrawlerDo', () => {
           return stmt
         }),
         batch: vi.fn(async () => []),
-      }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any as D1Database
 
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
-      const state = createMockState()
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       const req = new Request('https://do.scp/en/entry/173')
@@ -512,7 +514,7 @@ describe('ScpCrawlerDo', () => {
       ]
       const _storedState: CrawlState = { status: 'idle', lastCrawl: Date.now(), totalEntries: 1 }
 
-      const d1 = {
+      const d1: D1Database = {
         prepare: vi.fn((sql: string) => {
           const stmt = {
             _sql: sql,
@@ -545,10 +547,11 @@ describe('ScpCrawlerDo', () => {
           return stmt
         }),
         batch: vi.fn(async () => []),
-      }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any as D1Database
 
-      const envWithD1 = { ...createMockEnv(), DB: d1 as unknown as D1Database }
-      const state = createMockState()
+      const envWithD1 = { ...createCrawlerMockEnv(), DB: d1 }
+      const state = createCrawlerMockState()
       const doInstance = new ScpCrawlerDo(state, envWithD1)
 
       // Mock fetchPageLikeBrowser to avoid real HTTP call

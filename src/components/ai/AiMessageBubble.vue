@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { AiMessage } from '@/services/ai'
+import { sanitizeHtml, escapeHtml } from '@/utils/sanitize'
 
 const props = defineProps<{
   message: AiMessage
@@ -12,11 +13,12 @@ const isAssistant = computed(() => props.message.role === 'assistant')
 
 const formattedContent = computed(() => {
   if (!isAssistant.value) return props.message.content
-  return renderSimpleMarkdown(props.message.content)
+  return sanitizeHtml(renderSimpleMarkdown(props.message.content))
 })
 
 function renderSimpleMarkdown(text: string): string {
-  let html = text
+  // Escape HTML first to prevent raw HTML injection from AI responses
+  let html = escapeHtml(text)
     // Code blocks
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>')
     // Inline code

@@ -89,8 +89,11 @@ export async function recordAttempt(
     .run()
 
   // Prune old rows to keep the table bounded (best-effort)
-  cleanupOldRecords(db, action).catch(() => {
-    // Swallow — cleanup is best-effort
+  cleanupOldRecords(db, action).catch((err) => {
+    console.warn(
+      '[rate-limit] Failed to prune old records:',
+      err instanceof Error ? err.message : err,
+    )
   })
 }
 

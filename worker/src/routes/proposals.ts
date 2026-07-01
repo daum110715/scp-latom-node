@@ -51,7 +51,7 @@ proposals.get('/', async (c) => {
       const payload = await verifyToken(header.slice(7), c.env.JWT_SECRET)
       if (payload) currentUserId = payload.sub
     } catch {
-      // ignore — unauthenticated
+      // Invalid or expired token — treat as unauthenticated
     }
   }
 
@@ -184,7 +184,7 @@ proposals.get('/:id', async (c) => {
       const payload = await verifyToken(header.slice(7), c.env.JWT_SECRET)
       if (payload) currentUserId = payload.sub
     } catch {
-      // ignore
+      // Invalid or expired token — treat as unauthenticated
     }
   }
 

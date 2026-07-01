@@ -12,33 +12,22 @@ export interface User {
   created_at?: string
 }
 
-/** Shape of user+token payloads from the backend. */
+/** Shape of user payloads from the backend. */
 interface AuthPayload {
   user: User
-  token?: string
 }
-
-const TOKEN_KEY = 'scp-auth-token'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string>(localStorage.getItem(TOKEN_KEY) || '')
   const loading = ref(false)
   const error = ref('')
   const errorCode = ref<ErrorCode | null>(null)
   const initialized = ref(false)
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
-
-  function setToken(t: string) {
-    token.value = t
-    localStorage.setItem(TOKEN_KEY, t)
-  }
+  const isAuthenticated = computed(() => !!user.value)
 
   function clearAuth() {
     user.value = null
-    token.value = ''
-    localStorage.removeItem(TOKEN_KEY)
   }
 
   function clearError() {
@@ -47,13 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Shared handler for auth endpoints that return { user, token? }.
+   * Shared handler for auth endpoints that return { user }.
    * Updates store state and returns success/failure.
    */
   function handleAuthResult(res: ApiResult<AuthPayload>, fallbackCode: ErrorCode): boolean {
     if (res.ok) {
       user.value = res.data.user
-      if (res.data.token) setToken(res.data.token)
       clearError()
       return true
     }
@@ -79,7 +67,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchProfile(): Promise<boolean> {
-    if (!token.value) return false
     loading.value = true
     clearError()
     const res = await apiGet<AuthPayload>('/auth/me')
@@ -106,7 +93,8 @@ export const useAuthStore = defineStore('auth', () => {
     return handleAuthResult(res, ErrorCode.UNKNOWN)
   }
 
-  function logout() {
+  async function logout() {
+    await apiPost('/auth/logout')
     clearAuth()
     clearError()
   }
@@ -118,9 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!initPromise) {
       initPromise = (async () => {
         try {
-          if (token.value) {
-            await fetchProfile()
-          }
+          await fetchProfile()
         } finally {
           initialized.value = true
         }
@@ -131,7 +117,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user,
-    token,
     loading,
     error,
     errorCode,

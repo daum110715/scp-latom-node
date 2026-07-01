@@ -437,9 +437,13 @@ tags.post('/entry/:scpNumber/auto', async (c) => {
   const scpNumber = parseInt(c.req.param('scpNumber'), 10)
   if (isNaN(scpNumber)) return c.json({ success: false, error: 'Invalid SCP number' }, 400)
 
-  const body = await c.req
-    .json<{ language?: string; force?: boolean }>()
-    .catch(() => ({}) as { language?: string; force?: boolean })
+  const body = await c.req.json<{ language?: string; force?: boolean }>().catch((err) => {
+    logger.warn('Malformed JSON body on auto-tag request — using defaults', {
+      scpNumber,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return {} as { language?: string; force?: boolean }
+  })
   const language = (body.language?.trim() || 'en') as 'en' | 'cn'
 
   if (language !== 'en' && language !== 'cn') {

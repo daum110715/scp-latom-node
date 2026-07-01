@@ -1,8 +1,14 @@
 import { Hono } from 'hono'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { getLoggerFromContext } from '../../utils/logger'
 import type { Env, AdminEntry } from '../../types'
 
 const entries = new Hono<{ Bindings: Env }>()
+
+/** Safely narrow a dynamic number to Hono's ContentfulStatusCode union. */
+function asStatus(status: number): ContentfulStatusCode {
+  return status as ContentfulStatusCode
+}
 
 const VALID_CLASSES = [
   'Safe',
@@ -226,7 +232,7 @@ entries.post('/crawl/:lang', async (c) => {
     logger.info(`Admin triggering crawl for language: ${lang}`)
     const response = await stub.fetch(`https://do.scp/${lang}${path}`, { method: 'POST' })
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error(`Failed to trigger crawl for ${lang}`, { error: message })

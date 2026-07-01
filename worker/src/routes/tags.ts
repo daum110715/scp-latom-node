@@ -10,6 +10,7 @@ function toTagPublic(tag: Tag): TagPublic {
   try {
     aiKeywords = JSON.parse(tag.ai_keywords)
   } catch {
+    console.warn(`[tags] Corrupted ai_keywords for tag ${tag.id} — falling back to empty list`)
     aiKeywords = []
   }
   return {

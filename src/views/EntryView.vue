@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { watch, onMounted } from 'vue'
+import { watch, onMounted, computed } from 'vue'
 import { useEntry } from '@/composables/useEntry'
 import { TAG_CATEGORY_LABELS } from '@/services/tags'
+import { sanitizeHtml } from '@/utils/sanitize'
 import EntryHeader from '@/components/entry/EntryHeader.vue'
 import ReportDialog from '@/components/common/ReportDialog.vue'
 
@@ -28,6 +29,10 @@ const {
   handleDownload,
   init,
 } = useEntry()
+
+const sanitizedContent = computed(() =>
+  data.value?.content ? sanitizeHtml(data.value.content) : '',
+)
 
 const BODY_SELECTOR = '.entry-body'
 
@@ -149,7 +154,7 @@ onMounted(() => {
       </div>
 
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div v-if="data.content" class="entry-body" v-html="data.content" />
+      <div v-if="sanitizedContent" class="entry-body" v-html="sanitizedContent" />
 
       <ReportDialog
         :open="reportOpen"

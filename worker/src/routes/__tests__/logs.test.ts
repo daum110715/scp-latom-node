@@ -1,19 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import logsRoute from '../logs'
+import { createMockD1Database, createMockNamespace } from '../../test-helpers'
 import type { Env } from '../../types'
 
-function createMockEnv(overrides?: Partial<Env>): Env {
+function createLogsMockEnv(overrides?: Partial<Env>): Env {
   return {
-    DB: {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({}),
-    } as unknown as D1Database,
+    DB: createMockD1Database(),
     JWT_SECRET: 'test-secret-key-at-least-32-chars-long',
     CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
+    SCP_EN_CRAWLER: createMockNamespace(),
+    SCP_CN_CRAWLER: createMockNamespace(),
     ...overrides,
   } as Env
 }
@@ -34,7 +31,7 @@ describe('POST /api/logs', () => {
 
   it('accepts valid log batch and returns counts', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -61,7 +58,7 @@ describe('POST /api/logs', () => {
 
   it('returns 400 for missing logs array', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -81,7 +78,7 @@ describe('POST /api/logs', () => {
 
   it('returns 400 for empty logs array', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -98,7 +95,7 @@ describe('POST /api/logs', () => {
 
   it('returns 400 for invalid JSON', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -115,7 +112,7 @@ describe('POST /api/logs', () => {
 
   it('returns 400 for batch exceeding max size', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const logs = Array.from({ length: 51 }, (_, i) => ({
       level: 'error',
@@ -139,7 +136,7 @@ describe('POST /api/logs', () => {
 
   it('skips entries with invalid level', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -163,7 +160,7 @@ describe('POST /api/logs', () => {
 
   it('skips entries with empty or too-long messages', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {
@@ -188,7 +185,7 @@ describe('POST /api/logs', () => {
 
   it('accepts debug/info entries without persisting them', async () => {
     const app = createApp()
-    const env = createMockEnv()
+    const env = createLogsMockEnv()
 
     const res = await app.request(
       new Request('http://localhost/api/logs', {

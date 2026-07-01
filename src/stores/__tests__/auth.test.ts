@@ -18,7 +18,6 @@ const mockApiPut = vi.mocked(apiPut)
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    localStorage.clear()
     mockApiPost.mockReset()
     mockApiGet.mockReset()
     mockApiPut.mockReset()
@@ -47,18 +46,18 @@ describe('useAuthStore', () => {
   })
 
   describe('isAuthenticated', () => {
-    it('is true when both token and user are set', () => {
-      useAuthStore()
-      // Simulate a successful login result
+    it('is true when user is set', async () => {
       mockApiPost.mockResolvedValueOnce({
         ok: true,
         data: {
           user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc123',
         },
       })
-      // We can't easily test the computed without calling the action,
-      // so let's test via login
+
+      const store = useAuthStore()
+      await store.login('agent', 'password123')
+
+      expect(store.isAuthenticated).toBe(true)
     })
   })
 
@@ -68,7 +67,6 @@ describe('useAuthStore', () => {
         ok: true,
         data: {
           user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc123',
         },
       })
 
@@ -82,12 +80,11 @@ describe('useAuthStore', () => {
       })
     })
 
-    it('sets user and token on success', async () => {
+    it('sets user on success', async () => {
       mockApiPost.mockResolvedValueOnce({
         ok: true,
         data: {
           user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc123',
         },
       })
 
@@ -95,24 +92,8 @@ describe('useAuthStore', () => {
       await store.login('agent', 'password123')
 
       expect(store.user).toEqual({ id: 1, codename: 'agent', role: 'personnel', clearance: 1 })
-      expect(store.token).toBe('abc123')
       expect(store.isAuthenticated).toBe(true)
       expect(store.error).toBe('')
-    })
-
-    it('persists token to localStorage on success', async () => {
-      mockApiPost.mockResolvedValueOnce({
-        ok: true,
-        data: {
-          user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc123',
-        },
-      })
-
-      const store = useAuthStore()
-      await store.login('agent', 'password123')
-
-      expect(localStorage.getItem('scp-auth-token')).toBe('abc123')
     })
 
     it('sets error on failure', async () => {
@@ -159,7 +140,7 @@ describe('useAuthStore', () => {
 
       resolvePromise!({
         ok: true,
-        data: { user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 }, token: 't' },
+        data: { user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 } },
       })
       await loginPromise
 
@@ -173,7 +154,6 @@ describe('useAuthStore', () => {
         ok: true,
         data: {
           user: { id: 1, codename: 'newagent', role: 'personnel', clearance: 1 },
-          token: 'xyz',
         },
       })
 
@@ -198,13 +178,6 @@ describe('useAuthStore', () => {
   })
 
   describe('fetchProfile', () => {
-    it('returns false when no token exists', async () => {
-      const store = useAuthStore()
-      const result = await store.fetchProfile()
-      expect(result).toBe(false)
-      expect(mockApiGet).not.toHaveBeenCalled()
-    })
-
     it('sets user on success', async () => {
       mockApiGet.mockResolvedValueOnce({
         ok: true,
@@ -214,7 +187,6 @@ describe('useAuthStore', () => {
       })
 
       const store = useAuthStore()
-      store.token = 'valid-token'
       const result = await store.fetchProfile()
 
       expect(result).toBe(true)
@@ -229,49 +201,33 @@ describe('useAuthStore', () => {
       })
 
       const store = useAuthStore()
-      store.token = 'expired-token'
       const result = await store.fetchProfile()
 
       expect(result).toBe(false)
       expect(store.user).toBeNull()
-      expect(store.token).toBe('')
       expect(store.error).toBeTruthy()
     })
   })
 
   describe('logout', () => {
-    it('clears user and token', async () => {
+    it('calls server logout endpoint and clears user', async () => {
       mockApiPost.mockResolvedValueOnce({
         ok: true,
         data: {
           user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc',
         },
       })
 
       const store = useAuthStore()
       await store.login('agent', 'pass1234')
-      store.logout()
 
+      // Mock the logout API call
+      mockApiPost.mockResolvedValueOnce({ ok: true, data: {} })
+      await store.logout()
+
+      expect(mockApiPost).toHaveBeenCalledWith('/auth/logout')
       expect(store.user).toBeNull()
-      expect(store.token).toBe('')
       expect(store.isAuthenticated).toBe(false)
-    })
-
-    it('removes token from localStorage', async () => {
-      mockApiPost.mockResolvedValueOnce({
-        ok: true,
-        data: {
-          user: { id: 1, codename: 'agent', role: 'personnel', clearance: 1 },
-          token: 'abc',
-        },
-      })
-
-      const store = useAuthStore()
-      await store.login('agent', 'pass1234')
-      store.logout()
-
-      expect(localStorage.getItem('scp-auth-token')).toBeNull()
     })
   })
 
@@ -285,7 +241,6 @@ describe('useAuthStore', () => {
       })
 
       const store = useAuthStore()
-      store.token = 'valid-token'
       await store.updateProfile({ codename: 'newname' })
 
       expect(mockApiPut).toHaveBeenCalledWith('/auth/profile', { codename: 'newname' })

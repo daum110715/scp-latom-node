@@ -1,26 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AiQueueDo } from '../ai-queue'
+import {
+  createMockD1Database,
+  createMockDurableObjectId,
+  createMockNamespace,
+  createMockEnv,
+} from '../../test-helpers'
 import type { Env } from '../../types'
 
 // ─── Mocks ──────────────────────────────────────────────────
 
-function createMockEnv(overrides?: Partial<Env>): Env {
-  return {
-    DB: {
-      prepare: vi.fn(() => ({
-        bind: vi.fn(() => ({
-          first: vi.fn(async () => null),
-          all: vi.fn(async () => ({ results: [] })),
-          run: vi.fn(async () => ({})),
-        })),
-      })),
-    } as unknown as D1Database,
+function createQueueMockEnv(overrides?: Partial<Env>): Env {
+  return createMockEnv({
+    DB: createMockD1Database(),
     JWT_SECRET: 'test',
-    CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
-    AI_CHAT_DO: {
-      idFromName: vi.fn(() => 'mock-chat-id' as unknown as DurableObjectId),
+    GLM_API_KEY: 'test-key',
+    AI_CHAT_DO: createMockNamespace({
+      idFromName: vi.fn(() => createMockDurableObjectId('mock-chat-id')),
       get: vi.fn(() => ({
         fetch: vi.fn(async (url: string) => {
           if (url.includes('/stream')) {
@@ -51,18 +47,17 @@ function createMockEnv(overrides?: Partial<Env>): Env {
           })
         }),
       })),
-    } as unknown as DurableObjectNamespace,
-    AI_QUEUE_DO: {} as DurableObjectNamespace,
-    GLM_API_KEY: 'test-key',
+    }),
     ...overrides,
-  } as Env
+  })
 }
 
-function createState(): DurableObjectState {
+function createQueueState(): DurableObjectState {
   return {
     storage: { sql: { exec: vi.fn() } },
     blockConcurrencyWhile: vi.fn(async (fn: () => Promise<void>) => fn()),
-  } as unknown as DurableObjectState
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as DurableObjectState
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -71,12 +66,12 @@ describe('AiQueueDo', () => {
   let env: Env
 
   beforeEach(() => {
-    env = createMockEnv()
+    env = createQueueMockEnv()
   })
 
   describe('GET /status', () => {
     it('returns queue status', async () => {
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
       const res = await doInstance.fetch(new Request('https://queue.ai/status'))
       const data = (await res.json()) as any
 
@@ -88,7 +83,7 @@ describe('AiQueueDo', () => {
 
   describe('POST /chat', () => {
     it('processes a non-streaming request immediately', async () => {
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
 
       const res = await doInstance.fetch(
         new Request('https://queue.ai/chat', {
@@ -110,7 +105,7 @@ describe('AiQueueDo', () => {
     })
 
     it('processes a streaming request', async () => {
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
 
       const res = await doInstance.fetch(
         new Request('https://queue.ai/chat', {
@@ -144,7 +139,7 @@ describe('AiQueueDo', () => {
     })
 
     it('returns error for missing conversationId', async () => {
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
 
       const res = await doInstance.fetch(
         new Request('https://queue.ai/chat', {
@@ -185,14 +180,14 @@ describe('AiQueueDo', () => {
         })
       })
 
-      env = createMockEnv({
-        AI_CHAT_DO: {
-          idFromName: vi.fn(() => 'mock-id' as unknown as DurableObjectId),
+      env = createQueueMockEnv({
+        AI_CHAT_DO: createMockNamespace({
+          idFromName: vi.fn(() => createMockDurableObjectId()),
           get: vi.fn(() => ({ fetch: chatDoFetch })),
-        } as unknown as DurableObjectNamespace,
+        }),
       })
 
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
 
       // Fire 3 requests concurrently
       const promises = [1, 2, 3].map((i) =>
@@ -223,7 +218,7 @@ describe('AiQueueDo', () => {
     })
 
     it('returns 404 for unknown paths', async () => {
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
       const res = await doInstance.fetch(new Request('https://queue.ai/unknown'))
       expect(res.status).toBe(404)
     })
@@ -232,16 +227,16 @@ describe('AiQueueDo', () => {
       vi.useFakeTimers()
 
       // Mock a DO that never resolves
-      env = createMockEnv({
-        AI_CHAT_DO: {
-          idFromName: vi.fn(() => 'mock-id' as unknown as DurableObjectId),
+      env = createQueueMockEnv({
+        AI_CHAT_DO: createMockNamespace({
+          idFromName: vi.fn(() => createMockDurableObjectId()),
           get: vi.fn(() => ({
             fetch: vi.fn(() => new Promise(() => {})), // never resolves
           })),
-        } as unknown as DurableObjectNamespace,
+        }),
       })
 
-      const doInstance = new AiQueueDo(createState(), env)
+      const doInstance = new AiQueueDo(createQueueState(), env)
 
       const resPromise = doInstance.fetch(
         new Request('https://queue.ai/chat', {

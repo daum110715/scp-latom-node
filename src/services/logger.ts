@@ -153,13 +153,10 @@ async function sendLogs(): Promise<void> {
   const batch = buffer.splice(0, MAX_BUFFER_SIZE)
 
   try {
-    const token = localStorage.getItem('scp-auth-token')
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
-
     await fetch(`${API_URL}/logs`, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ logs: batch }),
       // Use keepalive so the request survives page unload
       keepalive: true,

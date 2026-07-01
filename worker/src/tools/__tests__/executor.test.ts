@@ -216,7 +216,7 @@ describe('executeTool', () => {
       expect(parsed.error).toContain('Unknown tool')
     })
 
-    it('returns error on database failure', async () => {
+    it('returns sanitized error on database failure', async () => {
       const brokenDb = {
         prepare: vi.fn(() => {
           throw new Error('DB connection lost')
@@ -227,7 +227,8 @@ describe('executeTool', () => {
       const parsed = JSON.parse(result)
 
       expect(parsed.error).toContain('Tool execution failed')
-      expect(parsed.error).toContain('DB connection lost')
+      // Internal error details are NOT leaked to the AI context
+      expect(parsed.error).not.toContain('DB connection lost')
     })
   })
 })

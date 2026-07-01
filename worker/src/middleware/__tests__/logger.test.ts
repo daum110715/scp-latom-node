@@ -1,22 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import { requestLogger } from '../logger'
+import { createMockD1Database, createMockNamespace, createMockEnv } from '../../test-helpers'
 import type { Env } from '../../types'
 
 // Mock D1Database
-function createMockEnv(overrides?: Partial<Env>): Env {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({}),
-    } as unknown as D1Database,
+function createLoggerMockEnv(overrides?: Partial<Env>): Env {
+  return createMockEnv({
+    DB: createMockD1Database(),
     JWT_SECRET: 'test-secret',
-    CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
     ...overrides,
-  } as Env
+  })
 }
 
 describe('requestLogger middleware', () => {
@@ -28,7 +22,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('sets X-Request-Id header on response', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {
@@ -43,7 +37,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('logs request and response', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {
@@ -66,7 +60,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('logs 4xx responses as warn', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {
@@ -84,7 +78,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('logs 5xx responses as error', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {
@@ -104,7 +98,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('attaches logger to context', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {
@@ -122,7 +116,7 @@ describe('requestLogger middleware', () => {
   })
 
   it('uses cf-ray header as request ID when available', async () => {
-    const env = createMockEnv()
+    const env = createLoggerMockEnv()
     const app = new Hono<{ Bindings: Env }>()
 
     app.use('/*', async (c, next) => {

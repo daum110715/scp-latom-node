@@ -14,29 +14,18 @@ export interface User {
 
 interface AuthPayload {
   user: User
-  token?: string
 }
-
-const TOKEN_KEY = 'scp-admin-token'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string>(localStorage.getItem(TOKEN_KEY) || '')
   const loading = ref(false)
   const error = ref('')
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
-
-  function setToken(t: string) {
-    token.value = t
-    localStorage.setItem(TOKEN_KEY, t)
-  }
 
   function clearAuth() {
     user.value = null
-    token.value = ''
-    localStorage.removeItem(TOKEN_KEY)
   }
 
   function clearError() {
@@ -52,7 +41,6 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
       user.value = res.data.user
-      if (res.data.token) setToken(res.data.token)
       clearError()
       return true
     }
@@ -69,7 +57,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchProfile(): Promise<boolean> {
-    if (!token.value) return false
     loading.value = true
     clearError()
     const res = await apiGet<AuthPayload>('/auth/me')
@@ -88,20 +75,18 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
 
-  function logout() {
+  async function logout() {
+    await apiPost('/auth/logout')
     clearAuth()
     clearError()
   }
 
   async function init() {
-    if (token.value) {
-      await fetchProfile()
-    }
+    await fetchProfile()
   }
 
   return {
     user,
-    token,
     loading,
     error,
     isAuthenticated,

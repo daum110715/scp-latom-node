@@ -3,14 +3,9 @@ import { ErrorCode, httpStatusToErrorCode, resolveErrorMessage } from './errors'
 import { API_URL } from './config'
 import { logger } from './logger'
 
-const TOKEN_KEY = 'scp-admin-token'
-
-/** Build standard headers with auto-injected auth token. */
-function buildHeaders(token?: string): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const authToken = token ?? localStorage.getItem(TOKEN_KEY)
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-  return headers
+/** Build standard headers. Auth is handled via httpOnly cookie. */
+function buildHeaders(): Record<string, string> {
+  return { 'Content-Type': 'application/json' }
 }
 
 /** Log a non-OK response using the same thresholds as `request`. */
@@ -32,15 +27,15 @@ async function request<T = unknown>(
   method: string,
   path: string,
   body?: unknown,
-  token?: string,
 ): Promise<ApiResult<T>> {
-  const headers = buildHeaders(token)
+  const headers = buildHeaders()
   const start = Date.now()
 
   try {
     const res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
+      credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
     })
 
@@ -65,18 +60,18 @@ async function request<T = unknown>(
   }
 }
 
-export function apiGet<T = unknown>(path: string, token?: string) {
-  return request<T>('GET', path, undefined, token)
+export function apiGet<T = unknown>(path: string) {
+  return request<T>('GET', path)
 }
 
-export function apiPost<T = unknown>(path: string, body?: unknown, token?: string) {
-  return request<T>('POST', path, body, token)
+export function apiPost<T = unknown>(path: string, body?: unknown) {
+  return request<T>('POST', path, body)
 }
 
-export function apiPut<T = unknown>(path: string, body?: unknown, token?: string) {
-  return request<T>('PUT', path, body, token)
+export function apiPut<T = unknown>(path: string, body?: unknown) {
+  return request<T>('PUT', path, body)
 }
 
-export function apiDelete<T = unknown>(path: string, token?: string) {
-  return request<T>('DELETE', path, undefined, token)
+export function apiDelete<T = unknown>(path: string) {
+  return request<T>('DELETE', path)
 }

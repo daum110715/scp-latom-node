@@ -122,7 +122,7 @@ export class Logger {
     // Persist warn/error to D1 if available (fire-and-forget)
     if (this.db && (level === 'warn' || level === 'error')) {
       this.persistToDb(entry).catch(() => {
-        // Silently ignore DB write failures — we don't want logging to cause errors
+        // Intentionally silent — logging infrastructure must never throw or recurse
       })
     }
   }
@@ -150,7 +150,7 @@ export class Logger {
         )
         .run()
     } catch {
-      // Swallow — logging must never throw
+      // Intentionally silent — logging infrastructure must never throw or recurse
     }
   }
 }

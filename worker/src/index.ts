@@ -15,7 +15,7 @@ import aiRoutes from './routes/ai'
 import tagRoutes from './routes/tags'
 import type { Env } from './types'
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<{ Bindings: Env; Variables: { logger: Logger } }>()
 
 function isOriginAllowed(origin: string, allowed: string): boolean {
   // Exact match
@@ -72,7 +72,7 @@ app.use('/api/*', async (c, next) => {
 // Request logging (attaches logger to context)
 app.use('/api/*', async (c, next) => {
   const middleware = requestLogger(c.env)
-  return middleware(c as unknown as Parameters<typeof middleware>[0], next)
+  return middleware(c, next)
 })
 
 // Health check
@@ -122,8 +122,7 @@ app.notFound((c) => {
 
 // Global error handler
 app.onError((err, c) => {
-  const logger = (c as unknown as { get?: (key: string) => unknown }).get?.('logger') as
-    Logger | undefined
+  const logger = c.get('logger')
   if (logger) {
     logger.error('Unhandled error', { error: err })
   } else {

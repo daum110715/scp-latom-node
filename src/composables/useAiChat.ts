@@ -9,7 +9,7 @@ import {
   type AiMessage,
   type AiConversationMeta,
 } from '@/services/ai'
-import { STORAGE_KEYS } from '@/constants'
+import { apiPost } from '@/services/api'
 
 export function useAiChat() {
   const { t } = useI18n()
@@ -140,7 +140,7 @@ export function useAiChat() {
           }
           isStreaming.value = false
           if (error === 'ERR-401-CLEARANCE') {
-            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+            apiPost('/auth/logout')
             router.push('/login')
           }
         },

@@ -5,6 +5,9 @@ import type { D1Database } from '@cloudflare/workers-types'
 
 const MAX_RESULTS = 10
 
+const VALID_LANGUAGES = ['en', 'cn']
+const VALID_CLASSES = ['Safe', 'Euclid', 'Keter', 'Thaumiel', 'Apollyon', 'Neutralized']
+
 interface SearchArgs {
   query: string
   language?: string
@@ -22,6 +25,58 @@ interface ListByClassArgs {
   limit?: number
 }
 
+// ─── Argument validation ────────────────────────────────────
+
+function validateLanguage(lang: unknown): string {
+  if (typeof lang === 'string' && VALID_LANGUAGES.includes(lang)) return lang
+  return 'en'
+}
+
+function validateLimit(limit: unknown, max = MAX_RESULTS): number {
+  if (typeof limit === 'number' && Number.isFinite(limit)) {
+    return Math.min(Math.max(1, Math.round(limit)), max)
+  }
+  if (typeof limit === 'string') {
+    const n = parseInt(limit, 10)
+    if (Number.isFinite(n)) return Math.min(Math.max(1, n), max)
+  }
+  return 5
+}
+
+function validateSearchArgs(args: Record<string, unknown>): SearchArgs | null {
+  const query = typeof args.query === 'string' ? args.query.trim() : ''
+  if (query.length > 200) return null
+  return {
+    query,
+    language: validateLanguage(args.language),
+    limit: validateLimit(args.limit),
+  }
+}
+
+function validateGetEntryArgs(args: Record<string, unknown>): GetEntryArgs | null {
+  const scp_number =
+    typeof args.scp_number === 'number'
+      ? args.scp_number
+      : typeof args.scp_number === 'string'
+        ? parseInt(args.scp_number, 10)
+        : NaN
+  if (!Number.isFinite(scp_number) || scp_number < 1 || scp_number > 9999) return null
+  return {
+    scp_number: Math.round(scp_number),
+    language: validateLanguage(args.language),
+  }
+}
+
+function validateListByClassArgs(args: Record<string, unknown>): ListByClassArgs | null {
+  const object_class = typeof args.object_class === 'string' ? args.object_class : ''
+  if (!VALID_CLASSES.includes(object_class)) return null
+  return {
+    object_class,
+    language: validateLanguage(args.language),
+    limit: validateLimit(args.limit),
+  }
+}
+
 // ─── Public API ──────────────────────────────────────────────
 
 export async function executeTool(
@@ -31,19 +86,27 @@ export async function executeTool(
 ): Promise<string> {
   try {
     switch (name) {
-      case 'search_scp_entries':
-        return await searchEntries(db, args as unknown as SearchArgs)
-      case 'get_scp_entry':
-        return await getEntry(db, args as unknown as GetEntryArgs)
-      case 'list_scp_entries_by_class':
-        return await listByClass(db, args as unknown as ListByClassArgs)
+      case 'search_scp_entries': {
+        const validated = validateSearchArgs(args)
+        if (!validated) return JSON.stringify({ error: 'Invalid search parameters' })
+        return await searchEntries(db, validated)
+      }
+      case 'get_scp_entry': {
+        const validated = validateGetEntryArgs(args)
+        if (!validated) return JSON.stringify({ error: 'Invalid entry parameters' })
+        return await getEntry(db, validated)
+      }
+      case 'list_scp_entries_by_class': {
+        const validated = validateListByClassArgs(args)
+        if (!validated) return JSON.stringify({ error: 'Invalid class filter parameters' })
+        return await listByClass(db, validated)
+      }
       default:
-        return JSON.stringify({ error: `Unknown tool: ${name}` })
+        return JSON.stringify({ error: 'Unknown tool' })
     }
-  } catch (err) {
-    return JSON.stringify({
-      error: `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`,
-    })
+  } catch {
+    // Sanitize error messages — do not leak internal details to the AI context
+    return JSON.stringify({ error: 'Tool execution failed. Please try a different query.' })
   }
 }
 

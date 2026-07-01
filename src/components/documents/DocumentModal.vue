@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDevice } from '@/composables/useDevice'
 import Badge from '@/components/common/Badge.vue'
 import { classVariant, typeIcon, renderMarkdown } from '@/composables/useDocuments'
+import { sanitizeHtml } from '@/utils/sanitize'
 import type { Document } from '@/types'
 
 const props = defineProps<{
@@ -15,6 +17,10 @@ const emit = defineEmits<{
 
 const { isMobile } = useDevice()
 const { t } = useI18n()
+
+const sanitizedContent = computed(() =>
+  props.doc ? sanitizeHtml(renderMarkdown(t(`docs.${props.doc.id}.content`))) : '',
+)
 </script>
 
 <template>
@@ -49,10 +55,7 @@ const { t } = useI18n()
           </div>
           <h2 class="doc-modal-title">{{ t(`docs.${props.doc.id}.title`) }}</h2>
           <!-- eslint-disable vue/no-v-html -->
-          <div
-            class="doc-modal-content"
-            v-html="renderMarkdown(t(`docs.${props.doc.id}.content`))"
-          ></div>
+          <div class="doc-modal-content" v-html="sanitizedContent"></div>
           <div class="doc-modal-footer">
             <div class="modal-footer-row">
               <span class="footer-label">{{ t('documents.meta.classification') }}</span>
@@ -99,10 +102,7 @@ const { t } = useI18n()
           <div class="m-modal-body">
             <h2 class="m-modal-title">{{ t(`docs.${props.doc.id}.title`) }}</h2>
             <!-- eslint-disable vue/no-v-html -->
-            <div
-              class="m-modal-content"
-              v-html="renderMarkdown(t(`docs.${props.doc.id}.content`))"
-            ></div>
+            <div class="m-modal-content" v-html="sanitizedContent"></div>
             <div class="m-modal-footer">
               <div class="m-footer-row">
                 <span class="m-footer-label">{{ t('documents.meta.classification') }}</span>

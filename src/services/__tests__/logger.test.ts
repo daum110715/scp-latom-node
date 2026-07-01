@@ -130,15 +130,15 @@ describe('client logger', () => {
       expect(body.logs[1].level).toBe('error')
     })
 
-    it('includes auth token in flush request', async () => {
-      localStorage.setItem('scp-auth-token', 'test-token')
+    it('sends credentials: include for cookie-based auth', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true })
 
       logger.warn('auth test')
       await logger.flush()
 
       const [, options] = mockFetch.mock.calls[0]
-      expect(options.headers['Authorization']).toBe('Bearer test-token')
+      expect(options.credentials).toBe('include')
+      expect(options.headers['Authorization']).toBeUndefined()
     })
 
     it('clears buffer after flush', async () => {

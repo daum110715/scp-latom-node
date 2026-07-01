@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Logger } from '../logger'
 
 // Mock D1Database
-function createMockDb() {
+function createLoggerMockDb(): D1Database {
   return {
     prepare: vi.fn().mockReturnThis(),
     bind: vi.fn().mockReturnThis(),
     run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-  } as unknown as D1Database
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as D1Database
 }
 
 describe('Logger', () => {
@@ -134,7 +135,7 @@ describe('Logger', () => {
 
   describe('D1 persistence', () => {
     it('persists warn logs to D1 when db is provided', async () => {
-      const db = createMockDb()
+      const db = createLoggerMockDb()
       const logger = new Logger({ level: 'info', db })
 
       logger.warn('test warning', { key: 'val' })
@@ -146,7 +147,7 @@ describe('Logger', () => {
     })
 
     it('persists error logs to D1', async () => {
-      const db = createMockDb()
+      const db = createLoggerMockDb()
       const logger = new Logger({ level: 'info', db })
 
       logger.error('test error')
@@ -157,7 +158,7 @@ describe('Logger', () => {
     })
 
     it('does not persist debug or info logs to D1', async () => {
-      const db = createMockDb()
+      const db = createLoggerMockDb()
       const logger = new Logger({ level: 'debug', db })
 
       logger.debug('debug msg')
@@ -173,7 +174,8 @@ describe('Logger', () => {
         prepare: vi.fn().mockReturnThis(),
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockRejectedValue(new Error('D1 is down')),
-      } as unknown as D1Database
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any as D1Database
 
       const logger = new Logger({ level: 'info', db })
 

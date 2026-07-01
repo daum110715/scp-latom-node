@@ -1,5 +1,12 @@
 * text=auto eol=lf
 
+# Explicit text file types
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Binary files
 *.png binary
 *.jpg binary
 *.jpeg binary

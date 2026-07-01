@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { adminMiddleware } from '../middleware/admin'
 import { getLoggerFromContext } from '../utils/logger'
 import type { Env } from '../types'
@@ -6,6 +7,11 @@ import type { Env } from '../types'
 const crawler = new Hono<{ Bindings: Env }>()
 
 // ─── Helpers ────────────────────────────────────────────────
+
+/** Safely narrow a dynamic number to Hono's ContentfulStatusCode union. */
+function asStatus(status: number): ContentfulStatusCode {
+  return status as ContentfulStatusCode
+}
 
 /**
  * Get the Durable Object namespace for a given language.
@@ -97,7 +103,7 @@ crawler.get('/:lang/status', async (c) => {
   try {
     const response = await forwardToDo(c.env, lang, '/status')
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return c.json({ success: false, error: `Failed to fetch status: ${message}` }, 503)
@@ -128,7 +134,7 @@ crawler.get('/:lang/entries', async (c) => {
   try {
     const response = await forwardToDo(c.env, lang, path)
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return c.json({ success: false, error: `Failed to fetch entries: ${message}` }, 503)
@@ -153,7 +159,7 @@ crawler.get('/:lang/series/:n', async (c) => {
   try {
     const response = await forwardToDo(c.env, lang, `/series/${seriesNum}`)
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return c.json({ success: false, error: `Failed to fetch series: ${message}` }, 503)
@@ -182,7 +188,7 @@ crawler.get('/:lang/entry/:scpNumber', async (c) => {
   try {
     const response = await forwardToDo(c.env, lang, `/entry/${scpNumber}`)
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return c.json({ success: false, error: `Failed to fetch entry content: ${message}` }, 503)
@@ -213,7 +219,7 @@ crawler.post('/:lang/crawl', adminMiddleware, async (c) => {
     logger.info(`Triggering crawl for language: ${lang}`)
     const response = await forwardToDo(c.env, lang, path, { method: 'POST' })
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error(`Failed to trigger crawl for ${lang}`, { error: message })
@@ -237,7 +243,7 @@ crawler.delete('/:lang/checkpoint', adminMiddleware, async (c) => {
     logger.info(`Resetting seed checkpoint for language: ${lang}`)
     const response = await forwardToDo(c.env, lang, '/checkpoint', { method: 'DELETE' })
     const data = await response.json()
-    return c.json(data, response.status as 200)
+    return c.json(data, asStatus(response.status))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error(`Failed to reset checkpoint for ${lang}`, { error: message })

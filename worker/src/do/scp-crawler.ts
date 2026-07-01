@@ -67,6 +67,20 @@ export class ScpCrawlerDo {
     this.logger = new Logger({ level: 'info', db: env.DB }).child({ category: 'crawler' })
   }
 
+  /**
+   * Cloudflare's runtime injects waitUntil onto DurableObjectState,
+   * but the type definitions don't include it. This helper safely
+   * accesses it without a double assertion.
+   */
+  private waitUntil(promise: Promise<void>): boolean {
+    const fn = (this.state as { waitUntil?: (p: Promise<void>) => void }).waitUntil
+    if (typeof fn === 'function') {
+      fn.call(this.state, promise)
+      return true
+    }
+    return false
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     const path = url.pathname
@@ -154,8 +168,10 @@ export class ScpCrawlerDo {
       if (result.meta.changes > 0) {
         this.logger.info(`Cleaned up ${result.meta.changes} old log entries`)
       }
-    } catch {
-      // Silently ignore — cleanup is best-effort
+    } catch (err) {
+      this.logger.warn('Old log cleanup failed (best-effort)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 
@@ -329,11 +345,13 @@ export class ScpCrawlerDo {
     const limitParam = url.searchParams.get('limit')
     const limit = limitParam ? Math.max(1, parseInt(limitParam, 10) || 0) : 0
 
-    const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
-    if (typeof ctx.waitUntil === 'function') {
-      ctx.waitUntil(this.crawlAll(language, limit))
-    } else {
-      this.crawlAll(language, limit).catch(() => {})
+    if (!this.waitUntil(this.crawlAll(language, limit))) {
+      this.crawlAll(language, limit).catch((err) => {
+        this.logger.error('Background crawl failed', {
+          language,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      })
     }
 
     return jsonResponse({
@@ -373,14 +391,17 @@ export class ScpCrawlerDo {
     // 2. If content is cached (explicit null check — empty string is valid), return it
     if (row.content !== null && row.content !== undefined) {
       // Trigger background auto-tagging if entry has no tags yet
-      const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
-      if (typeof ctx.waitUntil === 'function') {
-        ctx.waitUntil(
-          autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger)
-            .then(() => {})
-            .catch(() => {}),
-        )
-      }
+      this.waitUntil(
+        autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger)
+          .then(() => {})
+          .catch((err) => {
+            this.logger.warn('Background auto-tagging failed', {
+              scpNumber,
+              language,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          }),
+      )
 
       const resp: EntryContentResponse = {
         success: true,
@@ -410,11 +431,14 @@ export class ScpCrawlerDo {
     }
 
     // 4. Content not cached — return pending and kick off background fetch
-    const ctx = this.state as unknown as { waitUntil?: (p: Promise<void>) => void }
-    if (typeof ctx.waitUntil === 'function') {
-      ctx.waitUntil(this.fetchAndStoreEntryContent(language, scpNumber))
-    } else {
-      this.fetchAndStoreEntryContent(language, scpNumber).catch(() => {})
+    if (!this.waitUntil(this.fetchAndStoreEntryContent(language, scpNumber))) {
+      this.fetchAndStoreEntryContent(language, scpNumber).catch((err) => {
+        this.logger.error('Background entry content fetch failed', {
+          scpNumber,
+          language,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      })
     }
 
     const resp: EntryContentResponse = {
@@ -471,7 +495,13 @@ export class ScpCrawlerDo {
 
       // Auto-tag the entry now that content is available
       await autoTagEntry(this.env.DB, this.env.GLM_API_KEY, scpNumber, language, this.logger).catch(
-        () => {},
+        (err) => {
+          this.logger.warn('Auto-tagging failed after content fetch', {
+            scpNumber,
+            language,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        },
       )
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)

@@ -20,7 +20,19 @@ function createMockStorage(initialData: Record<string, unknown> = {}) {
   }
 }
 
-function createMockD1(existingEntries: { scp_number: number; object_class: string }[] = []) {
+function createBackfillState(storageData?: Record<string, unknown>): DurableObjectState {
+  const storage = createMockStorage(storageData)
+  return {
+    storage,
+    id: 'mock-do-id',
+    blockConcurrencyWhile: async (fn: () => Promise<void>) => fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as DurableObjectState
+}
+
+function createBackfillD1(
+  existingEntries: { scp_number: number; object_class: string }[] = [],
+): D1Database {
   return {
     prepare: vi.fn((sql: string) => {
       const stmt = {
@@ -39,10 +51,16 @@ function createMockD1(existingEntries: { scp_number: number; object_class: strin
       return stmt
     }),
     batch: vi.fn(async () => []),
-  }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as D1Database
 }
 
-const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger
+const mockLogger: Logger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any as Logger
 
 // ─── Tests ──────────────────────────────────────────────────
 
@@ -63,87 +81,67 @@ describe('runBackfillBatch', () => {
   })
 
   it('returns false when no checkpoint exists', async () => {
-    const storage = createMockStorage()
-    const db = createMockD1()
+    const state = createBackfillState()
+    const db = createBackfillD1()
 
-    const result = await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    const result = await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     expect(result).toBe(false)
-    expect(storage.delete).not.toHaveBeenCalled()
+    expect(state.storage.delete).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('clears checkpoint and returns false when no Unknown entries remain', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'en', offset: 0 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
-    const db = createMockD1([])
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
+    const db = createBackfillD1([])
 
-    const result = await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    const result = await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     expect(result).toBe(false)
-    expect(storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
+    expect(state.storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('processes entries and updates D1 with resolved classes', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'en', offset: 0 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
-    const db = createMockD1([
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
+    const db = createBackfillD1([
       { scp_number: 173, object_class: 'Unknown' },
       { scp_number: 999, object_class: 'Unknown' },
     ])
 
-    const result = await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    const result = await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     // Partial batch (< 500) → reached the end, checkpoint cleared
     expect(result).toBe(false)
-    expect(storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
+    expect(state.storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
     expect(fetchSpy).toHaveBeenCalledTimes(2)
     expect(db.batch).toHaveBeenCalled()
   })
 
   it('schedules next alarm when full batch is returned', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'en', offset: 0 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
 
     // Create 500 entries to simulate a full batch
     const entries = Array.from({ length: 500 }, (_, i) => ({
       scp_number: i + 1,
       object_class: 'Unknown',
     }))
-    const db = createMockD1(entries)
+    const db = createBackfillD1(entries)
 
-    const result = await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    const result = await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     // Full batch → should schedule next alarm
     expect(result).toBe(true)
-    expect(storage.put).toHaveBeenCalledWith('backfill_checkpoint', {
+    expect(state.storage.put).toHaveBeenCalledWith('backfill_checkpoint', {
       language: 'en',
       offset: 500,
     })
-    expect(storage.setAlarm).toHaveBeenCalled()
+    expect(state.storage.setAlarm).toHaveBeenCalled()
     // Alarm should be ~15 minutes from now
-    const alarmArg = (storage.setAlarm as ReturnType<typeof vi.fn>).mock.calls[0][0] as number
+    const alarmArg = (state.storage.setAlarm as ReturnType<typeof vi.fn>).mock.calls[0][0] as number
     const fifteenMinutes = 15 * 60 * 1000
     expect(alarmArg - Date.now()).toBeGreaterThanOrEqual(fifteenMinutes - 1000)
     expect(alarmArg - Date.now()).toBeLessThanOrEqual(fifteenMinutes + 1000)
@@ -151,15 +149,10 @@ describe('runBackfillBatch', () => {
 
   it('uses checkpoint offset for pagination', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'cn', offset: 500 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
-    const db = createMockD1([{ scp_number: 600, object_class: 'Unknown' }])
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
+    const db = createBackfillD1([{ scp_number: 600, object_class: 'Unknown' }])
 
-    await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     // Verify the DB query used the correct offset
     const prepareCalls = (db.prepare as ReturnType<typeof vi.fn>).mock.calls
@@ -171,8 +164,8 @@ describe('runBackfillBatch', () => {
 
   it('handles fetch failures gracefully', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'en', offset: 0 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
-    const db = createMockD1([{ scp_number: 173, object_class: 'Unknown' }])
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
+    const db = createBackfillD1([{ scp_number: 173, object_class: 'Unknown' }])
 
     fetchSpy.mockResolvedValue({
       ok: false,
@@ -181,30 +174,20 @@ describe('runBackfillBatch', () => {
       error: 'Server error',
     })
 
-    const result = await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    const result = await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     // Partial batch, fetch failed → checkpoint cleared, no updates
     expect(result).toBe(false)
-    expect(storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
+    expect(state.storage.delete).toHaveBeenCalledWith('backfill_checkpoint')
     expect(db.batch).not.toHaveBeenCalled()
   })
 
   it('preserves checkpoint offset from previous batch', async () => {
     const checkpoint: BackfillCheckpoint = { language: 'en', offset: 1000 }
-    const storage = createMockStorage({ backfill_checkpoint: checkpoint })
-    const db = createMockD1([{ scp_number: 1100, object_class: 'Unknown' }])
+    const state = createBackfillState({ backfill_checkpoint: checkpoint })
+    const db = createBackfillD1([{ scp_number: 1100, object_class: 'Unknown' }])
 
-    await runBackfillBatch(
-      { storage } as unknown as DurableObjectState,
-      db as unknown as D1Database,
-      globalThis.fetch,
-      mockLogger,
-    )
+    await runBackfillBatch(state, db, globalThis.fetch, mockLogger)
 
     // Verify the query was bound with offset 1000
     const allCalls = (db.prepare as ReturnType<typeof vi.fn>).mock.results

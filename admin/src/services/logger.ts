@@ -34,7 +34,6 @@ const DEFAULT_LEVEL: LogLevel = import.meta.env.DEV ? 'debug' : 'warn'
 
 const FLUSH_INTERVAL_MS = 30_000
 const MAX_BUFFER_SIZE = 50
-const TOKEN_KEY = 'scp-admin-token'
 
 // ─── State ────────────────────────────────────────────────
 
@@ -83,7 +82,8 @@ function shouldLog(level: LogLevel): boolean {
 
 function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
   // eslint-disable-next-line no-console
-  const consoleFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.debug
+  const consoleFn =
+    level === 'error' ? console.error : level === 'warn' ? console.warn : console.debug
   if (level === 'warn' || level === 'error' || shouldLog(level)) {
     if (context) {
       consoleFn(`[${level.toUpperCase()}] ${message}`, context)
@@ -133,18 +133,15 @@ async function sendLogs(): Promise<void> {
   const batch = buffer.splice(0, MAX_BUFFER_SIZE)
 
   try {
-    const token = localStorage.getItem(TOKEN_KEY)
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
-
     await fetch(`${API_URL}/logs`, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ logs: batch }),
       keepalive: true,
     })
   } catch {
-    // Silently discard — don't re-add to buffer to avoid infinite growth
+    // Intentionally silent — log flusher must never throw or recurse into logging
   } finally {
     isFlushing = false
   }

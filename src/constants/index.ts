@@ -87,8 +87,6 @@ export const CATEGORY_VARIANT: Record<string, string> = {
 
 // ─── localStorage keys ───
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'scp-auth-token',
-  ADMIN_TOKEN: 'scp-admin-token',
   THEME: 'scp-theme',
   ADMIN_THEME: 'scp-admin-theme',
   LOCALE: 'scp-locale',

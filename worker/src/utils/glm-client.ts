@@ -263,7 +263,7 @@ export async function* glmChatStream(options: GlmChatOptions): AsyncGenerator<Gl
                 yield { delta: delta ?? '', finishReason }
               }
             } catch {
-              // Skip malformed JSON chunks
+              console.warn('[glm-client] Skipping malformed SSE chunk:', line)
             }
           }
         }

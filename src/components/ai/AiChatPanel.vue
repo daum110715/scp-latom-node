@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAiChat } from '@/composables/useAiChat'
 import { regenerateMessage } from '@/services/ai'
-import { STORAGE_KEYS } from '@/constants'
+import { apiPost } from '@/services/api'
 import AiMessageBubble from './AiMessageBubble.vue'
 import AiConversationList from './AiConversationList.vue'
 
@@ -45,7 +45,7 @@ async function handleRegenerate() {
       content,
     }
     if (res.code === 'ERR-401-CLEARANCE') {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+      apiPost('/auth/logout')
       window.location.href = '/login'
     }
   }

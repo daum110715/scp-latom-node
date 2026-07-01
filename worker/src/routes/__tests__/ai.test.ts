@@ -3,6 +3,12 @@ import { Hono } from 'hono'
 import type { Env } from '../../types'
 import aiRoutes from '../ai'
 import { signToken } from '../../utils/jwt'
+import {
+  createMockD1Database,
+  createMockDurableObjectId,
+  createMockNamespace,
+  createMockEnv,
+} from '../../test-helpers'
 
 // ─── Mocks ──────────────────────────────────────────────────
 
@@ -82,19 +88,19 @@ function createMockDoResponse(path: string, method: string): Response {
   return Response.json({ success: false, error: 'Not found' }, { status: 404 })
 }
 
-function createMockNamespace(): DurableObjectNamespace {
-  return {
-    idFromName: vi.fn(() => 'mock-id' as unknown as DurableObjectId),
+function createAiMockNamespace(): DurableObjectNamespace {
+  return createMockNamespace({
+    idFromName: vi.fn(() => createMockDurableObjectId()),
     get: vi.fn(() => ({
       fetch: vi.fn((url: string, init?: RequestInit) => {
         const parsedUrl = new URL(url)
         return Promise.resolve(createMockDoResponse(parsedUrl.pathname, init?.method ?? 'GET'))
       }),
     })),
-  } as unknown as DurableObjectNamespace
+  })
 }
 
-function createMockDB() {
+function createAiMockDB(): D1Database {
   const conversations: Map<string, any> = new Map()
 
   return {
@@ -158,37 +164,35 @@ function createMockDB() {
       }
       return stmt
     }),
-  }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as D1Database
 }
 
 function createQueueMockNamespace(chatNs: DurableObjectNamespace): DurableObjectNamespace {
-  return {
-    idFromName: vi.fn(() => 'mock-queue-id' as unknown as DurableObjectId),
+  return createMockNamespace({
+    idFromName: vi.fn(() => createMockDurableObjectId('mock-queue-id')),
     get: vi.fn(() => ({
       fetch: vi.fn(async (url: string, init?: RequestInit) => {
         // Queue DO forwards to the chat DO
         const body = init?.body ? JSON.parse(init.body as string) : {}
-        const chatStub = chatNs.get('' as unknown as DurableObjectId)
+        const chatStub = chatNs.get(createMockDurableObjectId())
         const doPath = body.stream ? 'https://do.ai/stream' : 'https://do.ai/send'
         return chatStub.fetch(doPath, init)
       }),
     })),
-  } as unknown as DurableObjectNamespace
+  })
 }
 
-function createTestEnv(overrides?: Partial<Env>): Env {
-  const chatNs = createMockNamespace()
-  return {
-    DB: createMockDB() as unknown as D1Database,
+function createAiTestEnv(overrides?: Partial<Env>): Env {
+  const chatNs = createAiMockNamespace()
+  return createMockEnv({
+    DB: createAiMockDB(),
     JWT_SECRET: 'test-secret-key-for-jwt',
-    CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
     AI_CHAT_DO: chatNs,
     AI_QUEUE_DO: createQueueMockNamespace(chatNs),
     GLM_API_KEY: 'test-glm-key',
     ...overrides,
-  } as Env
+  })
 }
 
 function createTestApp(_envOverrides?: Partial<Env>): Hono<{ Bindings: Env }> {
@@ -227,14 +231,14 @@ describe('AI Routes', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: 'Hello' }),
         },
-        createTestEnv(),
+        createAiTestEnv(),
       )
 
       expect(res.status).toBe(401)
     })
 
     it('returns 400 with empty message', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -256,7 +260,7 @@ describe('AI Routes', () => {
     })
 
     it('creates new conversation and returns response', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -279,7 +283,7 @@ describe('AI Routes', () => {
     })
 
     it('routes through per-user queue DO', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -304,12 +308,12 @@ describe('AI Routes', () => {
 
   describe('GET /api/ai/conversations', () => {
     it('returns 401 without auth', async () => {
-      const res = await app.request('/api/ai/conversations', {}, createTestEnv())
+      const res = await app.request('/api/ai/conversations', {}, createAiTestEnv())
       expect(res.status).toBe(401)
     })
 
     it('returns paginated conversation list', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -332,7 +336,7 @@ describe('AI Routes', () => {
 
   describe('GET /api/ai/conversations/:id', () => {
     it('returns 404 for non-existent conversation', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -349,7 +353,7 @@ describe('AI Routes', () => {
 
   describe('PUT /api/ai/conversations/:id', () => {
     it('returns 404 for non-existent conversation', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -371,7 +375,7 @@ describe('AI Routes', () => {
 
   describe('DELETE /api/ai/conversations/:id', () => {
     it('returns 404 for non-existent conversation', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(
@@ -389,7 +393,7 @@ describe('AI Routes', () => {
 
   describe('POST /api/ai/conversations/:id/regenerate', () => {
     it('returns 404 for non-existent conversation', async () => {
-      const env = createTestEnv()
+      const env = createAiTestEnv()
       const token = await getAuthToken(env.JWT_SECRET)
 
       const res = await app.request(

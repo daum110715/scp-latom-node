@@ -85,11 +85,11 @@ describe('AI Service', () => {
       })
     })
 
-    it('supports systemPrompt update', async () => {
+    it('only allows title update (systemPrompt is server-controlled)', async () => {
       mockApiPut.mockResolvedValueOnce({ ok: true, data: {} } as any)
-      await updateConversation('conv-uuid-123', { systemPrompt: 'New prompt' })
+      await updateConversation('conv-uuid-123', { title: 'New title' })
       expect(mockApiPut).toHaveBeenCalledWith('/ai/conversations/conv-uuid-123', {
-        systemPrompt: 'New prompt',
+        title: 'New title',
       })
     })
   })

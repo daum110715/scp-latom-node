@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useEntriesStore } from '@/stores/entries'
+import { sanitizeHtml } from '@/utils/sanitize'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const route = useRoute()
@@ -13,6 +14,10 @@ const editing = ref(false)
 const editName = ref('')
 const editClass = ref('')
 const refetching = ref(false)
+
+const sanitizedContent = computed(() =>
+  store.currentEntry?.content ? sanitizeHtml(store.currentEntry.content) : '',
+)
 
 onMounted(() => store.fetchEntry(entryId))
 
@@ -164,7 +169,7 @@ function formatDate(d: string | null | undefined) {
             >{{ (store.currentEntry.content.length / 1024).toFixed(1) }} KB</span
           >
         </div>
-        <div class="scp-content content-preview" v-html="store.currentEntry.content" />
+        <div class="scp-content content-preview" v-html="sanitizedContent" />
       </div>
 
       <div v-else-if="store.currentEntry.content_error" class="admin-card">

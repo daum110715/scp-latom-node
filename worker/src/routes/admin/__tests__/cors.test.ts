@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import corsRoute from '../cors'
 import { invalidateDynamicOriginsCache } from '../../../utils/cors-origins'
+import { createMockNamespace } from '../../../test-helpers'
 import type { Env, CorsOriginRecord } from '../../../types'
 
 function createMockDB() {
@@ -38,7 +39,7 @@ function createMockDB() {
           return null
         },
         async all<T>(): Promise<{ results: T[] }> {
-          return { results: [...rows].reverse() as unknown as T[] }
+          return { results: [...rows].reverse() as T[] }
         },
         async run() {
           if (sql.includes('DELETE FROM cors_origins')) {
@@ -56,11 +57,12 @@ function createMockDB() {
 
 function createEnv(db: ReturnType<typeof createMockDB>, corsOrigins = 'https://scp.lat'): Env {
   return {
-    DB: db as unknown as D1Database,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    DB: db as any as D1Database,
     JWT_SECRET: 'test-secret',
     CORS_ORIGINS: corsOrigins,
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
+    SCP_EN_CRAWLER: createMockNamespace(),
+    SCP_CN_CRAWLER: createMockNamespace(),
   } as Env
 }
 

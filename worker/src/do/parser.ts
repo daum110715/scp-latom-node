@@ -413,8 +413,12 @@ export async function buildClassMap(options: BuildClassMapOptions): Promise<Map<
           }
         }
       }
-    } catch {
-      // Skip this class on error — non-fatal
+    } catch (err) {
+      // Non-fatal — skip this class and continue with partial results
+      console.warn(
+        `[buildClassMap] Failed to fetch ${cls} pages:`,
+        err instanceof Error ? err.message : err,
+      )
     }
 
     // Delay between classes to avoid hammering the server

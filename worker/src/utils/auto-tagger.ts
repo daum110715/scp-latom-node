@@ -179,7 +179,7 @@ export async function autoTagEntry(
       try {
         keywords = JSON.parse(t.ai_keywords)
       } catch {
-        // ignore
+        logger.warn(`Corrupted ai_keywords for tag ${t.id} — using empty keywords`)
       }
       return {
         id: t.id,
@@ -273,7 +273,8 @@ function parseTagIds(response: string, candidates: TagCandidate[]): string[] {
     // Filter to only valid tag IDs
     return parsed.filter((id: unknown): id is string => typeof id === 'string' && validIds.has(id))
   } catch {
-    // Try to extract IDs manually from malformed JSON
+    // Malformed JSON — try to extract IDs manually via regex fallback
+    console.warn('[auto-tagger] Malformed tag JSON, falling back to regex extraction')
     const idPattern = /"[A-Z]{2}\d{3}"/g
     const matches = jsonMatch[0].match(idPattern)
     if (!matches) return []

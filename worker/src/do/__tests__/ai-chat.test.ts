@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AiChatDo } from '../ai-chat'
+import {
+  createMockD1Database,
+  createMockNamespace,
+  createMockEnv,
+  createMockDurableObjectState,
+} from '../../test-helpers'
 import type { Env } from '../../types'
 
 // ─── Mocks ──────────────────────────────────────────────────
@@ -113,34 +119,23 @@ function createMockStorage() {
   }
 }
 
-function createMockEnv(overrides?: Partial<Env>): Env {
-  return {
-    DB: {
-      prepare: vi.fn(() => ({
-        bind: vi.fn(() => ({
-          first: vi.fn(async () => null),
-          all: vi.fn(async () => ({ results: [] })),
-          run: vi.fn(async () => ({})),
-        })),
-      })),
-    } as unknown as D1Database,
+function createChatMockEnv(overrides?: Partial<Env>): Env {
+  return createMockEnv({
+    DB: createMockD1Database(),
     JWT_SECRET: 'test',
-    CORS_ORIGINS: '*',
-    SCP_EN_CRAWLER: {} as DurableObjectNamespace,
-    SCP_CN_CRAWLER: {} as DurableObjectNamespace,
-    AI_CHAT_DO: {} as DurableObjectNamespace,
     GLM_API_KEY: 'test-glm-key',
     ...overrides,
-  } as Env
+  })
 }
 
-function createMockState() {
+function createChatMockState(): DurableObjectState {
   const storage = createMockStorage()
   return {
     storage,
     id: 'mock-ai-do-id',
     blockConcurrencyWhile: vi.fn(async (fn: () => Promise<void>) => fn()),
-  } as unknown as DurableObjectState
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any as DurableObjectState
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -149,13 +144,13 @@ describe('AiChatDo', () => {
   let env: Env
 
   beforeEach(() => {
-    env = createMockEnv()
+    env = createChatMockEnv()
     vi.clearAllMocks()
   })
 
   describe('fetch handler', () => {
     it('returns 404 for unknown paths', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
       const req = new Request('https://do.ai/unknown')
       const res = await doInstance.fetch(req)
@@ -163,7 +158,7 @@ describe('AiChatDo', () => {
     })
 
     it('initializes schema on first fetch', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
       const req = new Request('https://do.ai/messages')
       await doInstance.fetch(req)
@@ -179,7 +174,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
       const req = new Request('https://do.ai/send', {
         method: 'POST',
@@ -211,7 +206,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       // First message
@@ -250,7 +245,7 @@ describe('AiChatDo', () => {
       // Both the tool-enabled call and the fallback without tools fail
       mockGlmChat.mockRejectedValue(new Error('API down'))
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
       const req = new Request('https://do.ai/send', {
         method: 'POST',
@@ -280,7 +275,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       // Send a message first
@@ -319,7 +314,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       await doInstance.fetch(
@@ -355,7 +350,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       // Create conversation
@@ -386,11 +381,11 @@ describe('AiChatDo', () => {
       const data = (await res.json()) as any
       expect(data.success).toBe(true)
 
-      // Verify update
+      // Verify update — title is updated, systemPrompt is NOT (server-controlled)
       const metaRes = await doInstance.fetch(new Request('https://do.ai/meta'))
       const metaData = (await metaRes.json()) as any
       expect(metaData.meta.title).toBe('New title')
-      expect(metaData.meta.systemPrompt).toBe('New prompt')
+      expect(metaData.meta.systemPrompt).toBe('Old prompt')
     })
   })
 
@@ -402,7 +397,7 @@ describe('AiChatDo', () => {
         finishReason: 'stop',
       })
 
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       // Create conversation
@@ -440,7 +435,7 @@ describe('AiChatDo', () => {
     })
 
     it('returns error when no assistant message to regenerate', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       const res = await doInstance.fetch(
@@ -457,7 +452,7 @@ describe('AiChatDo', () => {
 
   describe('DELETE /', () => {
     it('returns success', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       const res = await doInstance.fetch(
@@ -473,7 +468,7 @@ describe('AiChatDo', () => {
 
   describe('Input validation', () => {
     it('rejects messages exceeding max length', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
       const longMessage = 'x'.repeat(4001)
 
@@ -497,7 +492,7 @@ describe('AiChatDo', () => {
     })
 
     it('rejects malformed JSON body', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       const res = await doInstance.fetch(
@@ -514,7 +509,7 @@ describe('AiChatDo', () => {
     })
 
     it('rejects empty messages', async () => {
-      const state = createMockState()
+      const state = createChatMockState()
       const doInstance = new AiChatDo(state, env)
 
       const res = await doInstance.fetch(

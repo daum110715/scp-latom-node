@@ -52,6 +52,7 @@ function parseContext(ctx: string | null): Record<string, unknown> | null {
   try {
     return JSON.parse(ctx)
   } catch {
+    console.warn('[LogsView] Failed to parse log context JSON')
     return null
   }
 }

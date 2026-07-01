@@ -43,7 +43,6 @@ export interface AiChatResponse {
 export function sendChatMessage(data: {
   conversationId?: string
   message: string
-  systemPrompt?: string
   title?: string
 }): Promise<ApiResult<AiChatResponse>> {
   return apiPost<AiChatResponse>('/ai/chat', data)
@@ -68,7 +67,7 @@ export function fetchConversation(
 
 export function updateConversation(
   id: string,
-  data: { title?: string; systemPrompt?: string },
+  data: { title?: string },
 ): Promise<ApiResult<{ success: boolean }>> {
   return apiPut(`/ai/conversations/${id}`, data)
 }
@@ -94,7 +93,6 @@ export async function sendChatMessageStream(
   data: {
     conversationId?: string
     message: string
-    systemPrompt?: string
     title?: string
   },
   callbacks: AiStreamCallbacks,
