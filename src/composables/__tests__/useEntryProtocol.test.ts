@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
+import { ErrorCode } from '@/services/errors'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en'
 
@@ -143,7 +144,7 @@ describe('useEntryProtocol', () => {
   it('shuffle handles API error gracefully', async () => {
     mockFetchCrawlerEntries.mockResolvedValue({
       ok: false,
-      code: 'ERR-500-SYSTEM',
+      code: ErrorCode.SERVER_ERROR,
       error: 'Server error',
     } as any)
     const { composable } = mountWithProtocol()

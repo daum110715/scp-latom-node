@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ErrorCode } from '../errors'
 
 vi.mock('../api', () => ({
   apiGet: vi.fn(),
@@ -114,7 +115,7 @@ describe('AI Service', () => {
     it('calls onError when apiStream returns error', async () => {
       mockApiStream.mockResolvedValueOnce({
         ok: false,
-        code: 'ERR-500-SYSTEM',
+        code: ErrorCode.SERVER_ERROR,
         error: 'Server error',
       } as any)
       const callbacks = {
@@ -127,7 +128,7 @@ describe('AI Service', () => {
       await sendChatMessageStream({ message: 'Hello' }, callbacks)
 
       expect(mockApiStream).toHaveBeenCalledWith('/ai/chat', { message: 'Hello', stream: true })
-      expect(callbacks.onError).toHaveBeenCalledWith('ERR-500-SYSTEM')
+      expect(callbacks.onError).toHaveBeenCalledWith(ErrorCode.SERVER_ERROR)
     })
 
     it('calls onError when response has no body', async () => {

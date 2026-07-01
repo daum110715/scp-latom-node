@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { ErrorCode } from '@/services/errors'
 
 vi.mock('@/services/userActivity', () => ({
   fetchBookmarks: vi.fn(),
@@ -37,8 +38,8 @@ function okResult<T>(data: T) {
   return { ok: true as const, data }
 }
 
-function errResult(error: string, code = 'ERR-500-SYSTEM') {
-  return { ok: false as const, code: code as any, error }
+function errResult(error: string, code = ErrorCode.SERVER_ERROR) {
+  return { ok: false as const, code, error }
 }
 
 const mockBookmarks = [
