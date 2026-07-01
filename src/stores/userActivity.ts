@@ -16,10 +16,17 @@ const TAB_KEY = 'scp-activity-tab'
 
 export type ActivityTab = 'bookmarks' | 'history'
 
+const VALID_TABS: readonly ActivityTab[] = ['bookmarks', 'history']
+
+function readActivityTab(): ActivityTab {
+  const stored = localStorage.getItem(TAB_KEY)
+  return VALID_TABS.includes(stored as ActivityTab) ? (stored as ActivityTab) : 'history'
+}
+
 export const useUserActivityStore = defineStore('userActivity', () => {
   // ─── Tab State ───────────────────────────────────────────
 
-  const activeTab = ref<ActivityTab>((localStorage.getItem(TAB_KEY) as ActivityTab) || 'history')
+  const activeTab = ref<ActivityTab>(readActivityTab())
 
   function setTab(tab: ActivityTab) {
     activeTab.value = tab

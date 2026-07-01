@@ -2,7 +2,14 @@ import { ref, watchEffect } from 'vue'
 
 type Theme = 'dark' | 'light'
 
-const theme = ref<Theme>((localStorage.getItem('scp-theme') as Theme) || 'dark')
+const VALID_THEMES: readonly Theme[] = ['dark', 'light']
+
+function readTheme(): Theme {
+  const stored = localStorage.getItem('scp-theme')
+  return VALID_THEMES.includes(stored as Theme) ? (stored as Theme) : 'dark'
+}
+
+const theme = ref<Theme>(readTheme())
 
 function applyTheme(t: Theme) {
   document.documentElement.setAttribute('data-theme', t)

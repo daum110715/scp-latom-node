@@ -12,8 +12,15 @@ const DEFAULT_INTERVAL = 15
 const MODE_KEY = 'scp-protocol-mode'
 const INTERVAL_KEY = 'scp-protocol-interval'
 
+const VALID_MODES: readonly ProtocolMode[] = ['auto', 'manual']
+
+function readMode(): ProtocolMode {
+  const stored = localStorage.getItem(MODE_KEY)
+  return VALID_MODES.includes(stored as ProtocolMode) ? (stored as ProtocolMode) : 'manual'
+}
+
 // ─── Shared state (persists across component mount/unmount cycles) ───
-const mode = ref<ProtocolMode>((localStorage.getItem(MODE_KEY) as ProtocolMode) || 'manual')
+const mode = ref<ProtocolMode>(readMode())
 const interval = ref<number>(Number(localStorage.getItem(INTERVAL_KEY)) || DEFAULT_INTERVAL)
 const recommendedEntries = ref<CrawlEntry[]>([])
 const isPaused = ref(false)

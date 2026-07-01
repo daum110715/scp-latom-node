@@ -38,7 +38,14 @@ const MAX_BUFFER_SIZE = 50
 
 // ─── State ────────────────────────────────────────────────
 
-let currentLevel: LogLevel = (import.meta.env.VITE_LOG_LEVEL as LogLevel) ?? DEFAULT_LEVEL
+const VALID_LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error']
+
+function readLogLevel(): LogLevel {
+  const envLevel = import.meta.env.VITE_LOG_LEVEL as string | undefined
+  return VALID_LOG_LEVELS.includes(envLevel as LogLevel) ? (envLevel as LogLevel) : DEFAULT_LEVEL
+}
+
+let currentLevel: LogLevel = readLogLevel()
 let buffer: LogEntry[] = []
 let flushTimer: ReturnType<typeof setInterval> | null = null
 let isFlushing = false
