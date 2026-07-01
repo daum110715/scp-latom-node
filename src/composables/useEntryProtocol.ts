@@ -2,6 +2,7 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchCrawlerEntries } from '@/services/crawler'
 import type { CrawlEntry } from '@/services/crawler'
+import { STORAGE_KEYS } from '@/constants'
 
 export type ProtocolMode = 'auto' | 'manual'
 
@@ -9,19 +10,18 @@ export const INTERVAL_OPTIONS = [10, 15, 30, 60] as const
 const RECOMMENDED_COUNT = 6
 const DEFAULT_INTERVAL = 15
 
-const MODE_KEY = 'scp-protocol-mode'
-const INTERVAL_KEY = 'scp-protocol-interval'
-
 const VALID_MODES: readonly ProtocolMode[] = ['auto', 'manual']
 
 function readMode(): ProtocolMode {
-  const stored = localStorage.getItem(MODE_KEY)
+  const stored = localStorage.getItem(STORAGE_KEYS.PROTOCOL_MODE)
   return VALID_MODES.includes(stored as ProtocolMode) ? (stored as ProtocolMode) : 'manual'
 }
 
 // ─── Shared state (persists across component mount/unmount cycles) ───
 const mode = ref<ProtocolMode>(readMode())
-const interval = ref<number>(Number(localStorage.getItem(INTERVAL_KEY)) || DEFAULT_INTERVAL)
+const interval = ref<number>(
+  Number(localStorage.getItem(STORAGE_KEYS.PROTOCOL_INTERVAL)) || DEFAULT_INTERVAL,
+)
 const recommendedEntries = ref<CrawlEntry[]>([])
 const isPaused = ref(false)
 const countdown = ref(interval.value)
@@ -64,7 +64,7 @@ async function shuffleFromTimer() {
   await new Promise((resolve) => setTimeout(resolve, 300))
 
   // We need to determine the language — use the stored locale
-  const locale = localStorage.getItem('scp-locale') || 'en'
+  const locale = localStorage.getItem(STORAGE_KEYS.LOCALE) || 'en'
   const lang: 'en' | 'cn' = locale === 'zh' ? 'cn' : 'en'
 
   try {
@@ -142,7 +142,7 @@ export function useEntryProtocol() {
 
   async function setMode(newMode: ProtocolMode) {
     mode.value = newMode
-    localStorage.setItem(MODE_KEY, newMode)
+    localStorage.setItem(STORAGE_KEYS.PROTOCOL_MODE, newMode)
 
     if (newMode === 'auto') {
       isPaused.value = false
@@ -161,7 +161,7 @@ export function useEntryProtocol() {
 
   function setIntervalOption(seconds: number) {
     interval.value = seconds
-    localStorage.setItem(INTERVAL_KEY, String(seconds))
+    localStorage.setItem(STORAGE_KEYS.PROTOCOL_INTERVAL, String(seconds))
     countdown.value = seconds
     if (mode.value === 'auto' && !isPaused.value) {
       startAutoRotation()

@@ -1,19 +1,18 @@
 import { ref, watch, type Ref } from 'vue'
-
-const STORAGE_KEY = 'scp-sidebar-collapsed'
+import { STORAGE_KEYS } from '@/constants'
 
 const collapsed = ref(false)
 
 // Initialize from localStorage
 try {
-  collapsed.value = localStorage.getItem(STORAGE_KEY) === 'true'
+  collapsed.value = localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED) === 'true'
 } catch {
   // localStorage unavailable
 }
 
 watch(collapsed, (val) => {
   try {
-    localStorage.setItem(STORAGE_KEY, String(val))
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, String(val))
   } catch {
     // localStorage unavailable
   }

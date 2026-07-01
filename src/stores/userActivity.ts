@@ -11,15 +11,14 @@ import {
   clearHistory as clearAllHistory,
 } from '@/services/userActivity'
 import type { BookmarkItem, HistoryEntry } from '@/services/userActivity'
-
-const TAB_KEY = 'scp-activity-tab'
+import { STORAGE_KEYS } from '@/constants'
 
 export type ActivityTab = 'bookmarks' | 'history'
 
 const VALID_TABS: readonly ActivityTab[] = ['bookmarks', 'history']
 
 function readActivityTab(): ActivityTab {
-  const stored = localStorage.getItem(TAB_KEY)
+  const stored = localStorage.getItem(STORAGE_KEYS.ACTIVITY_TAB)
   return VALID_TABS.includes(stored as ActivityTab) ? (stored as ActivityTab) : 'history'
 }
 
@@ -30,7 +29,7 @@ export const useUserActivityStore = defineStore('userActivity', () => {
 
   function setTab(tab: ActivityTab) {
     activeTab.value = tab
-    localStorage.setItem(TAB_KEY, tab)
+    localStorage.setItem(STORAGE_KEYS.ACTIVITY_TAB, tab)
     if (tab === 'bookmarks' && bookmarks.value.length === 0) {
       loadBookmarks()
     }

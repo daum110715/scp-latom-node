@@ -1,5 +1,6 @@
 import { computed, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { STORAGE_KEYS } from '@/constants'
 
 export function useLocale(): {
   currentLocale: ComputedRef<string>
@@ -12,13 +13,13 @@ export function useLocale(): {
 
   function toggleLocale() {
     locale.value = locale.value === 'en' ? 'zh' : 'en'
-    localStorage.setItem('scp-locale', locale.value)
+    localStorage.setItem(STORAGE_KEYS.LOCALE, locale.value)
     document.documentElement.lang = locale.value
   }
 
   function setLocale(lang: string) {
     locale.value = lang
-    localStorage.setItem('scp-locale', lang)
+    localStorage.setItem(STORAGE_KEYS.LOCALE, lang)
     document.documentElement.lang = lang
   }
 

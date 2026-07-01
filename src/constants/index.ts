@@ -94,6 +94,9 @@ export const STORAGE_KEYS = {
   LOCALE: 'scp-locale',
   SIDEBAR_COLLAPSED: 'scp-sidebar-collapsed',
   FEATURE_FLAGS: 'scp-feature-flags',
+  PROTOCOL_MODE: 'scp-protocol-mode',
+  PROTOCOL_INTERVAL: 'scp-protocol-interval',
+  ACTIVITY_TAB: 'scp-activity-tab',
 } as const
 
 // ─── Simple markdown renderer ───

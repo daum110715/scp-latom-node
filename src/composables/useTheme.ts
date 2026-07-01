@@ -1,11 +1,12 @@
 import { ref, watchEffect, type Ref } from 'vue'
+import { STORAGE_KEYS } from '@/constants'
 
 type Theme = 'dark' | 'light'
 
 const VALID_THEMES: readonly Theme[] = ['dark', 'light']
 
 function readTheme(): Theme {
-  const stored = localStorage.getItem('scp-theme')
+  const stored = localStorage.getItem(STORAGE_KEYS.THEME)
   return VALID_THEMES.includes(stored as Theme) ? (stored as Theme) : 'dark'
 }
 
@@ -13,7 +14,7 @@ const theme = ref<Theme>(readTheme())
 
 function applyTheme(t: Theme) {
   document.documentElement.setAttribute('data-theme', t)
-  localStorage.setItem('scp-theme', t)
+  localStorage.setItem(STORAGE_KEYS.THEME, t)
 }
 
 watchEffect(() => applyTheme(theme.value))
